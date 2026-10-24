@@ -40,7 +40,8 @@ export const SMTP_SECURE = String(process.env.SMTP_SECURE || 'false').toLowerCas
 export const SMTP_USER = process.env.SMTP_USER || '';
 export const SMTP_PASS = process.env.SMTP_PASS || '';
 export const SMTP_FROM = process.env.SMTP_FROM || '';
-export const EMAIL_VERIFICATION_REQUIRED = isProduction || String(process.env.EMAIL_VERIFICATION_REQUIRED || 'false').toLowerCase() === 'true';
+export const EMAIL_VERIFICATION_REQUIRED = String(process.env.EMAIL_VERIFICATION_REQUIRED || 'false').toLowerCase() === 'true';
+// export const EMAIL_VERIFICATION_REQUIRED = isProduction || String(process.env.EMAIL_VERIFICATION_REQUIRED || 'false').toLowerCase() === 'true';
 const rawUniversityDomains = process.env.UNIVERSITY_EMAIL_DOMAINS || 'geeta.edu.in';
 export const UNIVERSITY_EMAIL_DOMAINS = rawUniversityDomains.split(',').map((value) => value.trim().toLowerCase().replace(/^@/, '')).filter(Boolean);
 const invalidUniversityDomains = UNIVERSITY_EMAIL_DOMAINS.filter((domain) => !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain));
