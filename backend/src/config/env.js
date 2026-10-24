@@ -59,9 +59,14 @@ if (isProduction) {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
     missingVars.push('SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM (email verification delivery)');
   }
-  if (!process.env.UNIVERSITY_EMAIL_DOMAINS || UNIVERSITY_EMAIL_DOMAINS.length === 0 || invalidUniversityDomains.length > 0) {
-    missingVars.push('UNIVERSITY_EMAIL_DOMAINS (comma-separated valid university email domains)');
-  }
+ if (
+  EMAIL_VERIFICATION_REQUIRED &&
+  (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM)
+) {
+  missingVars.push(
+    'SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM (required when email verification is enabled)'
+  );
+}
 }
 
 if (invalidUniversityDomains.length > 0) {
