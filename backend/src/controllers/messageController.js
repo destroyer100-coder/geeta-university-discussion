@@ -53,6 +53,14 @@ export const getMessagesWithUser = async (req, res, next) => {
     const { userId: otherUserId } = req.params;
     const currentUserId = req.user._id;
 
+    if (typeof otherUserId !== 'string' || !/^[a-f0-9]{24}$/i.test(otherUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Recipient ID must be a valid user ID.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid recipient ID.' },
+      });
+    }
+
     // Find conversation
     const conversation = await Conversation.findOne({
       participants: { $all: [currentUserId, otherUserId], $size: 2 },
@@ -90,11 +98,12 @@ export const sendMessage = async (req, res, next) => {
       typeof receiverId !== 'string' ||
       !/^[a-f0-9]{24}$/i.test(receiverId) ||
       typeof body !== 'string' ||
-      body.trim().length === 0
+      body.trim().length === 0 ||
+      body.trim().length > 10000
     ) {
       return res.status(400).json({
         success: false,
-        message: 'Receiver and non-empty message body are required.',
+        message: 'A valid receiver ID and a message body of 1–10000 characters are required.',
         error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Receiver and body required.' },
       });
     }
