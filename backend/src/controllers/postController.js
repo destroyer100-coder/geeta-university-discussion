@@ -480,18 +480,20 @@ export const getPostById = async (req, res, next) => {
       }
     }
 
-    // Handle Pending/Rejected Content Authorization (Point 5, rules §10):
-    // visible ONLY to author and holders of the `manage_requests` delegation
-    // for this exact community (Head/Platform Admin always; a moderator
-    // WITHOUT that delegation — even with other delegations — is denied).
-    if ([CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED].includes(post.status)) {
-      if (!isAuthor && !canReviewQueue) {
-        return res.status(403).json({
-          success: false,
-          message: 'This post is pending moderator approval.',
-          error: { code: ERROR_CODES.FORBIDDEN, message: 'Post is pending approval.' },
-        });
-      }
+    // Non-public moderation states must be checked on direct-ID access too,
+    // not only in feed queries or attachment delivery.
+    const restrictedStatuses = [
+      CONTENT_STATUS.PENDING,
+      CONTENT_STATUS.REJECTED,
+      CONTENT_STATUS.HIDDEN,
+      'archived',
+    ];
+    if (restrictedStatuses.includes(post.status) && !isAuthor && !canReviewQueue) {
+      return res.status(403).json({
+        success: false,
+        message: 'This discussion is not available for public viewing.',
+        error: { code: ERROR_CODES.FORBIDDEN, message: 'Restricted post.' },
+      });
     }
 
     // Check Members-only Community Visibility
