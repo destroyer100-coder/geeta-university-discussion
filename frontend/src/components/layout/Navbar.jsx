@@ -9,9 +9,8 @@ import { notificationsApi } from '../../services/api';
 export const NOTIFICATIONS_CHANGED_EVENT = 'notifications:changed';
 
 export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = false }) => {
-  const { user, logout, switchPersona, DEMO_ACCOUNTS } = useAuth();
-  const isDevelopment = import.meta.env.DEV;
-  const [showPersonaMenu, setShowPersonaMenu] = useState(false);
+  const { user, logout } = useAuth();
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
@@ -33,7 +32,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
       .catch(() => setUnreadCount(0));
   }, [user]);
 
-  // Refresh on mount, on navigation, and whenever the active persona changes
+  // Refresh on mount, on navigation, and when the authenticated user changes
   useEffect(() => {
     loadUnreadCount();
   }, [loadUnreadCount, location.pathname]);
@@ -138,15 +137,15 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
             <Icon name="messageSquare" size={20} />
           </Link>
 
-          {/* Persona Switcher / User Profile */}
+          {/* User account menu */}
           <div style={{ position: 'relative' }}>
             <button
               type="button"
               className="btn btn-secondary"
               aria-haspopup="true"
-              aria-expanded={showPersonaMenu}
+              aria-expanded={showAccountMenu}
               aria-label={user ? `Account menu for ${user.name}` : 'Open sign-in menu'}
-              onClick={() => setShowPersonaMenu(!showPersonaMenu)}
+              onClick={() => setShowAccountMenu(!showAccountMenu)}
               style={{ padding: '4px 10px', gap: '8px', borderRadius: '20px' }}
             >
               {user ? (
@@ -164,8 +163,8 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
               <Icon name="chevronDown" size={14} />
             </button>
 
-            {/* Account menu; test personas exist only in development builds. */}
-            {showPersonaMenu && (
+            {/* Account actions for the currently authenticated user. */}
+            {showAccountMenu && (
               <div
                 style={{
                   position: 'absolute',
@@ -180,49 +179,11 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
                   zIndex: 200,
                 }}
               >
-                {isDevelopment && (
-                  <>
-                    <div style={{ padding: '6px 10px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase' }}>
-                      Switch Test Persona (Development Only)
-                    </div>
-                    {DEMO_ACCOUNTS.map((account) => (
-                      <button
-                        type="button"
-                        key={account.email}
-                        onClick={() => {
-                          switchPersona(account.email);
-                          setShowPersonaMenu(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '8px 10px',
-                          background: user?.email === account.email ? 'var(--primary-light)' : 'transparent',
-                          border: 'none',
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          marginBottom: '2px',
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: user?.email === account.email ? 'var(--primary)' : 'var(--text-main)' }}>
-                          {account.name} {user?.email === account.email && '✓'}
-                        </div>
-                        <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                          {account.title}
-                        </div>
-                      </button>
-                    ))}
-                    <div style={{ borderTop: '1px solid var(--border-color)', margin: '6px 0' }} />
-                  </>
-                )}
-
                 {user ? (
                   <>
                     <Link
                       to="/profile/me"
-                      onClick={() => setShowPersonaMenu(false)}
+                      onClick={() => setShowAccountMenu(false)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -240,7 +201,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
                     <button
                       onClick={() => {
                         logout();
-                        setShowPersonaMenu(false);
+                        setShowAccountMenu(false);
                       }}
                       style={{
                         width: '100%',
@@ -263,7 +224,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
                 ) : (
                   <Link
                     to="/login"
-                    onClick={() => setShowPersonaMenu(false)}
+                    onClick={() => setShowAccountMenu(false)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
