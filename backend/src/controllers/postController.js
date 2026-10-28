@@ -1109,7 +1109,7 @@ export const reviewPost = async (req, res, next) => {
       });
     }
 
-    const post = await Post.findById(id).populate('community');
+    let post = await Post.findById(id).populate('community');
     if (!post) {
       return res.status(404).json({
         success: false,
@@ -1144,13 +1144,32 @@ export const reviewPost = async (req, res, next) => {
       });
     }
 
-    if (action === 'approve') {
-      post.status = CONTENT_STATUS.PUBLISHED;
-      post.reviewedBy = req.user._id;
-      post.reviewedAt = new Date();
-      post.rejectionReason = '';
-      await post.save();
+    const nextStatus =
+      action === 'approve' ? CONTENT_STATUS.PUBLISHED : CONTENT_STATUS.REJECTED;
+    const reviewedPost = await Post.findOneAndUpdate(
+      { _id: post._id, status: CONTENT_STATUS.PENDING },
+      {
+        $set: {
+          status: nextStatus,
+          reviewedBy: req.user._id,
+          reviewedAt: new Date(),
+          rejectionReason: action === 'reject' ? reviewNote : '',
+        },
+      },
+      { new: true, runValidators: true }
+    ).populate('community');
 
+    if (!reviewedPost) {
+      return res.status(409).json({
+        success: false,
+        message: 'This post is no longer pending review. Refresh the queue and try again.',
+        error: { code: ERROR_CODES.CONFLICT, message: 'Post has already been reviewed.' },
+      });
+    }
+
+    post = reviewedPost;
+
+    if (action === 'approve') {
       // Increment community postCount
       await Community.updateOne({ _id: post.community._id }, { $inc: { postCount: 1 } });
 
@@ -1163,12 +1182,6 @@ export const reviewPost = async (req, res, next) => {
         target: { modelType: 'Post', id: post._id.toString(), title: post.title },
       });
     } else {
-      post.status = CONTENT_STATUS.REJECTED;
-      post.reviewedBy = req.user._id;
-      post.reviewedAt = new Date();
-      post.rejectionReason = reviewNote;
-      await post.save();
-
       // Notify author
       await notificationService.notify({
         userId: post.author,
