@@ -101,6 +101,10 @@ npm install
 npm start        # Runs API server on http://localhost:5000
 ```
 
+### Optional Integration-Test Fixtures
+
+The manual HTTP permission tests require an isolated fixture database and the backend running against that same database. Configure `MONGODB_URI` to a disposable database ending in `_test`, set `ALLOW_TEST_FIXTURE_RESET=true`, and run `npm run seed:test` from `backend/`. The fixture script refuses production and refuses database names without the `_test` suffix. Do not use production credentials or data for these tests.
+
 ### 3. Frontend Setup
 ```bash
 cd frontend
@@ -112,7 +116,7 @@ npm run dev      # Runs client application on http://localhost:5173
 
 ## 🔐 Account Provisioning
 
-The repository does not ship pre-created demo accounts, shared passwords, or a database seed command. Public registration creates student accounts. Faculty and administrator accounts must be provisioned by an authorized operator; public registration must never allow a user to choose or elevate their own role. Do not delete or reset existing MongoDB data as part of setup.
+The application does not expose pre-created demo accounts or shared demo credentials. Public registration creates student accounts. Faculty and administrator accounts must be provisioned by an authorized operator; public registration must never allow a user to choose or elevate their own role. No general-purpose database seed command is provided. The optional test fixtures are stored under `backend/tests/fixtures/` and reset only when `MONGODB_URI` points to a disposable database whose name ends in `_test`, `ALLOW_TEST_FIXTURE_RESET=true` is set, and `NODE_ENV` is not `production`. Never aim test scripts at a real or production database.
 
 ---
 
