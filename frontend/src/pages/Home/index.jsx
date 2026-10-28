@@ -46,7 +46,7 @@ export const Home = ({ onOpenCreatePost }) => {
       >
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
-            A Community by Students, for Students
+            A Campus Community for Students & Faculty
           </div>
           <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '6px', letterSpacing: '-0.5px' }}>
             GEETA UNIVERSITY DISCUSSION
@@ -55,29 +55,7 @@ export const Home = ({ onOpenCreatePost }) => {
             Discuss, Learn, Share, Grow. Connect with peers, seniors and faculty across departments.
           </p>
 
-          {/* Quick Metrics */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="users" size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>12K+</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Students</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="compass" size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>350+</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Communities</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="messageSquare" size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>50K+</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Discussions</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="bookmark" size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>100K+</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Resources Shared</span>
-            </div>
-          </div>
+
         </div>
       </div>
 

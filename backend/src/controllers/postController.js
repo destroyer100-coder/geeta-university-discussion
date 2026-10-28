@@ -480,18 +480,20 @@ export const getPostById = async (req, res, next) => {
       }
     }
 
-    // Handle Pending/Rejected Content Authorization (Point 5, rules §10):
-    // visible ONLY to author and holders of the `manage_requests` delegation
-    // for this exact community (Head/Platform Admin always; a moderator
-    // WITHOUT that delegation — even with other delegations — is denied).
-    if ([CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED].includes(post.status)) {
-      if (!isAuthor && !canReviewQueue) {
-        return res.status(403).json({
-          success: false,
-          message: 'This post is pending moderator approval.',
-          error: { code: ERROR_CODES.FORBIDDEN, message: 'Post is pending approval.' },
-        });
-      }
+    // Non-public moderation states must be checked on direct-ID access too,
+    // not only in feed queries or attachment delivery.
+    const restrictedStatuses = [
+      CONTENT_STATUS.PENDING,
+      CONTENT_STATUS.REJECTED,
+      CONTENT_STATUS.HIDDEN,
+      'archived',
+    ];
+    if (restrictedStatuses.includes(post.status) && !isAuthor && !canReviewQueue) {
+      return res.status(403).json({
+        success: false,
+        message: 'This discussion is not available for public viewing.',
+        error: { code: ERROR_CODES.FORBIDDEN, message: 'Restricted post.' },
+      });
     }
 
     // Check Members-only Community Visibility
@@ -1109,7 +1111,7 @@ export const reviewPost = async (req, res, next) => {
       });
     }
 
-    const post = await Post.findById(id).populate('community');
+    let post = await Post.findById(id).populate('community');
     if (!post) {
       return res.status(404).json({
         success: false,
@@ -1144,13 +1146,32 @@ export const reviewPost = async (req, res, next) => {
       });
     }
 
-    if (action === 'approve') {
-      post.status = CONTENT_STATUS.PUBLISHED;
-      post.reviewedBy = req.user._id;
-      post.reviewedAt = new Date();
-      post.rejectionReason = '';
-      await post.save();
+    const nextStatus =
+      action === 'approve' ? CONTENT_STATUS.PUBLISHED : CONTENT_STATUS.REJECTED;
+    const reviewedPost = await Post.findOneAndUpdate(
+      { _id: post._id, status: CONTENT_STATUS.PENDING },
+      {
+        $set: {
+          status: nextStatus,
+          reviewedBy: req.user._id,
+          reviewedAt: new Date(),
+          rejectionReason: action === 'reject' ? reviewNote : '',
+        },
+      },
+      { new: true, runValidators: true }
+    ).populate('community');
 
+    if (!reviewedPost) {
+      return res.status(409).json({
+        success: false,
+        message: 'This post is no longer pending review. Refresh the queue and try again.',
+        error: { code: ERROR_CODES.CONFLICT, message: 'Post has already been reviewed.' },
+      });
+    }
+
+    post = reviewedPost;
+
+    if (action === 'approve') {
       // Increment community postCount
       await Community.updateOne({ _id: post.community._id }, { $inc: { postCount: 1 } });
 
@@ -1163,12 +1184,6 @@ export const reviewPost = async (req, res, next) => {
         target: { modelType: 'Post', id: post._id.toString(), title: post.title },
       });
     } else {
-      post.status = CONTENT_STATUS.REJECTED;
-      post.reviewedBy = req.user._id;
-      post.reviewedAt = new Date();
-      post.rejectionReason = reviewNote;
-      await post.save();
-
       // Notify author
       await notificationService.notify({
         userId: post.author,

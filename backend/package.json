@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed": "node src/utils/seeder.js"
+    "seed:test": "node tests/fixtures/seed-test-database.mjs",
+    "test:policy": "node tests/c8_custom_policy_test.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

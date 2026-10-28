@@ -111,7 +111,7 @@ export const reviewPostRequest = async (req, res, next) => {
       });
     }
 
-    const postReq = await PostRequest.findById(id).populate('community');
+    let postReq = await PostRequest.findById(id).populate('community');
     if (!postReq) {
       return res.status(404).json({
         success: false,
@@ -146,10 +146,34 @@ export const reviewPostRequest = async (req, res, next) => {
       });
     }
 
-    postReq.status = status;
-    postReq.reviewer = req.user._id;
-    postReq.reviewNote = reviewNote || '';
-    await postReq.save();
+    // Requests may be reviewed once while pending, or finalized after a clarification.
+    // Use a conditional update so concurrent reviewers cannot publish duplicate posts.
+    const eligiblePriorStatuses =
+      status === POST_REQUEST_STATUS.CLARIFICATION
+        ? [POST_REQUEST_STATUS.PENDING]
+        : [POST_REQUEST_STATUS.PENDING, POST_REQUEST_STATUS.CLARIFICATION];
+
+    const reviewedRequest = await PostRequest.findOneAndUpdate(
+      { _id: postReq._id, status: { $in: eligiblePriorStatuses } },
+      {
+        $set: {
+          status,
+          reviewer: req.user._id,
+          reviewNote: reviewNote || '',
+        },
+      },
+      { new: true, runValidators: true }
+    ).populate('community');
+
+    if (!reviewedRequest) {
+      return res.status(409).json({
+        success: false,
+        message: 'This request has already been reviewed. Refresh the queue and try again.',
+        error: { code: ERROR_CODES.CONFLICT, message: 'Post request is no longer reviewable.' },
+      });
+    }
+
+    postReq = reviewedRequest;
 
     // If approved, grant user approved posting privileges in CommunityMember
     if (status === POST_REQUEST_STATUS.APPROVED) {
@@ -192,7 +216,12 @@ export const reviewPostRequest = async (req, res, next) => {
     // Audit Log entry (Point 8, 25)
     await AuditLog.create({
       actor: req.user._id,
-      action: status === POST_REQUEST_STATUS.APPROVED ? AUDIT_ACTIONS.APPROVE_POST : AUDIT_ACTIONS.REJECT_POST,
+      action:
+        status === POST_REQUEST_STATUS.APPROVED
+          ? AUDIT_ACTIONS.APPROVE_POST
+          : status === POST_REQUEST_STATUS.REJECTED
+            ? AUDIT_ACTIONS.REJECT_POST
+            : AUDIT_ACTIONS.REQUEST_CLARIFICATION,
       targetType: 'post_request',
       targetId: postReq._id.toString(),
       community: postReq.community._id,
@@ -204,7 +233,12 @@ export const reviewPostRequest = async (req, res, next) => {
     await notificationService.notify({
       userId: postReq.user,
       actorId: req.user._id,
-      type: status === POST_REQUEST_STATUS.APPROVED ? 'request_approved' : 'request_rejected',
+      type:
+        status === POST_REQUEST_STATUS.APPROVED
+          ? 'request_approved'
+          : status === POST_REQUEST_STATUS.REJECTED
+            ? 'request_rejected'
+            : 'request_clarification',
       message: `Your request to post in "${postReq.community.name}" was ${status}. ${reviewNote ? `Note: ${reviewNote}` : ''}`,
       target: { modelType: 'Community', id: postReq.community._id.toString(), title: postReq.community.name },
     });

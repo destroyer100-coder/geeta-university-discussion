@@ -13,6 +13,22 @@ const app = express();
 initStorage();
 
 app.disable('x-powered-by');
+
+// Minimal API security headers. The frontend is hosted separately, so this API
+// intentionally avoids a Content-Security-Policy that could break client pages.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  if (NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  }
+
+  next();
+});
+
 app.use(correlationIdMiddleware);
 app.use(cors({
   origin(origin, callback) {
