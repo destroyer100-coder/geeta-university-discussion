@@ -111,22 +111,27 @@ async function main() {
     { email: 'c8fx_admin@test.edu.in', name: 'C8 FX Admin', role: 'admin' },
   ];
 
+  const passwordHash = await bcrypt.hash(PW, 12);
   for (const { email, name, role } of usersData) {
-    const existing = await User.findOne({ email });
-    if (existing) {
-      U[email.replace(/[^a-zA-Z0-9]/g, '_')] = existing;
-    } else {
-      const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash(PW, salt);
-      const user = await User.create({
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({
         email,
         name,
-        password: passwordHash,
+        passwordHash,
         role: role || 'student',
         verified: true,
       });
-      U[email.replace(/[^a-zA-Z0-9]/g, '_')] = user;
+    } else {
+      // Select:false keeps the stored hash out of normal queries; explicitly set a
+      // fresh hash so reruns remain deterministic and every fixture can log in.
+      user.passwordHash = passwordHash;
+      user.name = name;
+      user.role = role || 'student';
+      user.verified = true;
+      await user.save();
     }
+    U[email.replace(/[^a-zA-Z0-9]/g, '_')] = user;
   }
 
   // Login all users
