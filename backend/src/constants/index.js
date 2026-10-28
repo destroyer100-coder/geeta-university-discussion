@@ -94,6 +94,7 @@ export const AUDIT_ACTIONS = {
   APPROVE_POST: 'approve_post',
   REJECT_POST: 'reject_post',
   REQUEST_CLARIFICATION: 'request_clarification',
+  DELETE_ACCOUNT: 'delete_account',
   BAN_MEMBER: 'ban_member',
   UNBAN_MEMBER: 'unban_member',
   CHANGE_ROLE: 'change_role',
