@@ -36,8 +36,7 @@ export const seedDatabase = async () => {
 
   let databaseName = '';
   try {
-    databaseName = new URL(process.env.MONGODB_URI || '').pathname.replace(/^\\/+/, '');
-    databaseName = databaseName.split('/')[0].split('?')[0];
+    databaseName = new URL(process.env.MONGODB_URI || '').pathname.split('/').filter(Boolean)[0] || '';
   } catch {
     databaseName = '';
   }
