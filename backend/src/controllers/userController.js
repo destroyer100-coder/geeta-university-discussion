@@ -564,7 +564,7 @@ export const deleteMyAccount = async (req, res, next) => {
   // Create Audit Log without retaining the original email
 await AuditLog.create({
   actor: userId,
-  action: 'delete_account',
+  action: AUDIT_ACTIONS.DELETE_ACCOUNT,
   targetType: 'user',
   targetId: userId.toString(),
   details: { deletedAt: new Date() },
