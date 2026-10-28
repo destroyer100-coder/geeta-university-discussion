@@ -101,6 +101,10 @@ npm install
 npm start        # Runs API server on http://localhost:5000
 ```
 
+### Production Environment Requirements
+
+Configure these backend environment variables before production deployment: `MONGODB_URI`, a unique `JWT_SECRET` of at least 32 characters, HTTPS `CORS_ORIGINS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `UNIVERSITY_EMAIL_DOMAINS`. Production requires university email verification; accounts that predate this policy may need to request a new verification email. Never paste production secrets into source control or test fixtures.
+
 ### Optional Integration-Test Fixtures
 
 The manual HTTP permission tests require an isolated fixture database and the backend running against that same database. Configure `MONGODB_URI` to a disposable database ending in `_test`, set `ALLOW_TEST_FIXTURE_RESET=true`, and run `npm run seed:test` from `backend/`. The fixture script refuses production and refuses database names without the `_test` suffix. Do not use production credentials or data for these tests.
@@ -136,6 +140,6 @@ The application does not expose pre-created demo accounts or shared demo credent
 
 ### ⚠️ Known Gaps & Production Roadmap
 - **Real-Time Gateway**: Live chat and instant notification delivery currently utilize REST polling; WebSocket / Socket.io server integration is planned for high-concurrency production deployments.
-- **Email Delivery Service**: Account verification and password reset emails currently log verification tokens to the development console; production requires dedicated SMTP / Amazon SES integration.
+- **Email Verification & Delivery**: Production requires SMTP configuration and verified university email domains; the backend now fails fast if these are missing. Existing accounts without `emailVerifiedAt` need to complete/resend verification before login. A password-reset email flow is not implemented yet.
 - **Cloud Object Storage Adapter**: Local disk storage in `backend/uploads/` must be swapped for an S3/GCS/R2 SDK client with signed URLs for cloud deployment.
 - **Background Task Workers**: Asynchronous media processing and bulk email notifications are currently executed in-process; production transition will incorporate Redis / BullMQ workers.
