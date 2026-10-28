@@ -91,14 +91,13 @@ There is **no standalone or detached "Resource Library"**. Instead, learning res
 ## 🚀 Local Development Setup
 
 ### 1. Prerequisites
-- **Node.js** (v18.x or higher)
+- **Node.js** (v20.x or higher)
 - **MongoDB** running locally on port `27017`
 
 ### 2. Backend Setup
 ```bash
 cd backend
 npm install
-npm run seed     # Seeds academic communities, dev personas, and discussion threads
 npm start        # Runs API server on http://localhost:5000
 ```
 
@@ -111,19 +110,9 @@ npm run dev      # Runs client application on http://localhost:5173
 
 ---
 
-## 👥 Demo Personas (Development Only)
+## 🔐 Account Provisioning
 
-> [!WARNING]
-> **DEVELOPMENT ONLY NOTICE**
-> The following pre-seeded credentials and test accounts are provided strictly for local development and testing. Real production secrets and credentials must **never** be committed to version control and should always be injected via environment variables (`.env`).
-
-| Persona | Email | Password | Academic Role & Communities |
-| :--- | :--- | :--- | :--- |
-| **Vansh Jawla** | `vansh@geeta.edu.in` | `password123` | 3rd Year CSE Student; Owner of *Coding Club*; Member of *CSE Discussion* |
-| **Dr. Rakesh Sharma** | `rakesh@geeta.edu.in` | `password123` | Faculty Head of CSE; Owner of *CSE Discussion*; Mod of *University Announcements* |
-| **Rahul Mehta** | `rahul@geeta.edu.in` | `password123` | 4th Year CSE; Placement Coordinator; Owner of *Placement Updates*; Mod of *Coding Club* |
-| **Sneha Arora** | `sneha@geeta.edu.in` | `password123` | 3rd Year CSE Contributor; Member of *Coding Club* & *Placement Updates* |
-| **Platform Admin** | `admin@geeta.edu.in` | `password123` | University Platform Administrator |
+The repository does not ship pre-created demo accounts, shared passwords, or a database seed command. Public registration creates student accounts. Faculty and administrator accounts must be provisioned by an authorized operator; public registration must never allow a user to choose or elevate their own role. Do not delete or reset existing MongoDB data as part of setup.
 
 ---
 
