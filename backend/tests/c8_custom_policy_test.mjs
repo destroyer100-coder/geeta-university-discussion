@@ -62,7 +62,30 @@ async function login(email) {
   return r.json.token;
 }
 
+function assertTestDatabase() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to run database-mutating tests in production.');
+  }
+
+  let databaseName = '';
+  try {
+    databaseName = new URL(process.env.MONGODB_URI || '').pathname
+      .replace(/^\\/+/, '')
+      .split('/')[0]
+      .split('?')[0];
+  } catch {
+    databaseName = '';
+  }
+
+  if (!/_test$/i.test(databaseName)) {
+    throw new Error(
+      'These tests mutate fixture records. Set MONGODB_URI to a disposable database whose name ends in "_test".'
+    );
+  }
+}
+
 async function main() {
+  assertTestDatabase();
   await connectDB();
 
   // ---------- 0. Clean stale fixtures from any previous run ----------
