@@ -1460,11 +1460,23 @@ if (
 
     const alreadyLiked = post.likes.some((uid) => uid.toString() === userId.toString());
 
-    if (alreadyLiked) {
-      await Post.updateOne({ _id: post._id }, { $pull: { likes: userId } });
-    } else {
-      await Post.updateOne({ _id: post._id }, { $addToSet: { likes: userId } });
+    const interactionFilter = {
+      _id: post._id,
+      status: { $in: [CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.LOCKED] },
+    };
+    const interactionUpdate = alreadyLiked
+      ? { $pull: { likes: userId } }
+      : { $addToSet: { likes: userId } };
+    const interactionResult = await Post.updateOne(interactionFilter, interactionUpdate);
+    if (interactionResult.matchedCount !== 1) {
+      return res.status(410).json({
+        success: false,
+        message: 'This discussion is no longer available for interaction.',
+        error: { code: ERROR_CODES.CONFLICT },
+      });
+    }
 
+    if (!alreadyLiked) {
       // Notify author if not self-liking
       if (post.author.toString() !== userId.toString()) {
         await notificationService.notify({
@@ -1531,10 +1543,21 @@ export const savePost = async (req, res, next) => {
 
     const alreadySaved = post.saves.some((uid) => uid.toString() === userId.toString());
 
-    if (alreadySaved) {
-      await Post.updateOne({ _id: post._id }, { $pull: { saves: userId } });
-    } else {
-      await Post.updateOne({ _id: post._id }, { $addToSet: { saves: userId } });
+    const interactionResult = await Post.updateOne(
+      {
+        _id: post._id,
+        status: { $in: [CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.LOCKED] },
+      },
+      alreadySaved
+        ? { $pull: { saves: userId } }
+        : { $addToSet: { saves: userId } }
+    );
+    if (interactionResult.matchedCount !== 1) {
+      return res.status(410).json({
+        success: false,
+        message: 'This discussion is no longer available for interaction.',
+        error: { code: ERROR_CODES.CONFLICT },
+      });
     }
 
     const updated = await Post.findById(id).select('saves');
@@ -1593,10 +1616,21 @@ export const voteHelpful = async (req, res, next) => {
       (uid) => uid.toString() === userId.toString()
     );
 
-    if (alreadyHelpful) {
-      await Post.updateOne({ _id: post._id }, { $pull: { helpfulVotes: userId } });
-    } else {
-      await Post.updateOne({ _id: post._id }, { $addToSet: { helpfulVotes: userId } });
+    const interactionResult = await Post.updateOne(
+      {
+        _id: post._id,
+        status: { $in: [CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.LOCKED] },
+      },
+      alreadyHelpful
+        ? { $pull: { helpfulVotes: userId } }
+        : { $addToSet: { helpfulVotes: userId } }
+    );
+    if (interactionResult.matchedCount !== 1) {
+      return res.status(410).json({
+        success: false,
+        message: 'This discussion is no longer available for interaction.',
+        error: { code: ERROR_CODES.CONFLICT },
+      });
     }
 
     const updated = await Post.findById(id).select('helpfulVotes');
