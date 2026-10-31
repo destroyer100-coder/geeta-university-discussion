@@ -134,7 +134,7 @@ export const uploadFiles = async (req, res, next) => {
       else if (file.mimetype.startsWith('video/')) type = 'video';
 
       return {
-        originalName: path.basename(file.originalname).replace(/[\\u0000-\\u001F\\u007F]/g, '').slice(0, 255),
+        originalName: path.basename(file.originalname).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 255),
         filename: file.filename, // Generated secure key from multer
         storageKey: file.filename,
         mimeType: file.mimetype,
