@@ -124,21 +124,25 @@ export const uploadFiles = async (req, res, next) => {
       });
     }
 
+    const ownerId = req.user?._id?.toString();
     const uploaded = req.files.map((file) => {
+      if (!file.filename || !file.filename.startsWith(`u-${ownerId}-`)) {
+        throw new Error('Upload storage ownership validation failed.');
+      }
       let type = 'file';
       if (file.mimetype.startsWith('image/')) type = 'image';
       else if (file.mimetype.startsWith('video/')) type = 'video';
 
       return {
-        originalName: file.originalname,
+        originalName: path.basename(file.originalname).replace(/[\\u0000-\\u001F\\u007F]/g, '').slice(0, 255),
         filename: file.filename, // Generated secure key from multer
         storageKey: file.filename,
         mimeType: file.mimetype,
         size: file.size,
         type,
         url: `/api/uploads/${file.filename}`,
-        relativePath: req.body.relativePaths?.[file.originalname] || file.originalname,
-        folderRelativePath: req.body.folderRelativePaths?.[file.originalname] || '',
+        relativePath: file.originalname,
+        folderRelativePath: '',
       };
     });
 
