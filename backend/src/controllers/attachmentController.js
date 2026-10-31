@@ -124,21 +124,25 @@ export const uploadFiles = async (req, res, next) => {
       });
     }
 
+    const ownerId = req.user?._id?.toString();
     const uploaded = req.files.map((file) => {
+      if (!file.filename || !file.filename.startsWith(`u-${ownerId}-`)) {
+        throw new Error('Upload storage ownership validation failed.');
+      }
       let type = 'file';
       if (file.mimetype.startsWith('image/')) type = 'image';
       else if (file.mimetype.startsWith('video/')) type = 'video';
 
       return {
-        originalName: file.originalname,
+        originalName: path.basename(file.originalname).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 255),
         filename: file.filename, // Generated secure key from multer
         storageKey: file.filename,
         mimeType: file.mimetype,
         size: file.size,
         type,
         url: `/api/uploads/${file.filename}`,
-        relativePath: req.body.relativePaths?.[file.originalname] || file.originalname,
-        folderRelativePath: req.body.folderRelativePaths?.[file.originalname] || '',
+        relativePath: file.originalname,
+        folderRelativePath: '',
       };
     });
 
@@ -148,6 +152,24 @@ export const uploadFiles = async (req, res, next) => {
       data: uploaded,
     });
   } catch (error) {
+    // If metadata preparation fails, remove this request's staged files so a
+    // failed upload response does not leave unclaimed files on disk.
+    for (const file of req.files || []) {
+      const directory = UPLOAD_DIRECTORY_BY_TYPE[
+        file.mimetype.startsWith('image/') ? 'image' :
+          file.mimetype.startsWith('video/') ? 'video' : 'file'
+      ];
+      if (!directory || !file.filename || path.basename(file.filename) !== file.filename) continue;
+      const root = path.resolve(UPLOAD_DIR, directory);
+      const candidate = path.resolve(root, file.filename);
+      if (path.dirname(candidate) !== root) continue;
+      try {
+        const stats = fs.lstatSync(candidate);
+        if (stats.isFile() && !stats.isSymbolicLink()) fs.unlinkSync(candidate);
+      } catch (cleanupError) {
+        if (cleanupError.code !== 'ENOENT') console.error('[Storage] Failed to clean staged upload:', cleanupError.message);
+      }
+    }
     next(error);
   }
 };

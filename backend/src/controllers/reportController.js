@@ -83,7 +83,7 @@ export const getReports = async (req, res, next) => {
     let reports;
     
     // Community-aware report retrieval (Point 8, 16, 17, 18, 19)
-    if (req.user.role === 'admin' || req.user.role === 'faculty') {
+    if (req.user.role === 'admin') {
       // Platform admins and faculty can see ALL reports (platform-level scope)
       reports = await Report.find()
         .populate('reporter', 'name email')
@@ -142,7 +142,7 @@ export const updateReportStatus = async (req, res, next) => {
     }
 
     // Authorization check: only users with platform scope or community scope may review
-    if (req.user.role !== 'admin' && req.user.role !== 'faculty') {
+    if (req.user.role !== 'admin') {
       // Community moderator: must be an active moderator in the report's community
       // and cannot review platform/global reports (community === null)
       if (!report.community) {

@@ -45,16 +45,7 @@ export const getFoldersByPost = async (req, res, next) => {
     }
 
     if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
-      const canModerate =
-        req.user &&
-        (await permissionService.canModerate(req.user, post.community));
-
-      if (!isAuthor && !canModerate) {
-        return res.json({
-          success: true,
-          data: { folders: [], attachments: [] },
-        });
-      }
+      return res.json({ success: true, data: { folders: [], attachments: [] } });
     }
 
     if (post.community?.permissions?.visibility === VISIBILITY.MEMBERS_ONLY) {

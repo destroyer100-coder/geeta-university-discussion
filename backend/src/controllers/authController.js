@@ -12,7 +12,7 @@ import { sendVerificationEmail } from '../services/emailService.js';
 const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
 const GENERIC_RESEND_MESSAGE = 'If the account exists and still needs verification, a verification email will be sent shortly.';
 
-const generateToken = (userId) => jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '30d' });
+const generateToken = (user) => jwt.sign({ id: user._id, tokenVersion: user.tokenVersion || 0 }, JWT_SECRET, { expiresIn: '30d' });
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 const hashVerificationToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 const createVerificationToken = () => crypto.randomBytes(32).toString('hex');
@@ -94,7 +94,7 @@ export const register = async (req, res, next) => {
       });
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user);
     return res.status(201).json({ success: true, token, user: publicUser(user) });
   } catch (error) {
     if (error?.code === 11000) {
@@ -108,9 +108,13 @@ export const login = async (req, res, next) => {
   try {
     const email = normalizeEmail(req.body.email);
     const { password } = req.body;
-    const user = await User.findOne({ email, isDeleted: { $ne: true } }).select('+passwordHash');
+    const user = await User.findOne({ email, isDeleted: { $ne: true } }).select('+passwordHash +tokenVersion');
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ success: false, message: 'This account has been deactivated. Contact platform administration.' });
     }
 
     if (EMAIL_VERIFICATION_REQUIRED && (!user.verified || !user.emailVerifiedAt)) {
@@ -121,7 +125,7 @@ export const login = async (req, res, next) => {
       });
     }
 
-    return res.json({ success: true, token: generateToken(user._id), user: publicUser(user) });
+    return res.json({ success: true, token: generateToken(user), user: publicUser(user) });
   } catch (error) {
     next(error);
   }

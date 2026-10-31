@@ -352,6 +352,81 @@ export const updateCommunitySettings = async (req, res, next) => {
     } = req.body;
 
     const auditChanges = {};
+    const isObjectId = (value) => typeof value === 'string' && /^[a-f0-9]{24}$/i.test(value);
+    const allowedPermissionKeys = [
+      'visibility',
+      'postPolicy',
+      'commentPolicy',
+      'sharePolicy',
+      'allowPostRequests',
+      'requirePostApproval',
+      'allowAnonymousPosts',
+      'customAllowedUsers',
+    ];
+    const policyEnums = {
+      visibility: Object.values(VISIBILITY),
+      postPolicy: ['EVERYONE', 'MEMBERS', 'APPROVED_USERS', 'HEAD_MODS', 'CUSTOM'],
+      commentPolicy: ['EVERYONE', 'MEMBERS', 'APPROVED_USERS', 'HEAD_MODS', 'CUSTOM'],
+      sharePolicy: ['EVERYONE', 'MEMBERS', 'DISABLED'],
+    };
+
+    if (permissions !== undefined) {
+      if (!permissions || typeof permissions !== 'object' || Array.isArray(permissions)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Permissions must be an object.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid permissions.' },
+        });
+      }
+      const unknownKeys = Object.keys(permissions).filter((key) => !allowedPermissionKeys.includes(key));
+      if (unknownKeys.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Unsupported community permission field.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Unknown permission field.' },
+        });
+      }
+      for (const [key, values] of Object.entries(policyEnums)) {
+        if (permissions[key] !== undefined && !values.includes(permissions[key])) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid ${key} value.`,
+            error: { code: ERROR_CODES.VALIDATION_ERROR, message: `Invalid ${key}.` },
+          });
+        }
+      }
+      for (const key of ['allowPostRequests', 'requirePostApproval', 'allowAnonymousPosts']) {
+        if (permissions[key] !== undefined && typeof permissions[key] !== 'boolean') {
+          return res.status(400).json({
+            success: false,
+            message: `${key} must be a boolean.`,
+            error: { code: ERROR_CODES.VALIDATION_ERROR, message: `Invalid ${key}.` },
+          });
+        }
+      }
+      if (permissions.customAllowedUsers !== undefined &&
+        (!Array.isArray(permissions.customAllowedUsers) ||
+          permissions.customAllowedUsers.some((userId) => !isObjectId(userId)))) {
+        return res.status(400).json({
+          success: false,
+          message: 'customAllowedUsers must be an array of valid user IDs.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid custom users.' },
+        });
+      }
+    }
+
+    if (rules !== undefined &&
+      (!Array.isArray(rules) || rules.length > 30 ||
+        rules.some((rule) => !rule || typeof rule.title !== 'string' ||
+          !rule.title.trim() || rule.title.length > 120 ||
+          (rule.description !== undefined &&
+            (typeof rule.description !== 'string' || rule.description.length > 1000))))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rules must be an array of up to 30 valid title/description entries.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid community rules.' },
+      });
+    }
 
     // Allow managing community-controlled fields (Point 8)
     if (name && name.trim() !== community.name) {

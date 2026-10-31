@@ -12,6 +12,7 @@ import searchRoutes from './searchRoutes.js';
 import reportRoutes from './reportRoutes.js';
 import postRequestRoutes from './postRequestRoutes.js';
 import userRoutes from './userRoutes.js';
+import adminRoutes from './adminRoutes.js';
 
 const router = express.Router();
 
@@ -28,5 +29,6 @@ router.use('/search', searchRoutes);
 router.use('/reports', reportRoutes);
 router.use('/post-requests', postRequestRoutes);
 router.use('/users', userRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;
