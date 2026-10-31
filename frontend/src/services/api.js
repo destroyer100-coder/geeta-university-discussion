@@ -191,7 +191,8 @@ export const usersApi = {
 export const adminApi = {
   getOverview: () => request('/admin/overview'),
   getUsers: (params = {}) => request(`/admin/users${buildQueryString(params)}`),
-  updateUserRole: (id, role) => request(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),\n  updateUserStatus: (id, isActive) => request(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
+  updateUserRole: (id, role) => request(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+  updateUserStatus: (id, isActive) => request(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),\n  updateUserStatus: (id, isActive) => request(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
   getReports: (params = {}) => request(`/admin/reports${buildQueryString(params)}`),
   updateReport: (id, status) => request(`/admin/reports/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   getAuditLogs: (params = {}) => request(`/admin/audit-logs${buildQueryString(params)}`),
