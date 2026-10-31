@@ -106,12 +106,22 @@ export const createComment = async (req, res, next) => {
     const { id } = req.params; // post id
     const { body, parentComment } = req.body;
 
-    if (!body || body.trim().length === 0) {
+    if (typeof body !== 'string' || body.trim().length === 0 || body.length > 10000) {
       return res.status(400).json({
         success: false,
-        message: 'Comment content cannot be empty.',
-        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Body cannot be empty.' },
+        message: 'Comment content must be a non-empty string of at most 10,000 characters.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid comment body.' },
       });
+    }
+
+    if (parentComment !== undefined && parentComment !== null && parentComment !== '') {
+      if (typeof parentComment !== 'string' || !/^[a-f0-9]{24}$/i.test(parentComment)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A valid parent comment ID is required for a reply.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid parent comment.' },
+        });
+      }
     }
 
     const post = await Post.findById(id).populate('community');
@@ -134,6 +144,22 @@ export const createComment = async (req, res, next) => {
           message: perm.reason || 'You cannot comment on this post.',
         },
       });
+    }
+
+    if (parentComment) {
+      const parent = await Comment.findOne({
+        _id: parentComment,
+        post: post._id,
+        isDeleted: { $ne: true },
+        status: { $nin: [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED] },
+      }).select('_id');
+      if (!parent) {
+        return res.status(404).json({
+          success: false,
+          message: 'Parent comment was not found in this discussion or is no longer available.',
+          error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent comment unavailable.' },
+        });
+      }
     }
 
     const comment = await Comment.create({
