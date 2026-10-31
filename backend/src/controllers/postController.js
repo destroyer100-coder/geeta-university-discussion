@@ -1636,8 +1636,8 @@ export const deletePost = async (req, res, next) => {
     }
 
     // Idempotency without revealing a deleted post to an unauthorized caller.
-    if (post.status === CONTENT_STATUS.DELETED) {
-      return res.json({ success: true, message: 'Post is already deleted.' });
+    if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
+      return res.json({ success: true, message: 'Post is already unavailable.' });
     }
 
     const previousStatus = post.status;
@@ -1651,7 +1651,7 @@ export const deletePost = async (req, res, next) => {
     await post.save();
 
     // Decrement postCount on community if the post was active/published
-    if (previousStatus === CONTENT_STATUS.PUBLISHED && post.community?._id) {
+    if ([CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.EDITED, CONTENT_STATUS.LOCKED].includes(previousStatus) && post.community?._id) {
       await Community.updateOne({ _id: post.community._id }, { $inc: { postCount: -1 } });
     }
 
