@@ -117,7 +117,7 @@ export const AdminPage = () => {
           </select>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620, textAlign: 'left' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820, textAlign: 'left' }}>
             <thead><tr>{['User', 'Department', 'Platform role', 'Account status', 'Actions'].map(x => <th key={x} style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', fontSize: 12, color: 'var(--text-muted, #64748b)' }}>{x}</th>)}</tr></thead>
             <tbody>
               {users.map(person => <tr key={person._id}>
@@ -171,6 +171,8 @@ export const AdminPage = () => {
           <select aria-label="Filter audit action" value={auditAction} onChange={e => setAuditAction(e.target.value)} style={input}>
             <option value="">All actions</option>
             <option value="change_role">Role changes</option>
+            <option value="update_account_status">Account status changes</option>
+            <option value="bootstrap_admin">Admin bootstrap</option>
             <option value="create_report">Report created</option>
             <option value="review_report">Report reviewed</option>
             <option value="delete_post">Post deleted</option>
