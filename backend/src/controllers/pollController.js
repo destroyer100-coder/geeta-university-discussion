@@ -37,12 +37,11 @@ export const votePoll = async (req, res, next) => {
     if (
       ![
         CONTENT_STATUS.PUBLISHED,
-        CONTENT_STATUS.LOCKED,
       ].includes(post.status)
     ) {
       return res.status(403).json({
         success: false,
-        message: 'Voting is not allowed on this post.',
+        message: 'Voting is only allowed while the discussion is published and unlocked.',
       });
     }
 
