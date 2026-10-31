@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icon } from '../common/Icons';
 import { communitiesApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export const COMMUNITIES_CHANGED_EVENT = 'communities:changed';
 
@@ -94,6 +95,7 @@ export const Sidebar = ({
   const [communitiesError, setCommunitiesError] = useState(false);
 
   const location = useLocation();
+  const { user } = useAuth();
   const closeMobileNav = onCloseMobileNav || (() => {});
   const isCompact = isCollapsed && !mobileOpen;
 
@@ -192,6 +194,17 @@ export const Sidebar = ({
               )}
             </NavLink>
           ))}
+          {user?.role === 'admin' && (
+            <NavLink
+              to="/admin"
+              title={isCompact ? 'Administration' : undefined}
+              className={({ isActive }) => 'sidebar-link' + (isActive ? ' active' : '')}
+              onClick={closeMobileNav}
+            >
+              <Icon name="shield" size={18} />
+              {!isCompact && <span className="sidebar-link-label">Administration</span>}
+            </NavLink>
+          )}
         </div>
 
         <div className="sidebar-section">
