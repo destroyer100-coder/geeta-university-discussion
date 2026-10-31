@@ -39,6 +39,11 @@ const getSeedDatabaseName = () => {
 const assertSafeSeedTarget = () => {
   const databaseName = getSeedDatabaseName();
   const explicitlyAllowedName = process.env.SEED_ALLOWED_DATABASE_NAME || '';
+  const demoPassword = process.env.SEED_DEMO_PASSWORD || '';
+
+  if (demoPassword.length < 12) {
+    throw new Error('[Seeder] SEED_DEMO_PASSWORD is required and must be at least 12 characters.');
+  }
 
   if (NODE_ENV !== 'development') {
     throw new Error('[Seeder] Refusing to run unless NODE_ENV=development.');
@@ -82,7 +87,7 @@ export const seedDatabase = async () => {
     await Conversation.deleteMany({});
     await PostRequest.deleteMany({});
 
-    const passwordHash = await bcrypt.hash('password123', 10);
+    const passwordHash = await bcrypt.hash(process.env.SEED_DEMO_PASSWORD, 12);
 
     // 1. Create Users
     console.log('[Seeder] Creating users...');
@@ -165,13 +170,13 @@ export const seedDatabase = async () => {
         avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80',
       },
       {
-        name: 'Platform Admin',
-        email: 'admin@geeta.edu.in',
+        name: 'Demo Community Owner',
+        email: 'community-owner@geeta.edu.in',
         passwordHash,
-        role: 'admin',
+        role: 'student',
         verified: true,
         department: 'Administration',
-        year: 'System Administrator',
+        year: 'Demo Community Owner',
         bio: 'Geeta University Platform Administrator.',
         avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
       },
