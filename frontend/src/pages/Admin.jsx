@@ -9,6 +9,8 @@ export const AdminPage = () => {
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState([]);
   const [reports, setReports] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditAction, setAuditAction] = useState('');
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [reportStatus, setReportStatus] = useState('pending');
@@ -21,20 +23,22 @@ export const AdminPage = () => {
     setLoading(true);
     setError('');
     try {
-      const [summary, people, reportList] = await Promise.all([
+      const [summary, people, reportList, auditList] = await Promise.all([
         adminApi.getOverview(),
         adminApi.getUsers({ search, role, limit: 50 }),
         adminApi.getReports({ status: reportStatus, limit: 50 }),
+        adminApi.getAuditLogs({ action: auditAction, limit: 50 }),
       ]);
       setOverview(summary.data);
       setUsers(people.data || []);
       setReports(reportList.data || []);
+      setAuditLogs(auditList.data || []);
     } catch (err) {
       setError(err.message || 'Could not load administration data.');
     } finally {
       setLoading(false);
     }
-  }, [search, role, reportStatus]);
+  }, [search, role, reportStatus, auditAction]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -135,6 +139,40 @@ export const AdminPage = () => {
           </div>
         </article>)}
         {!loading && reports.length === 0 && <p style={{ color: 'var(--text-muted, #64748b)', textAlign: 'center' }}>No reports in this status.</p>}
+      </section>
+
+      <section style={{ ...panel, display: 'grid', gap: 14 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 19 }}>Audit log</h2>
+            <p style={{ margin: '4px 0 0', color: 'var(--text-muted, #64748b)', fontSize: 13 }}>Recent administrative and moderation actions. Logs are read-only.</p>
+          </div>
+          <select aria-label="Filter audit action" value={auditAction} onChange={e => setAuditAction(e.target.value)} style={input}>
+            <option value="">All actions</option>
+            <option value="change_role">Role changes</option>
+            <option value="create_report">Report created</option>
+            <option value="review_report">Report reviewed</option>
+            <option value="delete_post">Post deleted</option>
+            <option value="approve_post">Post approved</option>
+            <option value="reject_post">Post rejected</option>
+            <option value="ban_member">Member banned</option>
+            <option value="unban_member">Member unbanned</option>
+          </select>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620, textAlign: 'left' }}>
+            <thead><tr>{['Action', 'Actor', 'Target', 'Date'].map(label => <th key={label} style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', fontSize: 12, color: 'var(--text-muted, #64748b)' }}>{label}</th>)}</tr></thead>
+            <tbody>
+              {auditLogs.map(log => <tr key={log._id}>
+                <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', textTransform: 'capitalize' }}>{String(log.action || '').replaceAll('_', ' ')}</td>
+                <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)' }}>{log.actor?.name || 'System'}<div style={{ fontSize: 12, color: 'var(--text-muted, #64748b)' }}>{log.actor?.email || ''}</div></td>
+                <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)' }}>{log.targetType} · {log.targetId}</td>
+                <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', whiteSpace: 'nowrap' }}>{log.createdAt ? new Date(log.createdAt).toLocaleString() : '—'}</td>
+              </tr>)}
+              {!loading && auditLogs.length === 0 && <tr><td colSpan="4" style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted, #64748b)' }}>No audit entries found.</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </section>
       {loading && <p role="status" style={{ color: 'var(--text-muted, #64748b)' }}>Loading administration data…</p>}
     </div>
