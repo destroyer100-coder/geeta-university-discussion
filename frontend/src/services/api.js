@@ -187,3 +187,11 @@ export const usersApi = {
   getRestrictions: () => request('/users/me/restrictions'),
   deleteAccount: () => request('/users/me', { method: 'DELETE' }),
 };
+
+export const adminApi = {
+  getOverview: () => request('/admin/overview'),
+  getUsers: (params = {}) => request(`/admin/users${buildQueryString(params)}`),
+  updateUserRole: (id, role) => request(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+  getReports: (params = {}) => request(`/admin/reports${buildQueryString(params)}`),
+  updateReport: (id, status) => request(`/admin/reports/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+};
