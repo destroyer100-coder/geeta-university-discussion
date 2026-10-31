@@ -96,6 +96,7 @@ export const AUDIT_ACTIONS = {
   BAN_MEMBER: 'ban_member',
   UNBAN_MEMBER: 'unban_member',
   CHANGE_ROLE: 'change_role',
+  BOOTSTRAP_ADMIN: 'bootstrap_admin',
   CREATE_REPORT: 'create_report',
   REVIEW_REPORT: 'review_report',
   TRANSFER_OWNERSHIP: 'transfer_ownership',
