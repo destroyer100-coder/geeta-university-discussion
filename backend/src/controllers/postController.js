@@ -587,6 +587,10 @@ export const sharePost = async (req, res, next) => {
       });
     }
 
+    if (![CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.EDITED, CONTENT_STATUS.LOCKED].includes(post.status)) {
+      return res.status(410).json({ success: false, message: 'This discussion is no longer available for sharing.', error: { code: ERROR_CODES.CONFLICT } });
+    }
+
     const sourceCommunity = post.community;
     if (!sourceCommunity) {
       return res.status(400).json({
