@@ -38,3 +38,14 @@
 - Poll voting is allowed only while the parent discussion is published and unlocked. Locked, pending, rejected, deleted, and removed discussions cannot receive votes.
 - Like, save, and helpful updates include an active discussion status condition in the database write itself. This prevents a request that races with post deletion from mutating the interaction arrays after the post becomes unavailable.
 - No test/build/integration verification was run as part of this implementation batch.
+
+## Community permission and moderation hardening
+
+- Community settings updates are limited to the community owner or platform admin; moderators cannot change community-wide policy.
+- Permission updates accept only the documented visibility, post/comment/share policy, boolean policy flags, and custom user allowlist fields. Unknown keys and invalid enum/boolean/ObjectId values are rejected with a validation response.
+- Community rules are validated as an array of at most 30 entries with bounded title and description lengths.
+- Comment policy fails closed for unknown stored policy values.
+- The MEMBERS comment policy checks active membership, not the separate `canPost` flag. Revoking permission to publish posts therefore does not silently revoke the ability to comment when the configured comment policy allows members to comment.
+- APPROVED_USERS commenting continues to require an active membership whose `canPost` permission is enabled.
+- Sharing fails closed for unknown stored share-policy values; only EVERYONE, MEMBERS, and DISABLED are accepted.
+- Moderator capabilities remain community-scoped: delegated moderation operations require the exact permission on the exact active community membership. General moderator identity is used only for community surfaces that intentionally allow all active moderators, such as viewing the member list or audit trail.
