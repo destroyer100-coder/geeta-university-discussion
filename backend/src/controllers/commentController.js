@@ -300,6 +300,9 @@ export const acceptCommentAnswer = async (req, res, next) => {
     }
 
     const post = comment.post;
+    if (!post || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status) || comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.status(410).json({ success: false, message: 'This discussion or comment is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
+    }
     const isPostAuthor = post.author.toString() === req.user._id.toString();
 
     // Post author may always mark answers on their own discussion; moderators require
@@ -382,7 +385,13 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
+    if (comment.isDeleted || ['deleted', 'removed'].includes(comment.status)) {
+      return res.status(410).json({ success: false, message: 'Deleted comments cannot be edited.', error: { code: ERROR_CODES.CONFLICT } });
+    }
+
     comment.body = body.trim();
+    comment.editHistory.push({ editedAt: new Date(), previousBody: comment.body });
+    comment.status = CONTENT_STATUS.EDITED;
     comment.isEdited = true;
     comment.editedAt = new Date();
     await comment.save();
@@ -420,6 +429,10 @@ export const deleteComment = async (req, res, next) => {
     }
 
     const post = comment.post;
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.json({ success: true, message: 'Comment is already deleted.' });
+    }
+    if (!post) return res.status(404).json({ success: false, message: 'Parent post not found.', error: { code: ERROR_CODES.NOT_FOUND } });
     const canDelete = await permissionService.canModerateComment(req.user, comment, post, post.community);
 
     if (!canDelete) {
@@ -430,12 +443,15 @@ export const deleteComment = async (req, res, next) => {
       });
     }
 
-    await Comment.deleteOne({ _id: comment._id });
+    comment.status = CONTENT_STATUS.DELETED;
+    comment.isDeleted = true;
+    comment.isAccepted = false;
+    comment.deletedBy = req.user._id;
+    comment.deletedAt = new Date();
+    comment.moderationNote = comment.author.toString() === req.user._id.toString() ? '' : 'Removed by moderation';
+    await comment.save();
 
-    // Decrement post comments count atomically
-    if (comment.post) {
-      await Post.updateOne({ _id: comment.post._id }, { $inc: { commentsCount: -1 } });
-    }
+    // Preserve comment count: the tombstone remains part of the discussion history.
 
     // Audit log if deleted by a moderator/admin rather than author
     if (comment.author.toString() !== req.user._id.toString()) {
@@ -445,7 +461,7 @@ export const deleteComment = async (req, res, next) => {
         targetType: 'comment',
         targetId: comment._id.toString(),
         community: post?.community?._id,
-        details: { postTitle: post?.title, commentSnippet: comment.body.substring(0, 50) },
+        details: { postTitle: post?.title, deletionType: 'soft_delete' },
         ip: req.ip || '',
       });
     }
