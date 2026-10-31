@@ -32,7 +32,7 @@ export const getAdminUsers = async (req, res, next) => {
     const query = { isDeleted: { $ne: true } };
     if (role) query.role = role;
     if (search) {
-      const escaped = search.replace(/[.*+?^$()|[\]\\]/g, '\\      const escaped = search.replace(/[.*+?^$()|[\]\\]/g, '\\$&');');
+      const escaped = search.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
       const regex = new RegExp(escaped, 'i');
       query.$or = [{ name: regex }, { email: regex }, { department: regex }];
     }
