@@ -377,12 +377,8 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
-    if (comment.isDeleted || ['deleted', 'removed'].includes(comment.status)) {
-      return res.status(410).json({ success: false, message: 'Deleted comments cannot be edited.', error: { code: ERROR_CODES.CONFLICT } });
-    }
-
-    comment.body = body.trim();
     comment.editHistory.push({ editedAt: new Date(), previousBody: comment.body });
+    comment.body = body.trim();
     comment.status = CONTENT_STATUS.EDITED;
     comment.isEdited = true;
     comment.editedAt = new Date();
@@ -425,6 +421,7 @@ export const deleteComment = async (req, res, next) => {
       return res.json({ success: true, message: 'Comment is already deleted.' });
     }
     if (!post) return res.status(404).json({ success: false, message: 'Parent post not found.', error: { code: ERROR_CODES.NOT_FOUND } });
+    if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) return res.status(410).json({ success: false, message: 'This discussion is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
     const canDelete = await permissionService.canModerateComment(req.user, comment, post, post.community);
 
     if (!canDelete) {
