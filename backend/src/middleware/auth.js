@@ -2,36 +2,67 @@ import jwt from 'jsonwebtoken';
 import { EMAIL_VERIFICATION_REQUIRED, JWT_SECRET } from '../config/env.js';
 import { User } from '../models/User.js';
 
+const TOKEN_ALGORITHMS = ['HS256'];
+const USER_ID_PATTERN = /^[a-f\d]{24}$/i;
+
+const verifyAccessToken = (token) => {
+  if (!token || typeof token !== 'string' || token.length > 8192) {
+    throw new Error('Invalid access token.');
+  }
+
+  const decoded = jwt.verify(token, JWT_SECRET, {
+    algorithms: TOKEN_ALGORITHMS,
+  });
+
+  if (!decoded || typeof decoded !== 'object' || !USER_ID_PATTERN.test(decoded.id || '')) {
+    throw new Error('Invalid access token subject.');
+  }
+
+  return decoded;
+};
+
+const isVerifiedForAccess = (user) =>
+  !EMAIL_VERIFICATION_REQUIRED || Boolean(user.verified && user.emailVerifiedAt);
+
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ success: false, message: 'Authentication required. No token provided.' });
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. No token provided.',
+      });
     }
 
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-
+    const token = authHeader.slice(7).trim();
+    const decoded = verifyAccessToken(token);
     const user = await User.findById(decoded.id);
-if (!user || user.isDeleted) {
-  return res.status(401).json({
-    success: false,
-    message: 'User not found, account deleted, or token expired.',
-  });
-}
 
-    if (EMAIL_VERIFICATION_REQUIRED && (!user.verified || !user.emailVerifiedAt)) {
+    if (!user || user.isDeleted) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found, account deleted, or token expired.',
+      });
+    }
+
+    if (!isVerifiedForAccess(user)) {
       return res.status(403).json({
         success: false,
         message: 'Verify your university email before accessing the platform.',
-        error: { code: 'EMAIL_NOT_VERIFIED', message: 'Verify your university email before accessing the platform.' },
+        error: {
+          code: 'EMAIL_NOT_VERIFIED',
+          message: 'Verify your university email before accessing the platform.',
+        },
       });
     }
 
     req.user = user;
-    next();
+    return next();
   } catch (error) {
-    return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid or expired token.',
+    });
   }
 };
 
@@ -39,15 +70,17 @@ export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id);
-if (user && !user.isDeleted && (!EMAIL_VERIFICATION_REQUIRED || (user.verified && user.emailVerifiedAt))) {
-  req.user = user;
-}
+      const token = authHeader.slice(7).trim();
+      const decoded = verifyAccessToken(token);
+      const user = await User.findById(decoded.id);
+
+      if (user && !user.isDeleted && isVerifiedForAccess(user)) {
+        req.user = user;
+      }
     }
   } catch (error) {
-    // Ignore error for optional auth
+    // Public endpoints remain public when an optional token is invalid.
   }
-  next();
+
+  return next();
 };
