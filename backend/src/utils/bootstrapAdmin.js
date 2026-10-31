@@ -28,7 +28,7 @@ const runAdminBootstrap = async () => {
     const target = await User.findOne({ email, isDeleted: { $ne: true } }).select('+passwordHash');
     if (!target) throw new Error('The specified account does not exist. Register it first, then rerun this command.');
     if (target.role === 'admin') throw new Error('This account is already an administrator.');
-    if (!target.verified || !target.emailVerifiedAt) {
+    if (!target.verified || (NODE_ENV === 'production' && !target.emailVerifiedAt)) {
       throw new Error('The account must have a verified email before it can be promoted.');
     }
 
