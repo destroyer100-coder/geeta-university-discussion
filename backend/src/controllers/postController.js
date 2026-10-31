@@ -455,7 +455,6 @@ export const getPostById = async (req, res, next) => {
 
     // Handle Deleted/Removed Safe Tombstone (Point 4)
     if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
-      if (!isAuthor && !isModOrAdmin) {
         return res.json({
           success: true,
           data: {
@@ -464,6 +463,7 @@ export const getPostById = async (req, res, next) => {
             body: '[This content was deleted or removed by community moderation.]',
             status: post.status,
             isDeleted: true,
+            deletedAt: post.deletedAt || post.updatedAt,
             createdAt: post.createdAt,
             community: {
               _id: post.community?._id,
@@ -477,7 +477,6 @@ export const getPostById = async (req, res, next) => {
             canCommentReason: 'Discussion is removed.',
           },
         });
-      }
     }
 
     // Handle Pending/Rejected Content Authorization (Point 5, rules §10):
@@ -1639,6 +1638,8 @@ export const deletePost = async (req, res, next) => {
 
     const previousStatus = post.status;
     post.status = CONTENT_STATUS.DELETED;
+    post.deletedAt = new Date();
+    post.deletedBy = req.user._id;
     post.isPinned = false;
     post.pinnedAt = null;
     post.pinnedBy = null;
