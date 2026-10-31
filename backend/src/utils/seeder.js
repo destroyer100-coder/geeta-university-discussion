@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '../config/db.js';
+import { MONGODB_URI, NODE_ENV } from '../config/env.js';
 import { User } from '../models/User.js';
 import { Community } from '../models/Community.js';
 import { CommunityMember } from '../models/CommunityMember.js';
@@ -26,21 +27,42 @@ import {
   DELEGATED_PERMISSIONS,
 } from '../constants/index.js';
 
-export const seedDatabase = async () => {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('[Seeder] Refusing to run in production.');
-    process.exit(1);
+const getSeedDatabaseName = () => {
+  try {
+    const databaseUrl = new URL(MONGODB_URI);
+    return decodeURIComponent(databaseUrl.pathname.slice(1).split('/')[0] || '');
+  } catch {
+    return '';
+  }
+};
+
+const assertSafeSeedTarget = () => {
+  const databaseName = getSeedDatabaseName();
+  const explicitlyAllowedName = process.env.SEED_ALLOWED_DATABASE_NAME || '';
+
+  if (NODE_ENV !== 'development') {
+    throw new Error('[Seeder] Refusing to run unless NODE_ENV=development.');
   }
 
   if (process.env.ALLOW_DESTRUCTIVE_SEED !== 'true') {
-    console.error(
-      '[Seeder] Blocked. Set ALLOW_DESTRUCTIVE_SEED=true only for an intentional development seed.'
-    );
-    process.exit(1);
+    throw new Error('[Seeder] Blocked. Set ALLOW_DESTRUCTIVE_SEED=true only for an intentional disposable development seed.');
   }
 
+  if (!databaseName || !explicitlyAllowedName || databaseName !== explicitlyAllowedName) {
+    throw new Error('[Seeder] Refusing to clear data: database name must exactly match SEED_ALLOWED_DATABASE_NAME.');
+  }
+
+  const hostname = new URL(MONGODB_URI).hostname.toLowerCase();
+  const isLocalDatabase = ['localhost', '127.0.0.1', '[::1]'].includes(hostname);
+  if (!isLocalDatabase && !databaseName.endsWith('_dev')) {
+    throw new Error('[Seeder] Remote database targets must use a dedicated database name ending in _dev.');
+  }
+};
+
+export const seedDatabase = async () => {
   try {
-    console.log('[Seeder] Starting database seed...');
+    assertSafeSeedTarget();
+    console.log('[Seeder] Starting disposable development database seed...');
     await connectDB();
 
     // Clear existing collections
