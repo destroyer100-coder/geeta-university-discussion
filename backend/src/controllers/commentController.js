@@ -420,9 +420,6 @@ export const deleteComment = async (req, res, next) => {
     }
 
     const post = comment.post;
-    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
-      return res.json({ success: true, message: 'Comment is already deleted.' });
-    }
     if (!post) return res.status(404).json({ success: false, message: 'Parent post not found.', error: { code: ERROR_CODES.NOT_FOUND } });
     if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) return res.status(410).json({ success: false, message: 'This discussion is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
     const canDelete = await permissionService.canModerateComment(req.user, comment, post, post.community);
@@ -433,6 +430,9 @@ export const deleteComment = async (req, res, next) => {
         message: 'Unauthorized: Only comment author or community moderators can delete this comment.',
         error: { code: ERROR_CODES.FORBIDDEN, message: 'Unauthorized to delete comment.' },
       });
+    }
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.json({ success: true, message: 'Comment is already deleted.' });
     }
 
     comment.status = CONTENT_STATUS.DELETED;
@@ -445,18 +445,15 @@ export const deleteComment = async (req, res, next) => {
 
     // Preserve comment count: the tombstone remains part of the discussion history.
 
-    // Audit log if deleted by a moderator/admin rather than author
-    if (comment.author.toString() !== req.user._id.toString()) {
-      await AuditLog.create({
-        actor: req.user._id,
-        action: AUDIT_ACTIONS.DELETE_COMMENT,
-        targetType: 'comment',
-        targetId: comment._id.toString(),
-        community: post?.community?._id,
-        details: { postTitle: post?.title, deletionType: 'soft_delete' },
-        ip: req.ip || '',
-      });
-    }
+    await AuditLog.create({
+      actor: req.user._id,
+      action: AUDIT_ACTIONS.DELETE_COMMENT,
+      targetType: 'comment',
+      targetId: comment._id.toString(),
+      community: post?.community?._id || null,
+      details: { postTitle: post?.title, deletionType: 'soft_delete', deletedByAuthor: comment.author.toString() === req.user._id.toString() },
+      ip: req.ip || '',
+    });
 
     res.json({ success: true, message: 'Comment deleted successfully.' });
   } catch (error) {
