@@ -30,7 +30,7 @@ import {
 const getSeedDatabaseName = () => {
   try {
     const databaseUrl = new URL(MONGODB_URI);
-    return decodeURIComponent(databaseUrl.pathname.replace(/^\\//, '').split('/')[0] || '');
+    return decodeURIComponent(databaseUrl.pathname.slice(1).split('/')[0] || '');
   } catch {
     return '';
   }
@@ -52,8 +52,9 @@ const assertSafeSeedTarget = () => {
     throw new Error('[Seeder] Refusing to clear data: database name must exactly match SEED_ALLOWED_DATABASE_NAME.');
   }
 
-  if (!/^(localhost|127\\.0\\.0\\.1|\\[::1\\])$/i.test(new URL(MONGODB_URI).hostname) &&
-      !databaseName.endsWith('_dev')) {
+  const hostname = new URL(MONGODB_URI).hostname.toLowerCase();
+  const isLocalDatabase = ['localhost', '127.0.0.1', '[::1]'].includes(hostname);
+  if (!isLocalDatabase && !databaseName.endsWith('_dev')) {
     throw new Error('[Seeder] Remote database targets must use a dedicated database name ending in _dev.');
   }
 };
