@@ -85,3 +85,49 @@ export const getAdminReports = async (req, res, next) => {
     return res.json({ success: true, data, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
   } catch (error) { return next(error); }
 };
+
+export const getAdminAuditLogs = async (req, res, next) => {
+  try {
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 25);
+    const action = typeof req.query.action === 'string' ? req.query.action : '';
+    const targetType = typeof req.query.targetType === 'string' ? req.query.targetType : '';
+    const allowedTargetTypes = ['community', 'post', 'comment', 'user', 'report', 'post_request', 'join_request'];
+
+    if (
+      !Number.isSafeInteger(page) || page < 1 ||
+      !Number.isSafeInteger(limit) || limit < 1 || limit > MAX_LIMIT ||
+      (action && !Object.values(AUDIT_ACTIONS).includes(action)) ||
+      (targetType && !allowedTargetTypes.includes(targetType))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid audit log filters or pagination parameters.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR },
+      });
+    }
+
+    const query = {};
+    if (action) query.action = action;
+    if (targetType) query.targetType = targetType;
+
+    const [data, total] = await Promise.all([
+      AuditLog.find(query)
+        .select('actor action targetType targetId community ip createdAt')
+        .populate('actor', 'name email')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      AuditLog.countDocuments(query),
+    ]);
+
+    return res.json({
+      success: true,
+      data,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
