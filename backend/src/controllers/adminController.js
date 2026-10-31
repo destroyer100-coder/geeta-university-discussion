@@ -5,7 +5,7 @@ import { AuditLog } from '../models/AuditLog.js';
 import { ERROR_CODES, AUDIT_ACTIONS } from '../constants/index.js';
 
 const MAX_LIMIT = 100;
-const USER_FIELDS = 'name email role department year avatar verified bio createdAt updatedAt';
+const USER_FIELDS = 'name email role department year avatar verified isActive bio createdAt updatedAt';
 
 export const getAdminOverview = async (req, res, next) => {
   try {
@@ -126,6 +126,66 @@ export const getAdminAuditLogs = async (req, res, next) => {
       success: true,
       data,
       pagination: { total, page, limit, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateUserAccountStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const isActive = req.body?.isActive;
+    if (!mongoose.isValidObjectId(id) || typeof isActive !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid user ID and boolean isActive value are required.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR },
+      });
+    }
+
+    if (req.user._id.toString() === id) {
+      return res.status(409).json({
+        success: false,
+        message: 'You cannot deactivate your own administrator account.',
+        error: { code: ERROR_CODES.CONFLICT },
+      });
+    }
+
+    const target = await User.findOne({ _id: id, isDeleted: { $ne: true } }).select('+tokenVersion');
+    if (!target) {
+      return res.status(404).json({ success: false, message: 'User not found.', error: { code: ERROR_CODES.NOT_FOUND } });
+    }
+    if (target.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Administrator accounts cannot be deactivated through this endpoint.',
+        error: { code: ERROR_CODES.FORBIDDEN },
+      });
+    }
+
+    const previousStatus = target.isActive !== false;
+    if (previousStatus === isActive) {
+      return res.json({ success: true, message: 'Account already has the requested status.', data: { _id: target._id, isActive: previousStatus } });
+    }
+
+    target.isActive = isActive;
+    target.tokenVersion = (target.tokenVersion || 0) + 1;
+    await target.save();
+
+    await AuditLog.create({
+      actor: req.user._id,
+      action: AUDIT_ACTIONS.UPDATE_ACCOUNT_STATUS,
+      targetType: 'user',
+      targetId: target._id.toString(),
+      details: { previousStatus, newStatus: isActive, sessionsRevoked: true },
+      ip: req.ip || '',
+    });
+
+    return res.json({
+      success: true,
+      message: isActive ? 'Account reactivated. Previous sessions remain revoked.' : 'Account deactivated and all existing sessions revoked.',
+      data: { _id: target._id, isActive: target.isActive },
     });
   } catch (error) {
     return next(error);
