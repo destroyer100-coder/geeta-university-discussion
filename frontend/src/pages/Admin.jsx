@@ -55,6 +55,22 @@ export const AdminPage = () => {
     } finally { setBusyId(''); }
   };
 
+  const changeAccountStatus = async (person) => {
+    const nextActive = person.isActive === false;
+    const action = nextActive ? 'reactivate' : 'deactivate';
+    if (!window.confirm('Confirm ' + action + ' for ' + person.name + '? Existing sessions will be revoked.')) return;
+    setBusyId(person._id);
+    setNotice('');
+    setError('');
+    try {
+      await adminApi.updateUserStatus(person._id, nextActive);
+      setNotice('Account status updated for ' + person.name + '.');
+      await load();
+    } catch (err) {
+      setError(err.message || 'Account status update failed.');
+    } finally { setBusyId(''); }
+  };
+
   const reviewReport = async (report, nextStatus) => {
     setBusyId(report._id);
     setNotice('');
@@ -102,20 +118,22 @@ export const AdminPage = () => {
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620, textAlign: 'left' }}>
-            <thead><tr>{['User', 'Department', 'Platform role', 'Action'].map(x => <th key={x} style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', fontSize: 12, color: 'var(--text-muted, #64748b)' }}>{x}</th>)}</tr></thead>
+            <thead><tr>{['User', 'Department', 'Platform role', 'Account status', 'Actions'].map(x => <th key={x} style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', fontSize: 12, color: 'var(--text-muted, #64748b)' }}>{x}</th>)}</tr></thead>
             <tbody>
               {users.map(person => <tr key={person._id}>
                 <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)' }}><strong>{person.name}</strong><div style={{ fontSize: 12, color: 'var(--text-muted, #64748b)' }}>{person.email}</div></td>
                 <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)' }}>{person.department || '—'}</td>
                 <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', textTransform: 'capitalize' }}>{person.role}</td>
+                <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)' }}>{person.isActive === false ? 'Deactivated' : 'Active'}</td>
                 <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)' }}>
                   {person.role === 'admin' ? <span style={{ color: 'var(--text-muted, #64748b)', fontSize: 12 }}>Protected</span> :
                     <select aria-label={`Change role for ${person.name}`} value={person.role} disabled={busyId === person._id} onChange={e => changeRole(person, e.target.value)} style={input}>
                       <option value="student">Student</option><option value="faculty">Faculty</option>
-                    </select>}
+                    </select>
+                    <button style={button} disabled={busyId === person._id} onClick={() => changeAccountStatus(person)}>{person.isActive === false ? 'Reactivate' : 'Deactivate'}</button>}
                 </td>
               </tr>)}
-              {!loading && users.length === 0 && <tr><td colSpan="4" style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted, #64748b)' }}>No matching users.</td></tr>}
+              {!loading && users.length === 0 && <tr><td colSpan="5" style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted, #64748b)' }}>No matching users.</td></tr>}
             </tbody>
           </table>
         </div>
