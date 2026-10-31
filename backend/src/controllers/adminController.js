@@ -32,7 +32,7 @@ export const getAdminUsers = async (req, res, next) => {
     const query = { isDeleted: { $ne: true } };
     if (role) query.role = role;
     if (search) {
-      const escaped = search.replace(/[.*+?^$(){}|[\]\\]/g, '\\$&');
+      const escaped = search.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
       const regex = new RegExp(escaped, 'i');
       query.$or = [{ name: regex }, { email: regex }, { department: regex }];
     }
@@ -79,7 +79,7 @@ export const getAdminReports = async (req, res, next) => {
     }
     const query = status ? { status } : {};
     const [data, total] = await Promise.all([
-      Report.find(query).populate('reporter', 'name email').populate('reviewer', 'name email').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      Report.find(query).select('reporter targetType targetId reason details status reviewer community createdAt updatedAt').populate('reporter', 'name email').populate('reviewer', 'name email').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       Report.countDocuments(query),
     ]);
     return res.json({ success: true, data, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
