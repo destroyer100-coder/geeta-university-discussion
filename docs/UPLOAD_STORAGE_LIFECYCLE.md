@@ -30,3 +30,11 @@
 - The 24-hour retention period is a fixed code constant, not an environment setting.
 - Content signature / malware scanning is not implemented by this change; the extension and declared MIME allowlist is not a substitute for file-content inspection.
 - No tests or deployment verification are implied by this document.
+
+## Post, comment, and poll lifecycle enforcement
+
+- Replies must reference an existing, non-deleted parent comment belonging to the same post. Cross-post and deleted-parent reply attempts are rejected.
+- Comment bodies must be non-empty strings and are capped at 10,000 characters.
+- Poll voting is allowed only while the parent discussion is published and unlocked. Locked, pending, rejected, deleted, and removed discussions cannot receive votes.
+- Like, save, and helpful updates include an active discussion status condition in the database write itself. This prevents a request that races with post deletion from mutating the interaction arrays after the post becomes unavailable.
+- No test/build/integration verification was run as part of this implementation batch.
