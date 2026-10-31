@@ -37,19 +37,7 @@ export const getComments = async (req, res, next) => {
     }
 
     if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
-      const isAuthor = req.user && post.author.toString() === req.user._id.toString();
-      const canModerate = req.user && await permissionService.canModerate(
-        req.user,
-        post.community
-      );
-
-      if (!isAuthor && !canModerate) {
-        return res.status(403).json({
-          success: false,
-          message: 'You cannot view comments on this post.',
-          error: { code: ERROR_CODES.FORBIDDEN, message: 'Post is not available.' },
-        });
-      }
+      return res.json({ success: true, count: 0, data: [] });
     }
 
 
@@ -77,7 +65,7 @@ export const getComments = async (req, res, next) => {
 
       return {
         ...c,
-        body: isDeleted && !isAuthor ? '[Comment removed by moderation or author]' : c.body,
+        body: isDeleted ? '[Comment deleted]' : c.body,
         likesCount: (c.likes || []).length,
         helpfulCount: (c.helpfulVotes || []).length,
         isLiked: req.user
@@ -368,13 +356,17 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(id).populate('post');
     if (!comment) {
       return res.status(404).json({
         success: false,
         message: 'Comment not found.',
         error: { code: ERROR_CODES.NOT_FOUND, message: 'Comment not found.' },
       });
+    }
+
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status) || !comment.post || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.post.status)) {
+      return res.status(410).json({ success: false, message: 'This comment or its discussion is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
     }
 
     if (comment.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
