@@ -126,11 +126,14 @@ export const AdminPage = () => {
                 <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', textTransform: 'capitalize' }}>{person.role}</td>
                 <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)' }}>{person.isActive === false ? 'Deactivated' : 'Active'}</td>
                 <td style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)' }}>
-                  {person.role === 'admin' ? <span style={{ color: 'var(--text-muted, #64748b)', fontSize: 12 }}>Protected</span> :
-                    <select aria-label={`Change role for ${person.name}`} value={person.role} disabled={busyId === person._id} onChange={e => changeRole(person, e.target.value)} style={input}>
-                      <option value="student">Student</option><option value="faculty">Faculty</option>
-                    </select>
-                    <button style={button} disabled={busyId === person._id} onClick={() => changeAccountStatus(person)}>{person.isActive === false ? 'Reactivate' : 'Deactivate'}</button>}
+                  {person.role === 'admin' ? <span style={{ color: 'var(--text-muted, #64748b)', fontSize: 12 }}>Protected</span> : (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <select aria-label={`Change role for ${person.name}`} value={person.role} disabled={busyId === person._id} onChange={e => changeRole(person, e.target.value)} style={input}>
+                        <option value="student">Student</option><option value="faculty">Faculty</option>
+                      </select>
+                      <button style={button} disabled={busyId === person._id} onClick={() => changeAccountStatus(person)}>{person.isActive === false ? 'Reactivate' : 'Deactivate'}</button>
+                    </div>
+                  )}
                 </td>
               </tr>)}
               {!loading && users.length === 0 && <tr><td colSpan="5" style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted, #64748b)' }}>No matching users.</td></tr>}
