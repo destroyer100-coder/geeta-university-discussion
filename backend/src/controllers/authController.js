@@ -113,7 +113,11 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    if (user.isActive === false) {\n      return res.status(403).json({ success: false, message: 'This account has been deactivated. Contact platform administration.' });\n    }\n\n    if (EMAIL_VERIFICATION_REQUIRED && (!user.verified || !user.emailVerifiedAt)) {
+    if (user.isActive === false) {
+      return res.status(403).json({ success: false, message: 'This account has been deactivated. Contact platform administration.' });
+    }
+
+    if (EMAIL_VERIFICATION_REQUIRED && (!user.verified || !user.emailVerifiedAt)) {
       return res.status(403).json({
         success: false,
         message: 'Verify your university email before signing in.',
