@@ -203,6 +203,9 @@ export const toggleLikeComment = async (req, res, next) => {
         error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent post not found.' },
       });
     }
+    if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status) || comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.status(410).json({ success: false, message: 'This discussion or comment is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
+    }
 
     if (
       [CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED,
