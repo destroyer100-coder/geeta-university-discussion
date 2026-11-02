@@ -91,16 +91,23 @@ There is **no standalone or detached "Resource Library"**. Instead, learning res
 ## 🚀 Local Development Setup
 
 ### 1. Prerequisites
-- **Node.js** (v18.x or higher)
+- **Node.js** (v20.x or higher)
 - **MongoDB** running locally on port `27017`
 
 ### 2. Backend Setup
 ```bash
 cd backend
 npm install
-npm run seed     # Seeds academic communities, dev personas, and discussion threads
 npm start        # Runs API server on http://localhost:5000
 ```
+
+### Production Environment Requirements
+
+Configure these backend environment variables before production deployment: `MONGODB_URI`, a unique `JWT_SECRET` of at least 32 characters, HTTPS `CORS_ORIGINS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `UNIVERSITY_EMAIL_DOMAINS`. Production requires university email verification; accounts that predate this policy may need to request a new verification email. Never paste production secrets into source control or test fixtures.
+
+### Optional Integration-Test Fixtures
+
+The manual HTTP permission tests require an isolated fixture database and the backend running against that same database. Configure `MONGODB_URI` to a disposable database ending in `_test`, set `ALLOW_TEST_FIXTURE_RESET=true`, and run `npm run seed:test` from `backend/`. The fixture script refuses production and refuses database names without the `_test` suffix. Do not use production credentials or data for these tests.
 
 ### 3. Frontend Setup
 ```bash
@@ -111,19 +118,9 @@ npm run dev      # Runs client application on http://localhost:5173
 
 ---
 
-## 👥 Demo Personas (Development Only)
+## 🔐 Account Provisioning
 
-> [!WARNING]
-> **DEVELOPMENT ONLY NOTICE**
-> The following pre-seeded credentials and test accounts are provided strictly for local development and testing. Real production secrets and credentials must **never** be committed to version control and should always be injected via environment variables (`.env`).
-
-| Persona | Email | Password | Academic Role & Communities |
-| :--- | :--- | :--- | :--- |
-| **Vansh Jawla** | `vansh@geeta.edu.in` | `password123` | 3rd Year CSE Student; Owner of *Coding Club*; Member of *CSE Discussion* |
-| **Dr. Rakesh Sharma** | `rakesh@geeta.edu.in` | `password123` | Faculty Head of CSE; Owner of *CSE Discussion*; Mod of *University Announcements* |
-| **Rahul Mehta** | `rahul@geeta.edu.in` | `password123` | 4th Year CSE; Placement Coordinator; Owner of *Placement Updates*; Mod of *Coding Club* |
-| **Sneha Arora** | `sneha@geeta.edu.in` | `password123` | 3rd Year CSE Contributor; Member of *Coding Club* & *Placement Updates* |
-| **Platform Admin** | `admin@geeta.edu.in` | `password123` | University Platform Administrator |
+The application does not expose pre-created demo accounts or shared demo credentials. Public registration creates student accounts. Faculty and administrator accounts must be provisioned by an authorized operator; public registration must never allow a user to choose or elevate their own role. No general-purpose database seed command is provided. The optional test fixtures are stored under `backend/tests/fixtures/` and reset only when `MONGODB_URI` points to a disposable database whose name ends in `_test`, `ALLOW_TEST_FIXTURE_RESET=true` is set, and `NODE_ENV` is not `production`. Never aim test scripts at a real or production database.
 
 ---
 
@@ -143,6 +140,6 @@ npm run dev      # Runs client application on http://localhost:5173
 
 ### ⚠️ Known Gaps & Production Roadmap
 - **Real-Time Gateway**: Live chat and instant notification delivery currently utilize REST polling; WebSocket / Socket.io server integration is planned for high-concurrency production deployments.
-- **Email Delivery Service**: Account verification and password reset emails currently log verification tokens to the development console; production requires dedicated SMTP / Amazon SES integration.
+- **Email Verification & Delivery**: Production requires SMTP configuration and verified university email domains; the backend now fails fast if these are missing. Existing accounts without `emailVerifiedAt` need to complete/resend verification before login. A password-reset email flow is not implemented yet.
 - **Cloud Object Storage Adapter**: Local disk storage in `backend/uploads/` must be swapped for an S3/GCS/R2 SDK client with signed URLs for cloud deployment.
 - **Background Task Workers**: Asynchronous media processing and bulk email notifications are currently executed in-process; production transition will incorporate Redis / BullMQ workers.

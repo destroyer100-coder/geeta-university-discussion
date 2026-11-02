@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth, DEMO_ACCOUNTS } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const LoginPage = () => {
-  const { login, switchPersona } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,7 +56,7 @@ export const LoginPage = () => {
             <input
               type="email"
               className="form-control"
-              placeholder="e.g. vansh@geeta.edu.in"
+              placeholder="name@university.edu"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -79,30 +79,6 @@ export const LoginPage = () => {
             {loading ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
-
-               {import.meta.env.DEV && (
-          <div style={{ borderTop: '1px solid var(--border-color)', margin: '24px 0 16px', paddingTop: '16px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', marginBottom: '10px' }}>
-              One-Click Demo Account Login:
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {DEMO_ACCOUNTS.map((a) => (
-                <button
-                  key={a.email}
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ justifyContent: 'flex-start' }}
-                  onClick={async () => {
-                    await switchPersona(a.email);
-                    navigate('/');
-                  }}
-                >
-                  Sign in as {a.name} ({a.title})
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.85rem' }}>
           Don't have an account? <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>Register</Link>

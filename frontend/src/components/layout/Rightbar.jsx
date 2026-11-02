@@ -70,7 +70,7 @@ export const Rightbar = () => {
                       {ev.title}
                     </div>
                     <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                      {ev.venue || 'Geeta Campus'} • {ev.time || '10:00 AM'}
+                      {ev.venue || 'Venue to be announced'} • {ev.time || 'Time to be announced'}
                     </div>
                   </div>
                 </div>
@@ -126,22 +126,6 @@ export const Rightbar = () => {
               No trending discussions are available yet.
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Top Contributors (Visual Reference 1) */}
-      <div className="card" style={{ marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-            Top Contributors
-          </div>
-          <Link to="/people" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
-            View All
-          </Link>
-        </div>
-
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Live contributor rankings are not available yet.
         </div>
       </div>
 

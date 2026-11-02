@@ -10,7 +10,9 @@ export const getConversations = async (req, res, next) => {
 
     // Find all conversations involving this user where user hasn't deleted the conversation
     const conversations = await Conversation.find({
-      participants: userId,
+      // Direct messages must contain exactly the two participants. Do not let a
+      // malformed/group conversation leak another user's messages through this API.
+      participants: { $all: [userId], $size: 2 },
       deletedBy: { $ne: userId },
     })
       .populate('participants', 'name email avatar department role')
@@ -51,9 +53,18 @@ export const getMessagesWithUser = async (req, res, next) => {
     const { userId: otherUserId } = req.params;
     const currentUserId = req.user._id;
 
+    if (typeof otherUserId !== 'string' || !/^[a-f0-9]{24}$/i.test(otherUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Recipient ID must be a valid user ID.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid recipient ID.' },
+      });
+    }
+
     // Find conversation
     const conversation = await Conversation.findOne({
-      participants: { $all: [currentUserId, otherUserId] },
+      participants: { $all: [currentUserId, otherUserId], $size: 2 },
+      deletedBy: { $ne: currentUserId },
     });
 
     if (!conversation) {
@@ -83,15 +94,42 @@ export const getMessagesWithUser = async (req, res, next) => {
 export const sendMessage = async (req, res, next) => {
   try {
     const { receiverId, body } = req.body;
-    if (!receiverId || !body || body.trim().length === 0) {
+    if (
+      typeof receiverId !== 'string' ||
+      !/^[a-f0-9]{24}$/i.test(receiverId) ||
+      typeof body !== 'string' ||
+      body.trim().length === 0 ||
+      body.trim().length > 10000
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Receiver and non-empty message body are required.',
+        message: 'A valid receiver ID and a message body of 1–10000 characters are required.',
         error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Receiver and body required.' },
       });
     }
 
-    // Check Block restrictions (Point 14 & 18)
+    if (receiverId === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot send a direct message to yourself.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Self-messaging is not supported.' },
+      });
+    }
+
+    const recipient = await User.findOne({
+      _id: receiverId,
+      isDeleted: { $ne: true },
+    }).select('_id');
+
+    if (!recipient) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipient not found.',
+        error: { code: ERROR_CODES.NOT_FOUND, message: 'Recipient not found.' },
+      });
+    }
+
+    // Check block restrictions in either direction.
     const isBlocked = await permissionService.isBlocked(req.user._id, receiverId);
     if (isBlocked) {
       return res.status(403).json({
@@ -103,7 +141,7 @@ export const sendMessage = async (req, res, next) => {
 
     // Find or create conversation
     let conversation = await Conversation.findOne({
-      participants: { $all: [req.user._id, receiverId] },
+      participants: { $all: [req.user._id, receiverId], $size: 2 },
     });
 
     if (!conversation) {

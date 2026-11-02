@@ -27,23 +27,35 @@ import {
 } from '../constants/index.js';
 
 export const seedDatabase = async () => {
+  // Test fixtures can erase collections, so they must never point at the app database.
+  // Require an explicitly named *_test database and a separate opt-in flag.
   if (process.env.NODE_ENV === 'production') {
-    console.error('[Seeder] Refusing to run in production.');
+    console.error('[Test fixtures] Refusing to run in production.');
     process.exit(1);
   }
 
-  if (process.env.ALLOW_DESTRUCTIVE_SEED !== 'true') {
-    console.error(
-      '[Seeder] Blocked. Set ALLOW_DESTRUCTIVE_SEED=true only for an intentional development seed.'
-    );
+  let databaseName = '';
+  try {
+    databaseName = new URL(process.env.MONGODB_URI || '').pathname.split('/').filter(Boolean)[0] || '';
+  } catch {
+    databaseName = '';
+  }
+
+  if (!/_test$/i.test(databaseName)) {
+    console.error('[Test fixtures] Refusing to reset a database unless its name ends in "_test".');
+    process.exit(1);
+  }
+
+  if (process.env.ALLOW_TEST_FIXTURE_RESET !== 'true') {
+    console.error('[Test fixtures] Blocked. Set ALLOW_TEST_FIXTURE_RESET=true only for an intentional test-fixture reset.');
     process.exit(1);
   }
 
   try {
-    console.log('[Seeder] Starting database seed...');
+    console.log('[Test fixtures] Resetting isolated test database fixtures...');
     await connectDB();
 
-    // Clear existing collections
+    // Clear fixture collections only in the explicitly named *_test database
     await User.deleteMany({});
     await Community.deleteMany({});
     await CommunityMember.deleteMany({});
@@ -63,7 +75,7 @@ export const seedDatabase = async () => {
     const passwordHash = await bcrypt.hash('password123', 10);
 
     // 1. Create Users
-    console.log('[Seeder] Creating users...');
+    console.log('[Test fixtures] Creating users...');
     const users = await User.create([
       {
         name: 'Vansh Jawla',

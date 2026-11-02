@@ -53,7 +53,10 @@ export const SMTP_USER = process.env.SMTP_USER || '';
 export const SMTP_PASS = process.env.SMTP_PASS || '';
 export const SMTP_FROM = process.env.SMTP_FROM || '';
 
+// University identity verification is mandatory in production. Development can
+// opt in with EMAIL_VERIFICATION_REQUIRED=true when SMTP is configured.
 export const EMAIL_VERIFICATION_REQUIRED =
+  isProduction ||
   String(process.env.EMAIL_VERIFICATION_REQUIRED || 'false').toLowerCase() === 'true';
 
 const rawUniversityDomains = process.env.UNIVERSITY_EMAIL_DOMAINS || 'geeta.edu.in';

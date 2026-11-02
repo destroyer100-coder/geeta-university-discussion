@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DEMO_ACCOUNTS, useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { usersApi } from '../../services/api';
 import { Icon } from '../../components/common/Icons';
 
 export const PeoplePage = () => {
-  const { user, switchPersona } = useAuth();
+  const { user } = useAuth();
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,18 +20,10 @@ export const PeoplePage = () => {
       if (roleFilter !== 'All') params.role = roleFilter.toLowerCase();
 
       const res = await usersApi.getAll(params);
-      if (res.success && res.data && res.data.length > 0) {
-        setPeople(res.data);
-      } else if (!searchQuery.trim() && roleFilter === 'All') {
-        // Fallback to DEMO_ACCOUNTS if database has empty list
-        setPeople(DEMO_ACCOUNTS);
-      } else {
-        setPeople([]);
-      }
+      setPeople(res.success && Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to load people:', err);
-      // Graceful fallback to DEMO_ACCOUNTS
-      setPeople(DEMO_ACCOUNTS);
+      setPeople([]);
     } finally {
       setLoading(false);
     }
@@ -83,7 +75,7 @@ export const PeoplePage = () => {
           <input
             type="text"
             className="form-control"
-            placeholder="Search by name, department, or email..."
+            placeholder="Search by name, department, or bio..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ paddingLeft: '36px' }}
@@ -127,7 +119,6 @@ export const PeoplePage = () => {
             const key = person._id || person.email;
             const isFollowing = !!followingMap[key];
             const profileLink = isMe ? '/profile/me' : `/profile/${person._id || person.email}`;
-            const isDemoUser = DEMO_ACCOUNTS.some((d) => d.email === person.email);
 
             return (
               <div key={key} className="card" style={{ textAlign: 'center', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -187,15 +178,7 @@ export const PeoplePage = () => {
                       >
                         Profile
                       </Link>
-                      {isDemoUser && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => switchPersona(person.email)}
-                          title="Switch active user to test roles and permissions"
-                        >
-                          Login As
-                        </button>
-                      )}
+
                     </>
                   )}
                 </div>
