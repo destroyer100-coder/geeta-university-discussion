@@ -94,7 +94,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         // Audit trail visibility is identity-scoped (any active moderator of THIS
         // community may read the trail); it is NOT gated by manage_rules or any
         // action delegation (rules §19).
-        if (modPermsLoad.manageRules) {
+        if (isModIdentity) {
           communitiesApi
             .getAuditLogs(comm._id)
             .then((aRes) => {
@@ -258,7 +258,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const isMod = Boolean(community.canModerate);
   const modPerms = community.moderationPermissions || {};
   const canManagePostRequests = Boolean(modPerms.manageRequests);
-  const canManageSettings = Boolean(modPerms.manageRules);
+  const canManageSettings = Boolean(isOwner || user?.role === 'admin' || modPerms.manageRules);
   const canPost = community.currentUserPermission?.allowed;
   const membershipStatus = community.currentUserMembership?.status || 'none';
   const isMember = membershipStatus === 'active';
