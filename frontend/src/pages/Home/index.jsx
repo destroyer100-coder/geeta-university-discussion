@@ -133,6 +133,7 @@ export const Home = ({ onOpenCreatePost }) => {
                 key={post._id}
                 post={post}
                 onPostUpdated={fetchPosts}
+                onTagClick={setSelectedTag}
               />
             ))}
           </div>
