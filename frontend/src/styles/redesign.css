@@ -1066,3 +1066,8 @@ a.post-author-name:hover { color: var(--primary); }
 .admin-action-row{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:800px){.admin-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-page{padding:18px 12px 40px}.admin-panel{padding:14px}}
 @media(max-width:430px){.admin-metrics-grid{gap:8px}.admin-metric-card{padding:13px}.admin-metric-card strong{font-size:1.45rem}}
+
+
+.community-card-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.community-card-tags span,.community-card-tags small{display:inline-flex;align-items:center;padding:4px 8px;border:1px solid #dbeafe;border-radius:999px;background:#f1f6ff;color:#315da8;font-size:.68rem;font-weight:700}
+.community-card-tags small{border-color:var(--border-color);background:#fff;color:var(--text-muted)}
