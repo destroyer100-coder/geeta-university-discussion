@@ -3454,3 +3454,310 @@ textarea::placeholder { color: #a1a4b4; }
   .main-layout.no-rightbar,
   .main-layout.is-collapsed.no-rightbar { padding-top: 14px; }
 }
+
+
+/* ================================================================
+   PRODUCT REDESIGN — navigation, scroll model, composer and creation
+   ================================================================ */
+
+/* One predictable document scroll; no nested page-level scroll traps. */
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+body { min-height: 100%; overflow-y: auto; }
+.app-container { min-height: 100vh; overflow: visible; }
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  min-height: 70px;
+  background: rgba(255,255,255,.94);
+  border-bottom: 1px solid rgba(226,228,238,.9);
+  box-shadow: 0 5px 24px rgba(22,26,52,.055);
+  backdrop-filter: saturate(160%) blur(18px);
+}
+.navbar-container {
+  width: min(100%, 1600px);
+  min-height: 70px;
+  margin-inline: auto;
+}
+.navbar .btn-icon,
+.navbar button.btn-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+.navbar .btn-icon:hover,
+.navbar button.btn-icon:hover {
+  border-color: #e2dfff;
+  transform: translateY(-1px);
+}
+.nav-brand { flex: 0 0 auto; }
+.search-bar-wrapper {
+  position: relative;
+  flex: 1 1 420px;
+  width: min(100%, 590px);
+  min-width: 170px;
+}
+.search-input {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  border-radius: 15px;
+  background: #f5f6fb;
+  border: 1px solid #e8e9f2;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.search-input:focus {
+  background: #fff;
+  border-color: #8178ed;
+  box-shadow: 0 0 0 4px rgba(81,69,216,.11), 0 5px 16px rgba(29,31,70,.05);
+}
+.search-shortcut { pointer-events: none; }
+.nav-links { flex: 0 0 auto; }
+
+/* Sidebar is independently scrollable while the document remains scrollable.
+   The collapse control stays visible and the chevron communicates direction. */
+.left-sidebar {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  height: calc(100dvh - 104px);
+  max-height: calc(100dvh - 104px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #d7d5ed transparent;
+  z-index: 10;
+}
+.left-sidebar::-webkit-scrollbar { width: 5px; }
+.left-sidebar::-webkit-scrollbar-thumb { background: #d7d5ed; border-radius: 99px; }
+.sidebar-header {
+  position: sticky;
+  top: -14px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(10px);
+}
+.sidebar-collapse-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid #e8e7f1;
+  border-radius: 11px;
+  background: #fff;
+  color: #5c55b7;
+  transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.sidebar-collapse-toggle:hover {
+  background: #f2f0ff;
+  box-shadow: 0 4px 12px rgba(81,69,216,.12);
+}
+.sidebar-collapse-toggle svg { transition: transform .2s ease; }
+.left-sidebar.collapsed .sidebar-collapse-toggle svg { transform: rotate(180deg); }
+.left-sidebar.collapsed .sidebar-header { justify-content: center; }
+.left-sidebar.collapsed .sidebar-section { align-items: center; }
+.left-sidebar.collapsed .sidebar-link {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0;
+  justify-content: center;
+}
+.left-sidebar.collapsed .sidebar-community-avatar { margin: 0; }
+.left-sidebar.collapsed .sidebar-community-link { gap: 0; }
+.left-sidebar.collapsed .sidebar-collapse-toggle { margin-inline: auto; }
+
+.main-layout {
+  width: min(100%, 1600px);
+  align-items: start;
+  padding-top: 22px;
+  gap: clamp(16px, 1.8vw, 28px);
+}
+.content-area { min-width: 0; padding-bottom: 48px; }
+.right-sidebar {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  max-height: calc(100dvh - 104px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #deddec transparent;
+}
+.right-sidebar::-webkit-scrollbar { width: 4px; }
+.right-sidebar::-webkit-scrollbar-thumb { background: #deddec; border-radius: 99px; }
+
+/* Consistent interaction language across every action. */
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a { touch-action: manipulation; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid rgba(104,94,226,.28);
+  outline-offset: 2px;
+}
+.btn, .btn-icon, .tab-btn, .action-btn, .post-action-btn {
+  transition: color .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.btn:disabled { cursor: not-allowed; opacity: .58; transform: none; }
+
+/* Create-post composer: real app surface, clear hierarchy and sticky actions. */
+.modal-overlay {
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  width: min(900px, calc(100vw - 36px));
+  max-width: 900px;
+  max-height: min(92dvh, 920px);
+  overflow: hidden;
+  background: #fff;
+}
+#create-post-modal .modal-content > div:nth-child(2) {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+#create-post-modal .modal-content > div:first-child {
+  gap: 18px;
+  padding: 18px 24px;
+  box-shadow: 0 4px 14px rgba(25,27,43,.035);
+}
+#create-post-modal .audience-selector {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 16px;
+  border: 1px solid #e8e7f2;
+  background: linear-gradient(120deg,#f8f8ff,#f5f7fb) !important;
+}
+#create-post-modal .audience-selector select { width: 100%; min-height: 44px; }
+#create-post-modal .form-group { margin-bottom: 18px; }
+#create-post-modal .form-control { width: 100%; }
+#create-post-modal textarea.form-control { min-height: 190px; resize: vertical; line-height: 1.7; }
+#create-post-modal .modal-content > div:last-child {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: rgba(255,255,255,.97) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 -6px 20px rgba(25,27,43,.045);
+}
+#create-post-modal #submit-post-btn { min-width: 170px; justify-content: center; }
+
+/* Community creation and discovery pages share a deliberate form/card rhythm. */
+.content-area form {
+  min-width: 0;
+}
+.content-area form input,
+.content-area form select,
+.content-area form textarea {
+  max-width: 100%;
+}
+.content-area form textarea { min-height: 130px; resize: vertical; }
+.content-area form label {
+  color: #42465e;
+  font-size: .82rem;
+  font-weight: 700;
+}
+.content-area form button[type="submit"] { min-height: 44px; }
+.content-area .community-grid { align-items: stretch; }
+.content-area .community-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.content-area .community-card:hover { transform: translateY(-3px); }
+.content-area .community-card-body { flex: 1; }
+.content-area .page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.content-area .page-header .btn,
+.content-area .page-header a.btn { flex: 0 0 auto; }
+
+/* Small screens: keep search available, make drawer and composer usable. */
+@media (max-width: 1100px) {
+  .main-layout { gap: 16px; }
+  .navbar-container { gap: 12px; }
+  .brand-text-main { font-size: .72rem; }
+}
+@media (max-width: 768px) {
+  .navbar { position: sticky; top: 0; }
+  .navbar-container { gap: 8px; }
+  .main-layout { padding-top: 14px; }
+  .left-sidebar, .left-sidebar.collapsed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(310px, 86vw);
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow-y: auto;
+    border-radius: 0 22px 22px 0;
+    transform: translateX(-105%);
+    transition: transform .24s cubic-bezier(.2,.8,.2,1);
+    z-index: 1040;
+    box-shadow: 20px 0 60px rgba(14,18,44,.2);
+  }
+  .left-sidebar.is-mobile-open {
+    transform: translateX(0);
+  }
+  .left-sidebar.collapsed .sidebar-link {
+    width: 100%;
+    justify-content: flex-start;
+    padding-inline: 12px;
+  }
+  .left-sidebar.collapsed .sidebar-link-label { display: inline; }
+  .left-sidebar.collapsed .sidebar-header { justify-content: space-between; }
+  .nav-drawer-backdrop.is-visible {
+    position: fixed;
+    inset: 0;
+    z-index: 1035;
+    background: rgba(15,18,40,.48);
+    backdrop-filter: blur(3px);
+  }
+  .right-sidebar { display: none !important; }
+  #create-post-modal .modal-content {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 18px;
+  }
+}
+@media (max-width: 520px) {
+  .navbar-container { padding-inline: 10px; }
+  .nav-brand .brand-text-sub { display: none; }
+  .brand-text-main { font-size: .64rem; letter-spacing: .3px; }
+  .nav-links { gap: 4px; }
+  .nav-links .btn-icon { width: 36px; height: 36px; }
+  #nav-create-post-btn { width: 40px; min-width: 40px; height: 40px; }
+  #nav-create-post-btn span { display: none; }
+  .search-bar-wrapper { flex: 1 0 100%; order: 6; }
+  .search-input { height: 40px; min-height: 40px; }
+  .main-layout,
+  .main-layout.is-collapsed,
+  .main-layout.no-rightbar,
+  .main-layout.is-collapsed.no-rightbar { padding-inline: 10px; }
+  #create-post-modal .modal-content > div:first-child { padding: 14px; align-items: flex-start; }
+  #create-post-modal .modal-content > div:first-child h2 { font-size: 1.05rem; }
+  #create-post-modal .modal-content > div:nth-child(2) { padding: 14px !important; }
+  #create-post-modal .audience-selector { grid-template-columns: 1fr; }
+  #create-post-modal .audience-selector > div:last-child { text-align: left !important; }
+  #create-post-modal .modal-content > div:last-child { padding: 12px 14px !important; }
+  #create-post-modal #submit-post-btn { min-width: 0; }
+}
