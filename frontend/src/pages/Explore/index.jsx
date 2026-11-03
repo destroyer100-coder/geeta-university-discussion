@@ -162,6 +162,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
               key={post._id}
               post={post}
               onPostUpdated={fetchExplorePosts}
+              onTagClick={setSelectedTag}
             />
           ))}
         </div>
