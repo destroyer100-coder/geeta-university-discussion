@@ -30,7 +30,7 @@ export const LoginPage = () => {
   };
 
   return (
-    <div style={{ maxWidth: '440px', margin: '40px auto', padding: '0 16px' }}>
+    <div className="auth-page">
       <div className="card" style={{ padding: '32px' }}>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 800, textAlign: 'center', marginBottom: '6px' }}>
           Geeta University Portal
