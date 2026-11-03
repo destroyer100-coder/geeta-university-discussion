@@ -4,7 +4,7 @@ import { Icon } from '../common/Icons';
 import { postsApi, pollsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
-export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermissions = null }) => {
+export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, onTagClick, modPermissions = null }) => {
   const { user } = useAuth();
   const [currentPost, setCurrentPost] = useState(post);
   const [voting, setVoting] = useState(false);
@@ -396,9 +396,19 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
       {currentPost.tags && currentPost.tags.length > 0 && (
         <div className="post-tags">
           {currentPost.tags.map((t, idx) => (
-            <span key={idx} className="tag-pill">
-              #{t}
-            </span>
+            onTagClick ? (
+              <button
+                key={idx}
+                type="button"
+                className="tag-pill"
+                onClick={() => onTagClick(t)}
+                aria-label={`Filter discussions by ${t}`}
+              >
+                #{t}
+              </button>
+            ) : (
+              <span key={idx} className="tag-pill">#{t}</span>
+            )
           ))}
         </div>
       )}
