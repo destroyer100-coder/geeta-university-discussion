@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../common/Icons';
 import { useAuth } from '../../context/AuthContext';
@@ -14,6 +14,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
   const [showPersonaMenu, setShowPersonaMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const searchInputRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,6 +43,18 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, loadUnreadCount);
     return () => window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, loadUnreadCount);
   }, [loadUnreadCount]);
+
+  useEffect(() => {
+    const handleSearchShortcut = (event) => {
+      const isShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k';
+      if (!isShortcut) return;
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    };
+
+    window.addEventListener('keydown', handleSearchShortcut);
+    return () => window.removeEventListener('keydown', handleSearchShortcut);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -87,6 +100,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
         <form onSubmit={handleSearch} className="search-bar-wrapper">
           <Icon name="search" size={16} className="search-icon-pos" />
           <input
+            ref={searchInputRef}
             type="text"
             className="search-input"
             placeholder="Search discussions, topics, people, communities... (e.g. DSA, placements)"
