@@ -440,7 +440,7 @@ textarea.form-control, .content-area textarea { min-height: 120px; resize: verti
   .main-layout.is-collapsed.no-rightbar { grid-template-columns: 72px minmax(0,1fr); }
   .right-sidebar { display: none !important; }
 }
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .navbar-container { gap: 12px; padding-inline: 16px; }
   .main-layout, .main-layout.is-collapsed, .main-layout.no-rightbar, .main-layout.is-collapsed.no-rightbar { grid-template-columns: minmax(0,1fr); padding-inline: 16px; }
   .left-sidebar, .left-sidebar.collapsed { position: fixed !important; inset: 0 auto 0 0 !important; z-index: 1040; width: min(310px, 86vw) !important; height: 100dvh !important; max-height: 100dvh !important; overflow-x: hidden !important; overflow-y: auto !important; padding: 22px 16px !important; border: 0; border-radius: 0 16px 16px 0; background: #fff; box-shadow: 18px 0 48px rgba(15,23,42,.18); transform: translateX(-105%); transition: transform 220ms ease-out; }
