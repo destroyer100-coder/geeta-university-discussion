@@ -40,7 +40,7 @@ export const Home = ({ onOpenCreatePost }) => {
       {/* University welcome banner */}
       <section className="home-hero-banner" aria-labelledby="home-hero-title">
         <div className="home-hero-kicker">
-          <Icon name="sparkles" size={14} />
+          <Icon name="compass" size={14} />
           A community by students, for students
         </div>
         <h1 id="home-hero-title">GEETA UNIVERSITY DISCUSSION</h1>
