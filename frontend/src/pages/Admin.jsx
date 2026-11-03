@@ -91,7 +91,7 @@ export const AdminPage = () => {
   ];
 
   return (
-    <div style={{ maxWidth: 1180, margin: '0 auto', padding: '24px 18px 48px', display: 'grid', gap: 20 }}>
+    <div className="admin-page" style={{ maxWidth: 1180, margin: "0 auto", padding: "24px 18px 48px", display: "grid", gap: 20 }}>
       <header>
         <div style={{ color: 'var(--text-muted, #64748b)', fontSize: 12, fontWeight: 700, letterSpacing: 1.2 }}>PLATFORM CONTROL</div>
         <h1 style={{ margin: '6px 0', fontSize: 28 }}>Administration</h1>
