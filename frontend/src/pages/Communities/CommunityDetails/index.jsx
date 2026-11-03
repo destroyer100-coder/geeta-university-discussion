@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { communitiesApi, postsApi } from '../../../services/api';
+import { communitiesApi, postsApi, communityReportsApi } from '../../../services/api';
 import { PostCard } from '../../../components/post/PostCard';
 import { RequestToPostModal } from '../../../components/community/RequestToPostModal';
 import { useAuth } from '../../../context/AuthContext';
@@ -17,6 +17,9 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const [pendingPosts, setPendingPosts] = useState([]);
   const [postRequests, setPostRequests] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [communityReports, setCommunityReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [manageMenuOpen, setManageMenuOpen] = useState(false);
   const [joinRequests, setJoinRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('discussions'); // 'discussions' | 'rules' | 'members' | 'settings' | 'requests' | 'audit'
   const [loading, setLoading] = useState(true);
@@ -101,6 +104,16 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               if (aRes.success) setAuditLogs(aRes.data || []);
             })
             .catch(() => {});
+        }
+
+        if (modPermsLoad.reviewReports) {
+          setReportsLoading(true);
+          communityReportsApi.getAll(comm._id)
+            .then((reportRes) => { if (reportRes.success) setCommunityReports(reportRes.data || []); })
+            .catch(() => setCommunityReports([]))
+            .finally(() => setReportsLoading(false));
+        } else {
+          setCommunityReports([]);
         }
 
         // Join Requests queue is only fetched when the backend says this user may review them
@@ -205,6 +218,38 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
     }
   };
 
+  const handlePolicyAction = async (post, action) => {
+    if (!post?._id || actionLoading) return;
+    const labels = { pin: 'change pin status for', lock: 'change lock status for', delete: 'remove' };
+    if (action === 'delete' && !window.confirm(`Are you sure you want to remove "${post.title}" from this community?`)) return;
+    setActionLoading(true);
+    try {
+      if (action === 'pin') await postsApi.pin(post._id);
+      if (action === 'lock') await postsApi.lock(post._id);
+      if (action === 'delete') await postsApi.delete(post._id);
+      await loadCommunityData();
+    } catch (error) {
+      alert(error.message || `Could not ${labels[action]} this discussion.`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCommunityReportStatus = async (reportId, status) => {
+    if (actionLoading) return;
+    setActionLoading(true);
+    try {
+      const result = await communityReportsApi.updateStatus(community._id, reportId, status);
+      if (result.success) {
+        setCommunityReports((current) => current.map((report) => report._id === reportId ? { ...report, status, reviewer: user } : report));
+      }
+    } catch (error) {
+      alert(error.message || 'Could not update this report.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     try {
@@ -258,7 +303,9 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const isMod = Boolean(community.canModerate);
   const modPerms = community.moderationPermissions || {};
   const canManagePostRequests = Boolean(modPerms.manageRequests);
-  const canManageSettings = Boolean(isOwner || user?.role === 'admin' || modPerms.manageRules);
+  const canManageSettings = Boolean(isOwner || user?.role === 'admin');
+  const canManagePolicy = Boolean(isOwner || user?.role === 'admin' || modPerms.pin || modPerms.lock || modPerms.delete);
+  const canReviewReports = Boolean(modPerms.reviewReports);
   const canPost = community.currentUserPermission?.allowed;
   const membershipStatus = community.currentUserMembership?.status || 'none';
   const isMember = membershipStatus === 'active';
@@ -404,63 +451,92 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', marginTop: '18px', paddingTop: '12px', flexWrap: 'wrap' }}>
-            <button
-              className={`btn btn-sm ${activeTab === 'discussions' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('discussions')}
-            >
-              Discussions
-            </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'rules' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('rules')}
-            >
-              Rules & Policy
-            </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'members' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('members')}
-            >
-              Members ({community.memberCount || 0})
-            </button>
-
-            {canManageJoinRequests && (
-              <button
-                className={`btn btn-sm ${activeTab === 'join-requests' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('join-requests')}
-              >
-                Join Requests ({joinRequests.length})
-              </button>
+          {/* Primary community navigation */}
+          <nav className="community-primary-tabs" aria-label="Community navigation">
+            <div className="community-primary-tab-list">
+              {[
+                { id: 'discussions', label: 'Discussions' },
+                { id: 'rules', label: 'Rules & Policy' },
+                { id: 'members', label: `Members (${community.memberCount || 0})` },
+              ].map((tab) => (
+                <button key={tab.id} type="button" className={`community-primary-tab ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {(canManageJoinRequests || canManagePostRequests || canManagePolicy || canReviewReports || isMod || canManageSettings) && (
+              <div className="community-manage-menu-wrap">
+                <button type="button" className={`community-manage-trigger ${['join-requests','requests','policy','reports','audit','settings'].includes(activeTab) ? 'is-active' : ''}`} aria-expanded={manageMenuOpen} onClick={() => setManageMenuOpen((open) => !open)}>
+                  <Icon name="settings" size={15} /> Manage Community <Icon name="chevronDown" size={14} />
+                </button>
+                {manageMenuOpen && (
+                  <>
+                    <button className="community-menu-backdrop" aria-label="Close management menu" onClick={() => setManageMenuOpen(false)} />
+                    <div className="community-manage-menu" role="menu">
+                      <div className="community-manage-menu-heading">Requests & review</div>
+                      {canManageJoinRequests && <button role="menuitem" className={activeTab === 'join-requests' ? 'is-active' : ''} onClick={() => { setActiveTab('join-requests'); setManageMenuOpen(false); }}>Join Requests <span>{joinRequests.length}</span></button>}
+                      {canManagePostRequests && <button role="menuitem" className={activeTab === 'requests' ? 'is-active' : ''} onClick={() => { setActiveTab('requests'); setManageMenuOpen(false); }}>Post Requests <span>{pendingPosts.length + postRequests.filter((item) => item.status === 'pending').length}</span></button>}
+                      {(canManagePolicy || canReviewReports) && <div className="community-manage-menu-heading">Moderation</div>}
+                      {canManagePolicy && <button role="menuitem" className={activeTab === 'policy' ? 'is-active' : ''} onClick={() => { setActiveTab('policy'); setManageMenuOpen(false); }}>Policy Enforcement</button>}
+                      {canReviewReports && <button role="menuitem" className={activeTab === 'reports' ? 'is-active' : ''} onClick={() => { setActiveTab('reports'); setManageMenuOpen(false); }}>Reports & Moderation <span>{communityReports.filter((item) => item.status === 'pending').length}</span></button>}
+                      {(isMod || canManageSettings) && <div className="community-manage-menu-heading">Administration</div>}
+                      {isMod && <button role="menuitem" className={activeTab === 'audit' ? 'is-active' : ''} onClick={() => { setActiveTab('audit'); setManageMenuOpen(false); }}>Audit Logs</button>}
+                      {canManageSettings && <button role="menuitem" className={activeTab === 'settings' ? 'is-active' : ''} onClick={() => { setActiveTab('settings'); setManageMenuOpen(false); }}>Settings & Permissions</button>}
+                    </div>
+                  </>
+                )}
+              </div>
             )}
-
-            {canManagePostRequests && (
-              <button
-                className={`btn btn-sm ${activeTab === 'requests' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('requests')}
-              >
-                Post Requests ({pendingPosts.length + postRequests.filter((r) => r.status === 'pending').length})
-              </button>
-            )}
-            {canManageSettings && (
-              <button
-                className={`btn btn-sm ${activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('settings')}
-              >
-                Settings & Permissions
-              </button>
-            )}
-            {isMod && (
-              <button
-                className={`btn btn-sm ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('audit')}
-              >
-                Audit Logs
-              </button>
-            )}
-          </div>
+          </nav>
         </div>
       </div>
+
+      {/* Policy enforcement: each action is shown only when its exact server flag allows it. */}
+      {activeTab === 'policy' && canManagePolicy && (
+        <section className="community-management-panel">
+          <div className="community-management-heading">
+            <div><span className="community-management-eyebrow">MODERATION TOOLS</span><h2>Policy Enforcement</h2><p>Manage published discussions using your delegated permissions.</p></div>
+            <span className="community-management-count">{posts.length} discussions</span>
+          </div>
+          {posts.length === 0 ? <div className="community-management-empty">No discussions are available to moderate yet.</div> : (
+            <div className="community-policy-list">
+              {posts.map((post) => (
+                <article className="community-policy-item" key={post._id}>
+                  <div className="community-policy-copy"><strong>{post.title || 'Untitled discussion'}</strong><p>{(post.body || '').slice(0, 180)}{(post.body || '').length > 180 ? '…' : ''}</p><small>{post.author?.name || 'Community member'} · {post.status || 'published'} · {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</small></div>
+                  <div className="community-policy-actions">
+                    {modPerms.pin && <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={() => handlePolicyAction(post, 'pin')}>{post.isPinned || post.pinned ? 'Unpin' : 'Pin'}</button>}
+                    {modPerms.lock && <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={() => handlePolicyAction(post, 'lock')}>{post.status === 'locked' ? 'Unlock' : 'Lock'}</button>}
+                    {modPerms.delete && <button type="button" className="btn btn-danger btn-sm" disabled={actionLoading} onClick={() => handlePolicyAction(post, 'delete')}>Remove</button>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Community-scoped report review; backend enforces review_reports for this community. */}
+      {activeTab === 'reports' && canReviewReports && (
+        <section className="community-management-panel">
+          <div className="community-management-heading"><div><span className="community-management-eyebrow">COMMUNITY SAFETY</span><h2>Reports & Moderation</h2><p>Review reports submitted about content in this community.</p></div><span className="community-management-count">{communityReports.filter((item) => item.status === 'pending').length} pending</span></div>
+          {reportsLoading ? <div className="community-management-empty">Loading community reports…</div> : communityReports.length === 0 ? <div className="community-management-empty">No reports have been submitted for this community.</div> : (
+            <div className="community-report-list">
+              {communityReports.map((report) => (
+                <article className="community-report-item" key={report._id}>
+                  <div className="community-report-top"><strong>{report.reason || 'Reported content'}</strong><span className={`community-report-status status-${report.status}`}>{report.status}</span></div>
+                  <p>{report.details || 'No additional details provided.'}</p>
+                  <small>Reported by {report.reporter?.name || 'User'} · {new Date(report.createdAt).toLocaleString()} · {report.targetType}</small>
+                  <div className="community-policy-actions">
+                    {report.status !== 'reviewed' && <button className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={() => handleCommunityReportStatus(report._id, 'reviewed')}>Mark reviewed</button>}
+                    {report.status !== 'resolved' && <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={() => handleCommunityReportStatus(report._id, 'resolved')}>Resolve</button>}
+                    {report.status !== 'dismissed' && <button className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={() => handleCommunityReportStatus(report._id, 'dismissed')}>Dismiss</button>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* TAB 1: DISCUSSIONS */}
       {activeTab === 'discussions' && (
