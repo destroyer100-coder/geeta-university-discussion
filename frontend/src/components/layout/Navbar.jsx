@@ -97,6 +97,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
           <span className="brand-logo-badge" aria-hidden="true">G</span>
           <span className="brand-text">
             <span className="brand-text-main">GEETA UNIVERSITY</span>
+            <span className="brand-text-compact" aria-hidden="true">GEETA</span>
             <span className="brand-text-sub">Discussion</span>
           </span>
         </Link>
