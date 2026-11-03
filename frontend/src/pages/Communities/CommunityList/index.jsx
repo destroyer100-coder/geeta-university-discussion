@@ -178,7 +178,7 @@ export const CommunityList = () => {
                   <div className="community-card-footer">
                     <div className="community-card-stats">
                       <span><Icon name="users" size={13} aria-hidden="true" /> <strong>{community.memberCount || 0}</strong> members</span>
-                      <span><Icon name="messages-square" size={13} aria-hidden="true" /> <strong>{community.postCount || 0}</strong> posts</span>
+                      <span><Icon name="messageSquare" size={13} aria-hidden="true" /> <strong>{community.postCount || 0}</strong> posts</span>
                     </div>
 
                     <div className="community-card-actions">
@@ -208,7 +208,7 @@ export const CommunityList = () => {
                         className="btn btn-outline btn-sm"
                       >
                         View
-                        <Icon name="arrow-up-right" size={13} aria-hidden="true" />
+                        <Icon name="arrowRight" size={13} aria-hidden="true" />
                       </Link>
                     </div>
                   </div>
