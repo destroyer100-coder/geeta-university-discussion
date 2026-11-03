@@ -19,7 +19,7 @@ export const MainLayout = () => {
   });
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth <= 768);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth <= 1024);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ export const MainLayout = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    const updateViewport = () => setIsMobileViewport(window.innerWidth <= 768);
+    const updateViewport = () => setIsMobileViewport(window.innerWidth <= 1024);
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
   }, []);
@@ -101,7 +101,7 @@ export const MainLayout = () => {
   }, [isMobileNavOpen]);
 
   const handleMenuToggle = () => {
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 1024) {
       setIsMobileNavOpen((prev) => !prev);
     } else {
       handleToggleSidebar();
