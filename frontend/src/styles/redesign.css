@@ -1071,3 +1071,49 @@ a.post-author-name:hover { color: var(--primary); }
 .community-card-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
 .community-card-tags span,.community-card-tags small{display:inline-flex;align-items:center;padding:4px 8px;border:1px solid #dbeafe;border-radius:999px;background:#f1f6ff;color:#315da8;font-size:.68rem;font-weight:700}
 .community-card-tags small{border-color:var(--border-color);background:#fff;color:var(--text-muted)}
+
+
+/* Community detail layout repair: never let global input/select rules collapse the search field. */
+.community-discussion-toolbar{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 190px;
+  align-items:stretch;
+  gap:12px;
+  width:100%;
+  min-width:0;
+}
+.community-discussion-toolbar>.community-discussion-search{
+  display:flex !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  box-sizing:border-box;
+  flex:none !important;
+}
+.community-discussion-toolbar>.community-discussion-search input{
+  display:block;
+  flex:1 1 auto;
+  width:100% !important;
+  min-width:0 !important;
+  height:42px;
+  min-height:42px;
+  padding:0;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+.community-discussion-toolbar>select{
+  display:block;
+  width:100% !important;
+  min-width:0;
+  max-width:none;
+  height:46px;
+  box-sizing:border-box;
+}
+.community-discussion-toolbar>.community-discussion-search svg{flex:0 0 17px}
+.community-tag-list{max-width:100%;align-items:center}
+.community-tag-chip{white-space:nowrap}
+@media(max-width:700px){
+  .community-discussion-toolbar{grid-template-columns:minmax(0,1fr)}
+  .community-discussion-toolbar>select{width:100%}
+}
