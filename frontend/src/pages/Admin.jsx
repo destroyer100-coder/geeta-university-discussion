@@ -143,7 +143,7 @@ export const AdminPage = () => {
       </section>
 
       <section className="admin-panel">
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div className="admin-panel-heading">
           <div><h2 style={{ margin: 0, fontSize: 19 }}>Report moderation</h2><p style={{ margin: '4px 0 0', color: 'var(--text-muted, #64748b)', fontSize: 13 }}>Review platform reports. Community moderator scope remains separate.</p></div>
           <select aria-label="Filter reports" value={reportStatus} onChange={e => setReportStatus(e.target.value)} style={input}>
             <option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="dismissed">Dismissed</option>
@@ -163,7 +163,7 @@ export const AdminPage = () => {
       </section>
 
       <section className="admin-panel">
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div className="admin-panel-heading">
           <div>
             <h2 style={{ margin: 0, fontSize: 19 }}>Audit log</h2>
             <p style={{ margin: '4px 0 0', color: 'var(--text-muted, #64748b)', fontSize: 13 }}>Recent administrative and moderation actions. Logs are read-only.</p>
@@ -182,7 +182,7 @@ export const AdminPage = () => {
             <option value="unban_member">Member unbanned</option>
           </select>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="admin-table-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620, textAlign: 'left' }}>
             <thead><tr>{['Action', 'Actor', 'Target', 'Date'].map(label => <th key={label} style={{ padding: 10, borderBottom: '1px solid var(--border, #e5e7eb)', fontSize: 12, color: 'var(--text-muted, #64748b)' }}>{label}</th>)}</tr></thead>
             <tbody>
