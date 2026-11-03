@@ -37,51 +37,25 @@ export const Home = ({ onOpenCreatePost }) => {
 
   return (
     <div>
-      {/* Banner / Header (Visual Reference 1) */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '24px 28px',
-          color: '#ffffff',
-          marginBottom: '20px',
-          boxShadow: 'var(--shadow-md)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
-            A Community by Students, for Students
-          </div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '6px', letterSpacing: '-0.5px' }}>
-            GEETA UNIVERSITY DISCUSSION
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: '#cbd5e1', marginBottom: '18px', maxWidth: '640px' }}>
-            Discuss, Learn, Share, Grow. Connect with peers, seniors and faculty across departments.
-          </p>
-
+      {/* University welcome banner */}
+      <section className="home-hero-banner" aria-labelledby="home-hero-title">
+        <div className="home-hero-kicker">
+          <Icon name="sparkles" size={14} />
+          A community by students, for students
         </div>
-      </div>
+        <h1 id="home-hero-title">GEETA UNIVERSITY DISCUSSION</h1>
+        <p>
+          Your campus, your conversations. Learn together, exchange ideas and
+          connect with peers, seniors and faculty across departments.
+        </p>
+      </section>
 
       {/* CRITICAL RULE (Section 1 & Section 5):
           "Home/Feed shows a Create Post button only. The full composer opens after the user clicks Create Post."
           NO permanent embedded composer is rendered here. */}
       <div
         className="home-cta-card"
-        style={{
-          background: '#ffffff',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '14px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          boxShadow: 'var(--shadow-sm)',
-        }}
+
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
