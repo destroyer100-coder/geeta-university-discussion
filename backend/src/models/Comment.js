@@ -15,6 +15,7 @@ const commentSchema = new mongoose.Schema(
     isAccepted: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
     deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    deletedAt: { type: Date, default: null },
     moderationNote: { type: String, default: '' },
     editHistory: [
       {

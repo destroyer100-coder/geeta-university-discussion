@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
       enum: ['admin', 'faculty', 'student'],
       default: 'student',
     },
+    isActive: { type: Boolean, default: true, index: true },
+    tokenVersion: { type: Number, default: 0, min: 0, select: false },
     verified: { type: Boolean, default: false },
     emailVerifiedAt: { type: Date, default: null },
     emailVerificationTokenHash: { type: String, select: false, default: null },

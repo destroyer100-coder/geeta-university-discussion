@@ -1,4 +1,7 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { AdminPage } from '../pages/Admin';
 import { Routes, Route, useOutletContext } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Home } from '../pages/Home';
@@ -36,6 +39,14 @@ const CommunityDetailsWrapper = () => {
   return <CommunityDetails onOpenCreatePostWithCommunity={openCreatePost} />;
 };
 
+const AdminRoute = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <div style={{ padding: 24 }}>Checking access…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin') return <Navigate to="/" replace />;
+  return <AdminPage />;
+};
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -66,6 +77,7 @@ export const AppRoutes = () => {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="admin" element={<AdminRoute />} />
       </Route>
     </Routes>
   );

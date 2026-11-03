@@ -455,7 +455,6 @@ export const getPostById = async (req, res, next) => {
 
     // Handle Deleted/Removed Safe Tombstone (Point 4)
     if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
-      if (!isAuthor && !isModOrAdmin) {
         return res.json({
           success: true,
           data: {
@@ -464,6 +463,7 @@ export const getPostById = async (req, res, next) => {
             body: '[This content was deleted or removed by community moderation.]',
             status: post.status,
             isDeleted: true,
+            deletedAt: post.deletedAt || post.updatedAt,
             createdAt: post.createdAt,
             community: {
               _id: post.community?._id,
@@ -477,7 +477,6 @@ export const getPostById = async (req, res, next) => {
             canCommentReason: 'Discussion is removed.',
           },
         });
-      }
     }
 
     // Handle Pending/Rejected Content Authorization (Point 5, rules §10):
@@ -586,6 +585,10 @@ export const sharePost = async (req, res, next) => {
         message: 'Post not found.',
         error: { code: ERROR_CODES.NOT_FOUND, message: 'Post not found.' },
       });
+    }
+
+    if (![CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.EDITED, CONTENT_STATUS.LOCKED].includes(post.status)) {
+      return res.status(410).json({ success: false, message: 'This discussion is no longer available for sharing.', error: { code: ERROR_CODES.CONFLICT } });
     }
 
     const sourceCommunity = post.community;
@@ -1457,11 +1460,23 @@ if (
 
     const alreadyLiked = post.likes.some((uid) => uid.toString() === userId.toString());
 
-    if (alreadyLiked) {
-      await Post.updateOne({ _id: post._id }, { $pull: { likes: userId } });
-    } else {
-      await Post.updateOne({ _id: post._id }, { $addToSet: { likes: userId } });
+    const interactionFilter = {
+      _id: post._id,
+      status: { $in: [CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.LOCKED] },
+    };
+    const interactionUpdate = alreadyLiked
+      ? { $pull: { likes: userId } }
+      : { $addToSet: { likes: userId } };
+    const interactionResult = await Post.updateOne(interactionFilter, interactionUpdate);
+    if (interactionResult.matchedCount !== 1) {
+      return res.status(410).json({
+        success: false,
+        message: 'This discussion is no longer available for interaction.',
+        error: { code: ERROR_CODES.CONFLICT },
+      });
+    }
 
+    if (!alreadyLiked) {
       // Notify author if not self-liking
       if (post.author.toString() !== userId.toString()) {
         await notificationService.notify({
@@ -1528,10 +1543,21 @@ export const savePost = async (req, res, next) => {
 
     const alreadySaved = post.saves.some((uid) => uid.toString() === userId.toString());
 
-    if (alreadySaved) {
-      await Post.updateOne({ _id: post._id }, { $pull: { saves: userId } });
-    } else {
-      await Post.updateOne({ _id: post._id }, { $addToSet: { saves: userId } });
+    const interactionResult = await Post.updateOne(
+      {
+        _id: post._id,
+        status: { $in: [CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.LOCKED] },
+      },
+      alreadySaved
+        ? { $pull: { saves: userId } }
+        : { $addToSet: { saves: userId } }
+    );
+    if (interactionResult.matchedCount !== 1) {
+      return res.status(410).json({
+        success: false,
+        message: 'This discussion is no longer available for interaction.',
+        error: { code: ERROR_CODES.CONFLICT },
+      });
     }
 
     const updated = await Post.findById(id).select('saves');
@@ -1590,10 +1616,21 @@ export const voteHelpful = async (req, res, next) => {
       (uid) => uid.toString() === userId.toString()
     );
 
-    if (alreadyHelpful) {
-      await Post.updateOne({ _id: post._id }, { $pull: { helpfulVotes: userId } });
-    } else {
-      await Post.updateOne({ _id: post._id }, { $addToSet: { helpfulVotes: userId } });
+    const interactionResult = await Post.updateOne(
+      {
+        _id: post._id,
+        status: { $in: [CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.LOCKED] },
+      },
+      alreadyHelpful
+        ? { $pull: { helpfulVotes: userId } }
+        : { $addToSet: { helpfulVotes: userId } }
+    );
+    if (interactionResult.matchedCount !== 1) {
+      return res.status(410).json({
+        success: false,
+        message: 'This discussion is no longer available for interaction.',
+        error: { code: ERROR_CODES.CONFLICT },
+      });
     }
 
     const updated = await Post.findById(id).select('helpfulVotes');
@@ -1633,12 +1670,14 @@ export const deletePost = async (req, res, next) => {
     }
 
     // Idempotency without revealing a deleted post to an unauthorized caller.
-    if (post.status === CONTENT_STATUS.DELETED) {
-      return res.json({ success: true, message: 'Post is already deleted.' });
+    if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
+      return res.json({ success: true, message: 'Post is already unavailable.' });
     }
 
     const previousStatus = post.status;
     post.status = CONTENT_STATUS.DELETED;
+    post.deletedAt = new Date();
+    post.deletedBy = req.user._id;
     post.isPinned = false;
     post.pinnedAt = null;
     post.pinnedBy = null;
@@ -1646,7 +1685,7 @@ export const deletePost = async (req, res, next) => {
     await post.save();
 
     // Decrement postCount on community if the post was active/published
-    if (previousStatus === CONTENT_STATUS.PUBLISHED && post.community?._id) {
+    if ([CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.EDITED, CONTENT_STATUS.LOCKED].includes(previousStatus) && post.community?._id) {
       await Community.updateOne({ _id: post.community._id }, { $inc: { postCount: -1 } });
     }
 

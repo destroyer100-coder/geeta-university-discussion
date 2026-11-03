@@ -37,19 +37,7 @@ export const getComments = async (req, res, next) => {
     }
 
     if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
-      const isAuthor = req.user && post.author.toString() === req.user._id.toString();
-      const canModerate = req.user && await permissionService.canModerate(
-        req.user,
-        post.community
-      );
-
-      if (!isAuthor && !canModerate) {
-        return res.status(403).json({
-          success: false,
-          message: 'You cannot view comments on this post.',
-          error: { code: ERROR_CODES.FORBIDDEN, message: 'Post is not available.' },
-        });
-      }
+      return res.json({ success: true, count: 0, data: [] });
     }
 
 
@@ -77,7 +65,7 @@ export const getComments = async (req, res, next) => {
 
       return {
         ...c,
-        body: isDeleted && !isAuthor ? '[Comment removed by moderation or author]' : c.body,
+        body: isDeleted ? '[Comment deleted]' : c.body,
         likesCount: (c.likes || []).length,
         helpfulCount: (c.helpfulVotes || []).length,
         isLiked: req.user
@@ -118,12 +106,22 @@ export const createComment = async (req, res, next) => {
     const { id } = req.params; // post id
     const { body, parentComment } = req.body;
 
-    if (!body || body.trim().length === 0) {
+    if (typeof body !== 'string' || body.trim().length === 0 || body.length > 10000) {
       return res.status(400).json({
         success: false,
-        message: 'Comment content cannot be empty.',
-        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Body cannot be empty.' },
+        message: 'Comment content must be a non-empty string of at most 10,000 characters.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid comment body.' },
       });
+    }
+
+    if (parentComment !== undefined && parentComment !== null && parentComment !== '') {
+      if (typeof parentComment !== 'string' || !/^[a-f0-9]{24}$/i.test(parentComment)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A valid parent comment ID is required for a reply.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid parent comment.' },
+        });
+      }
     }
 
     const post = await Post.findById(id).populate('community');
@@ -146,6 +144,22 @@ export const createComment = async (req, res, next) => {
           message: perm.reason || 'You cannot comment on this post.',
         },
       });
+    }
+
+    if (parentComment) {
+      const parent = await Comment.findOne({
+        _id: parentComment,
+        post: post._id,
+        isDeleted: { $ne: true },
+        status: { $nin: [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED] },
+      }).select('_id');
+      if (!parent) {
+        return res.status(404).json({
+          success: false,
+          message: 'Parent comment was not found in this discussion or is no longer available.',
+          error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent comment unavailable.' },
+        });
+      }
     }
 
     const comment = await Comment.create({
@@ -214,6 +228,9 @@ export const toggleLikeComment = async (req, res, next) => {
         message: 'Parent post not found.',
         error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent post not found.' },
       });
+    }
+    if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status) || comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.status(410).json({ success: false, message: 'This discussion or comment is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
     }
 
     if (
@@ -300,6 +317,9 @@ export const acceptCommentAnswer = async (req, res, next) => {
     }
 
     const post = comment.post;
+    if (!post || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status) || comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.status(410).json({ success: false, message: 'This discussion or comment is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
+    }
     const isPostAuthor = post.author.toString() === req.user._id.toString();
 
     // Post author may always mark answers on their own discussion; moderators require
@@ -365,13 +385,17 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(id).populate('post');
     if (!comment) {
       return res.status(404).json({
         success: false,
         message: 'Comment not found.',
         error: { code: ERROR_CODES.NOT_FOUND, message: 'Comment not found.' },
       });
+    }
+
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status) || !comment.post || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.post.status)) {
+      return res.status(410).json({ success: false, message: 'This comment or its discussion is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
     }
 
     if (comment.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
@@ -382,7 +406,9 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
+    comment.editHistory.push({ editedAt: new Date(), previousBody: comment.body });
     comment.body = body.trim();
+    comment.status = CONTENT_STATUS.EDITED;
     comment.isEdited = true;
     comment.editedAt = new Date();
     await comment.save();
@@ -420,6 +446,8 @@ export const deleteComment = async (req, res, next) => {
     }
 
     const post = comment.post;
+    if (!post) return res.status(404).json({ success: false, message: 'Parent post not found.', error: { code: ERROR_CODES.NOT_FOUND } });
+    if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) return res.status(410).json({ success: false, message: 'This discussion is no longer available.', error: { code: ERROR_CODES.CONFLICT } });
     const canDelete = await permissionService.canModerateComment(req.user, comment, post, post.community);
 
     if (!canDelete) {
@@ -429,26 +457,29 @@ export const deleteComment = async (req, res, next) => {
         error: { code: ERROR_CODES.FORBIDDEN, message: 'Unauthorized to delete comment.' },
       });
     }
-
-    await Comment.deleteOne({ _id: comment._id });
-
-    // Decrement post comments count atomically
-    if (comment.post) {
-      await Post.updateOne({ _id: comment.post._id }, { $inc: { commentsCount: -1 } });
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.json({ success: true, message: 'Comment is already deleted.' });
     }
 
-    // Audit log if deleted by a moderator/admin rather than author
-    if (comment.author.toString() !== req.user._id.toString()) {
-      await AuditLog.create({
-        actor: req.user._id,
-        action: AUDIT_ACTIONS.DELETE_COMMENT,
-        targetType: 'comment',
-        targetId: comment._id.toString(),
-        community: post?.community?._id,
-        details: { postTitle: post?.title, commentSnippet: comment.body.substring(0, 50) },
-        ip: req.ip || '',
-      });
-    }
+    comment.status = CONTENT_STATUS.DELETED;
+    comment.isDeleted = true;
+    comment.isAccepted = false;
+    comment.deletedBy = req.user._id;
+    comment.deletedAt = new Date();
+    comment.moderationNote = comment.author.toString() === req.user._id.toString() ? '' : 'Removed by moderation';
+    await comment.save();
+
+    // Preserve comment count: the tombstone remains part of the discussion history.
+
+    await AuditLog.create({
+      actor: req.user._id,
+      action: AUDIT_ACTIONS.DELETE_COMMENT,
+      targetType: 'comment',
+      targetId: comment._id.toString(),
+      community: post?.community?._id || null,
+      details: { postTitle: post?.title, deletionType: 'soft_delete', deletedByAuthor: comment.author.toString() === req.user._id.toString() },
+      ip: req.ip || '',
+    });
 
     res.json({ success: true, message: 'Comment deleted successfully.' });
   } catch (error) {

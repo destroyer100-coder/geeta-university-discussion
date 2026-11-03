@@ -326,6 +326,9 @@ export const permissionService = {
     const permissions = community?.permissions || {};
     const isPrivate = permissions.visibility === VISIBILITY.MEMBERS_ONLY;
     const commentPolicy = permissions.commentPolicy || COMMENT_POLICY.EVERYONE;
+    if (!Object.values(COMMENT_POLICY).includes(commentPolicy)) {
+      return { allowed: false, reason: 'Commenting is disabled until the community policy is corrected.' };
+    }
 
     // Moderators/Head/admin may always participate
     const isMod = community ? await this.canModerate(user, community) : false;
@@ -338,7 +341,6 @@ export const permissionService = {
     }
 
     const isActiveMember = !!membership && membership.status === 'active';
-    const postingAllowed = !membership || membership.canPost !== false;
     const privateReason = 'Must be an approved member to comment in private communities';
 
     // Enforce the configured comment policy server-side (rules §6, §7)
@@ -350,14 +352,14 @@ export const permissionService = {
         };
 
       case COMMENT_POLICY.MEMBERS:
-        if (isActiveMember && postingAllowed) return { allowed: true };
+        if (isActiveMember) return { allowed: true };
         return {
           allowed: false,
           reason: isPrivate ? privateReason : 'Only community members can comment in this community.',
         };
 
       case COMMENT_POLICY.APPROVED_USERS:
-        if (isActiveMember && postingAllowed) return { allowed: true };
+        if (isActiveMember && membership.canPost !== false) return { allowed: true };
         return {
           allowed: false,
           reason: 'Only community members with approved permission can comment in this community.',
@@ -396,7 +398,8 @@ export const permissionService = {
   async canShare(user, community, post) {
     if (!user || !community || !community.permissions) return false;
     if (!community._id) return false;
-    const sharePolicy = community.permissions.sharePolicy || 'EVERYONE';
+    const sharePolicy = community.permissions.sharePolicy || SHARE_POLICY.EVERYONE;
+    if (!Object.values(SHARE_POLICY).includes(sharePolicy)) return false;
     if (post && [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
       return false;
     }
@@ -409,7 +412,7 @@ export const permissionService = {
       });
       return Boolean(membership);
     }
-    return true;
+    return sharePolicy === SHARE_POLICY.EVERYONE;
   },
 
   /**

@@ -24,6 +24,8 @@ const postSchema = new mongoose.Schema(
     isAnnouncement: { type: Boolean, default: false },
     isAnonymous: { type: Boolean, default: false },
     allowComments: { type: Boolean, default: true },
+    deletedAt: { type: Date, default: null },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     isQuestion: { type: Boolean, default: false },
     rejectionReason: { type: String, default: '' },
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
