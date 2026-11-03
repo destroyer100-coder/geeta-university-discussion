@@ -1,9 +1,10 @@
-name: Backend syntax checks
+name: Backend and frontend validation
 
 on:
   pull_request:
     paths:
       - 'backend/**'
+      - 'frontend/**'
       - '.github/workflows/backend-syntax.yml'
   workflow_dispatch:
 
@@ -11,9 +12,25 @@ permissions:
   contents: read
 
 jobs:
-  syntax:
+  backend:
+    name: Backend syntax and integration tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      MONGODB_URI: mongodb://127.0.0.1:27017/geeta_admin_ci
+      JWT_SECRET: ci-only-secret-do-not-use-outside-automated-tests-0123456789
+      EMAIL_VERIFICATION_REQUIRED: 'false'
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -21,8 +38,35 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
       - name: Check backend JavaScript syntax
         working-directory: backend
         run: |
-          find src -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -r -n 1 node --check
-          find tests -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -r -n 1 node --check
+          find src tests -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -r -n 1 node --check
+      - name: Run backend integration tests
+        working-directory: backend
+        run: npm test
+
+  frontend:
+    name: Frontend production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
