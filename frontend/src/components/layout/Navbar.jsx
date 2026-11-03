@@ -4,8 +4,6 @@ import { Icon } from '../common/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsApi } from '../../services/api';
 
-// Window event used by the Notifications page to keep the bell badge in sync
-// with the list after marking notifications as read.
 export const NOTIFICATIONS_CHANGED_EVENT = 'notifications:changed';
 
 export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = false }) => {
@@ -15,17 +13,15 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const searchInputRef = useRef(null);
+  const accountMenuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Badge count comes from the same endpoint/field the Notifications page uses,
-  // so the badge can never disagree with the rendered list.
   const loadUnreadCount = useCallback(() => {
     if (!user) {
       setUnreadCount(0);
       return;
     }
-
     notificationsApi
       .getAll()
       .then((res) => {
@@ -34,7 +30,6 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
       .catch(() => setUnreadCount(0));
   }, [user]);
 
-  // Refresh on mount, on navigation, and whenever the active persona changes
   useEffect(() => {
     loadUnreadCount();
   }, [loadUnreadCount, location.pathname]);
@@ -51,246 +46,177 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
       event.preventDefault();
       searchInputRef.current?.focus();
     };
-
     window.addEventListener('keydown', handleSearchShortcut);
     return () => window.removeEventListener('keydown', handleSearchShortcut);
   }, []);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
+  useEffect(() => {
+    setShowPersonaMenu(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!showPersonaMenu) return undefined;
+    const handlePointerDown = (event) => {
+      if (!accountMenuRef.current?.contains(event.target)) setShowPersonaMenu(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setShowPersonaMenu(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showPersonaMenu]);
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    if (query) navigate(`/search?q=${encodeURIComponent(query)}`);
   };
 
+  const toggleAccountMenu = () => setShowPersonaMenu((visible) => !visible);
+
   return (
-    <nav className="navbar">
+    <nav className="navbar" aria-label="Main navigation">
       <div className="navbar-container">
-       
-        
-        {/* Navigation toggle for desktop sidebar and mobile drawer */}
         <button
           type="button"
-          className="btn-icon"
+          className="btn-icon navbar-menu-toggle"
           onClick={onOpenMobileNav}
-          aria-label={
-            isMobileNavOpen
-              ? 'Close navigation menu'
-              : 'Open navigation menu'
-          }
+          aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Toggle navigation sidebar'}
           aria-expanded={isMobileNavOpen}
           aria-controls="app-navigation"
-          title="Toggle Navigation Sidebar"
-          style={{ marginRight: '6px', flexShrink: 0 }}
+          title="Toggle navigation"
         >
           <Icon name={isMobileNavOpen ? 'x' : 'menu'} size={20} />
         </button>
 
-        
-        {/* Brand */}
-        <Link to="/" className="nav-brand">
-          <div className="brand-logo-badge">G</div>
-          <div className="brand-text">
-            <div className="brand-text-main">GEETA UNIVERSITY</div>
-            <div className="brand-text-sub">Discussion</div>
-          </div>
+        <Link to="/" className="nav-brand" aria-label="Geeta University Discussion home">
+          <span className="brand-logo-badge" aria-hidden="true">G</span>
+          <span className="brand-text">
+            <span className="brand-text-main">GEETA UNIVERSITY</span>
+            <span className="brand-text-sub">Discussion</span>
+          </span>
         </Link>
 
-        {/* Global Search */}
-        <form onSubmit={handleSearch} className="search-bar-wrapper">
-          <Icon name="search" size={16} className="search-icon-pos" />
+        <form onSubmit={handleSearch} className="search-bar-wrapper" role="search">
+          <Icon name="search" size={16} className="search-icon-pos" aria-hidden="true" />
           <input
             ref={searchInputRef}
-            type="text"
+            type="search"
             className="search-input"
-            placeholder="Search discussions, topics, people, communities... (e.g. DSA, placements)"
+            aria-label="Search discussions, topics, people and communities"
+            placeholder="Search campus discussions, people and communities…"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
-          <span className="search-shortcut">Ctrl K</span>
+          <span className="search-shortcut" aria-hidden="true">Ctrl K</span>
         </form>
 
-        {/* Navigation & Actions */}
         <div className="nav-links">
-          {/* Create Post Button (Section 1 & 5: Home shows Create Post button only) */}
           <button
             id="nav-create-post-btn"
-            className="btn btn-accent"
+            type="button"
+            className="btn btn-primary"
             onClick={onOpenCreatePost}
-            style={{ padding: '8px 18px', borderRadius: '20px' }}
           >
-            <Icon name="plus" size={16} color="#fff" />
+            <Icon name="plus" size={16} aria-hidden="true" />
             <span>Create Post</span>
           </button>
 
-          <Link to="/notifications" className="btn-icon" title="Notifications">
-            <div style={{ position: 'relative' }}>
+          <Link
+            to="/notifications"
+            className="btn-icon navbar-icon-link"
+            title="Notifications"
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          >
+            <span className="navbar-icon-wrap">
               <Icon name="bell" size={20} />
               {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  background: '#ef4444',
-                  color: '#fff',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  width: 15,
-                  height: 15,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  {unreadCount}
+                <span className="notification-count" aria-hidden="true">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
-            </div>
+            </span>
           </Link>
 
-          <Link to="/messages" className="btn-icon" title="Messages">
+          <Link to="/messages" className="btn-icon navbar-icon-link" title="Messages" aria-label="Messages">
             <Icon name="messageSquare" size={20} />
           </Link>
 
-          {/* Persona Switcher / User Profile */}
-          <div style={{ position: 'relative' }}>
+          <div className="account-menu" ref={accountMenuRef}>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="account-menu-trigger"
               aria-haspopup="true"
               aria-expanded={showPersonaMenu}
+              aria-controls="account-menu"
               aria-label={user ? `Account menu for ${user.name}` : 'Open sign-in menu'}
-              onClick={() => setShowPersonaMenu(!showPersonaMenu)}
-              style={{ padding: '4px 10px', gap: '8px', borderRadius: '20px' }}
+              onClick={toggleAccountMenu}
             >
               {user ? (
                 <>
                   <img
+                    className="account-avatar"
                     src={user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
-                    alt={user.name}
-                    style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }}
+                    alt=""
                   />
-                  <span className="nav-user-name" style={{ fontSize: '0.825rem', fontWeight: 600 }}>{user.name}</span>
+                  <span className="nav-user-name">{user.name}</span>
                 </>
               ) : (
                 <span>Log In</span>
               )}
-              <Icon name="chevronDown" size={14} />
+              <Icon name="chevronDown" size={14} aria-hidden="true" />
             </button>
 
-            {/* Account menu; test personas exist only in development builds. */}
             {showPersonaMenu && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '115%',
-                  background: '#ffffff',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  boxShadow: 'var(--shadow-lg)',
-                  width: '260px',
-                  padding: '8px',
-                  zIndex: 200,
-                }}
-              >
+              <div id="account-menu" className="account-menu-panel" role="menu">
                 {isDevelopment && (
-                  <>
-                    <div style={{ padding: '6px 10px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase' }}>
-                      Switch Test Persona (Development Only)
-                    </div>
+                  <div className="account-persona-section">
+                    <p className="account-menu-label">Test personas · Development</p>
                     {DEMO_ACCOUNTS.map((account) => (
                       <button
                         type="button"
                         key={account.email}
+                        className={`account-persona-item${user?.email === account.email ? ' is-active' : ''}`}
+                        role="menuitem"
                         onClick={() => {
                           switchPersona(account.email);
                           setShowPersonaMenu(false);
                         }}
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '8px 10px',
-                          background: user?.email === account.email ? 'var(--primary-light)' : 'transparent',
-                          border: 'none',
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          marginBottom: '2px',
-                        }}
                       >
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: user?.email === account.email ? 'var(--primary)' : 'var(--text-main)' }}>
-                          {account.name} {user?.email === account.email && '✓'}
-                        </div>
-                        <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                          {account.title}
-                        </div>
+                        <strong>{account.name} {user?.email === account.email ? '✓' : ''}</strong>
+                        <small>{account.title}</small>
                       </button>
                     ))}
-                    <div style={{ borderTop: '1px solid var(--border-color)', margin: '6px 0' }} />
-                  </>
+                  </div>
                 )}
 
                 {user ? (
                   <>
-                    <Link
-                      to="/profile/me"
-                      onClick={() => setShowPersonaMenu(false)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '8px 10px',
-                        fontSize: '0.825rem',
-                        color: 'var(--text-main)',
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                    >
-                      <Icon name="users" size={14} />
-                      <span>My Profile</span>
+                    <Link to="/profile/me" className="account-menu-item" role="menuitem" onClick={() => setShowPersonaMenu(false)}>
+                      <Icon name="users" size={15} />
+                      My Profile
                     </Link>
-
                     <button
+                      type="button"
+                      className="account-menu-item is-danger"
+                      role="menuitem"
                       onClick={() => {
                         logout();
                         setShowPersonaMenu(false);
                       }}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '8px 10px',
-                        background: 'transparent',
-                        border: 'none',
-                        fontSize: '0.825rem',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
                     >
-                      <Icon name="x" size={14} color="#ef4444" />
-                      <span>Logout</span>
+                      <Icon name="x" size={15} />
+                      Logout
                     </button>
                   </>
                 ) : (
-                  <Link
-                    to="/login"
-                    onClick={() => setShowPersonaMenu(false)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 10px',
-                      fontSize: '0.825rem',
-                      color: 'var(--primary)',
-                      fontWeight: 600,
-                      borderRadius: 'var(--radius-sm)',
-                    }}
-                  >
-                    <Icon name="lock" size={14} />
-                    <span>Sign In with Password</span>
+                  <Link to="/login" className="account-menu-item" role="menuitem" onClick={() => setShowPersonaMenu(false)}>
+                    <Icon name="lock" size={15} />
+                    Sign In with Password
                   </Link>
                 )}
               </div>
