@@ -986,3 +986,44 @@ a.post-author-name:hover { color: var(--primary); }
   #create-post-modal .composer-footer > div { width: 100%; }
   #create-post-modal #submit-post-btn { width: 100%; }
 }
+
+
+/* Composer toolbar: keep the list action on one line and reset the form to top. */
+#create-post-modal .composer-editor-toolbar {
+  align-items: center;
+  overflow: visible;
+}
+#create-post-modal .composer-editor-toolbar .btn-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
+  white-space: nowrap;
+  line-height: 1;
+}
+#create-post-modal .composer-editor-toolbar .composer-list-tool {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 62px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding-inline: 9px;
+}
+#create-post-modal .composer-editor-toolbar .composer-list-tool span {
+  display: inline;
+  white-space: nowrap;
+}
+#create-post-modal .composer-body {
+  scroll-behavior: auto;
+  overflow-anchor: none;
+}
+@media (max-width: 640px) {
+  #create-post-modal .composer-editor-toolbar {
+    flex-wrap: wrap;
+    row-gap: 7px;
+  }
+  #create-post-modal .composer-editor-toolbar .composer-list-tool {
+    min-width: 58px;
+  }
+}
