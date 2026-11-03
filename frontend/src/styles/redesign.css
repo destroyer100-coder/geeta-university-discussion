@@ -775,3 +775,49 @@ a.post-author-name:hover { color: var(--primary); }
 .profile-stat-icon { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--primary-light); color: var(--primary); }
 .profile-page .card, .profile-content .card { border-color: var(--border-color); border-radius: 14px; box-shadow: var(--shadow-xs); }
 .profile-page .badge, .profile-content .badge { font-weight: 700; }
+
+
+/* Responsive navigation: one control per viewport, no duplicate toggles. */
+.navbar-menu-toggle { display: none !important; }
+.brand-text-compact { display: none; }
+
+@media (max-width: 768px) {
+  .navbar-menu-toggle { display: inline-grid !important; }
+  .sidebar-collapse-toggle { display: none !important; }
+  .navbar-container {
+    display: flex;
+    flex-wrap: nowrap;
+    min-width: 0;
+    gap: 9px;
+    padding-inline: 12px;
+  }
+  .nav-brand {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .brand-text { min-width: 0; }
+  .brand-text-main { display: none !important; }
+  .brand-text-compact {
+    display: block;
+    color: var(--primary);
+    font-size: .78rem;
+    font-weight: 850;
+    letter-spacing: .06em;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .brand-text-sub { display: block; font-size: .59rem; white-space: nowrap; }
+  .nav-links { flex: 0 0 auto; margin-inline-start: auto; gap: 3px; }
+  .search-bar-wrapper { display: none; }
+}
+
+@media (max-width: 390px) {
+  .navbar-container { gap: 6px; padding-inline: 9px; }
+  .navbar-menu-toggle { width: 34px !important; height: 34px !important; flex-basis: 34px !important; }
+  .brand-logo-badge { width: 34px; height: 34px; flex-basis: 34px; }
+  .brand-text-sub { display: none; }
+  .nav-links .navbar-icon-link { width: 34px; height: 34px; }
+  #nav-create-post-btn { width: 36px; min-width: 36px; height: 36px; }
+}
