@@ -174,6 +174,12 @@ export const CommunityList = () => {
                   <p className="community-card-description">
                     {community.description || 'A place for students to connect, share and learn.'}
                   </p>
+                  {(community.tags || []).length > 0 && (
+                    <div className="community-card-tags" aria-label="Community topics">
+                      {community.tags.slice(0, 4).map((tag) => <span key={tag}>#{tag}</span>)}
+                      {community.tags.length > 4 && <small>+{community.tags.length - 4}</small>}
+                    </div>
+                  )}
 
                   <div className="community-card-footer">
                     <div className="community-card-stats">
