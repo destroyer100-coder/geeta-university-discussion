@@ -333,11 +333,11 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        <div className="modal-content">
+        <div className="modal-content composer-modal">
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', rowGap: '10px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, flexShrink: 0, background: '#ffffff', zIndex: 2 }}>
+          <div className="composer-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', rowGap: '10px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, flexShrink: 0, background: '#ffffff', zIndex: 2 }}>
             <div style={{ minWidth: 0 }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>Create a Discussion</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>Create a post</h2>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', width: '100%' }}>
                 Share ideas, ask questions, or post study materials to Geeta University.
               </div>
@@ -365,9 +365,9 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
             </div>
           </div>
 
-          <div style={{ padding: '20px 24px' }}>
+          <div className="composer-body" style={{ padding: '20px 24px' }}>
             {/* Community Selector + Permission Indicator */}
-            <div className="audience-selector" style={{ gap: '12px', alignItems: 'center', marginBottom: '16px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', minWidth: 0, maxWidth: '100%' }}>
+            <div className="audience-selector composer-audience" style={{ gap: '12px', alignItems: 'center', marginBottom: '16px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', minWidth: 0, maxWidth: '100%' }}>
               <div style={{ minWidth: 0 }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>
                   Target Audience / Community (Optional)
@@ -488,7 +488,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                 </div>
 
                 {/* Toolbar (wraps on narrow screens so it never overflows the modal) */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', padding: '6px 10px', background: 'var(--bg-muted)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRadius: 'var(--radius-md) var(--radius-md) 0 0' }}>
+                <div className="composer-editor-toolbar" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', padding: '6px 10px', background: 'var(--bg-muted)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRadius: 'var(--radius-md) var(--radius-md) 0 0' }}>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '**Bold Text**')} title="Bold"><strong>B</strong></button>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '*Italic Text*')} title="Italic"><em>I</em></button>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '\n```cpp\n// Code snippet\n```\n')} title="Code">&lt;/&gt;</button>
@@ -521,7 +521,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                 </div>
 
                 {/* SINGLE "+ Add Attachment" BUTTON & MENU (Section 6 Requirement) */}
-                <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px', background: '#fafafa', marginBottom: '16px' }}>
+                <div className="composer-attachments" style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px', background: '#fafafa', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                     <div style={{ position: 'relative' }}>
                       <button
@@ -852,7 +852,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                 </div>
 
                 {/* Options */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}>
+                <div className="composer-options" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
                     <input type="checkbox" checked={isAnonymous} onChange={(e) => setIsAnonymous(e.target.checked)} />
                     <span>Post anonymously</span>
@@ -910,7 +910,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
           </div>
 
           {/* Footer Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', padding: '16px 24px', borderTop: '1px solid var(--border-color)', background: '#fafafa' }}>
+          <div className="composer-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', padding: '16px 24px', borderTop: '1px solid var(--border-color)', background: '#fafafa' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
             </button>
