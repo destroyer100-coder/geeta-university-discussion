@@ -679,3 +679,33 @@ textarea.form-control, .content-area textarea { min-height: 120px; resize: verti
   .create-community-submit .btn { width: 100%; }
   .community-success-card { margin: 22px auto; padding: 25px 16px; }
 }
+
+
+/* Composer details and publishing controls */
+#create-post-modal .modal-content > div:first-child h2 { margin: 0 0 4px; color: var(--text-main) !important; font-size: 1.12rem !important; letter-spacing: -.025em; }
+#create-post-modal .modal-content > div:first-child > div:last-child { flex: 0 0 auto; }
+#create-post-modal .modal-content > div:first-child .btn { min-width: 62px; }
+#create-post-modal .audience-selector { grid-template-columns: minmax(0,1fr) minmax(160px,auto); gap: 14px !important; align-items: center; padding: 13px !important; }
+#create-post-modal .audience-selector label { color: var(--text-muted) !important; font-size: .68rem !important; letter-spacing: .04em; }
+#create-post-modal .audience-selector select { min-height: 42px; border: 1px solid var(--border-color); border-radius: 9px; font-size: .84rem; }
+#create-post-modal .audience-selector > div:last-child { text-align: left !important; }
+#create-post-modal .form-group { gap: 7px; margin-bottom: 17px; }
+#create-post-modal .form-label { color: var(--text-secondary); font-size: .82rem; font-weight: 750; }
+#create-post-modal .form-control { min-height: 42px; border-radius: 9px; }
+#create-post-modal textarea.form-control { min-height: 170px; }
+#create-post-modal .modal-content > div:last-child { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 22px !important; }
+#create-post-modal .modal-content > div:last-child > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#create-post-modal .modal-content .btn { min-height: 40px; border-radius: 9px; }
+#create-post-modal .modal-content .btn-icon { width: 38px; height: 38px; }
+#create-post-modal .modal-content input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); }
+#create-post-modal .modal-content .tag-pill { display: inline-flex; align-items: center; gap: 7px; }
+#create-post-modal .modal-content .tag-pill span { display: inline-grid; place-items: center; }
+#create-post-modal .modal-content .file-item-pill { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; border: 1px solid var(--border-color); border-radius: 7px; background: #fff; color: var(--text-secondary); overflow-wrap: anywhere; }
+#create-post-modal .modal-content .file-item-pill svg { flex: 0 0 auto; color: var(--primary); }
+#create-post-modal .modal-content .audience-selector .badge { white-space: normal; text-align: left; }
+@media (max-width: 640px) {
+  #create-post-modal .audience-selector { grid-template-columns: minmax(0,1fr); }
+  #create-post-modal .modal-content > div:last-child { align-items: stretch; flex-direction: column; }
+  #create-post-modal .modal-content > div:last-child > div { width: 100%; }
+  #create-post-modal #submit-post-btn { flex: 1; }
+}
