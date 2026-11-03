@@ -19,6 +19,7 @@ export const MainLayout = () => {
   });
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth <= 768);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -66,6 +67,12 @@ export const MainLayout = () => {
   }, [location.pathname]);
 
   useEffect(() => {
+    const updateViewport = () => setIsMobileViewport(window.innerWidth <= 768);
+    window.addEventListener('resize', updateViewport);
+    return () => window.removeEventListener('resize', updateViewport);
+  }, []);
+
+  useEffect(() => {
     const handlePopState = () => {
       setIsMobileNavOpen(false);
     };
@@ -107,6 +114,7 @@ export const MainLayout = () => {
         onOpenCreatePost={() => handleOpenCreatePost()}
         onOpenMobileNav={handleMenuToggle}
         isMobileNavOpen={isMobileNavOpen}
+        isNavigationExpanded={isMobileViewport ? isMobileNavOpen : !isSidebarCollapsed}
       />
 
       <div className={layoutClassName}>
