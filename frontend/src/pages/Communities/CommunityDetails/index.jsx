@@ -11,6 +11,9 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const { user } = useAuth();
   const [community, setCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [discussionSearch, setDiscussionSearch] = useState('');
+  const [discussionSort, setDiscussionSort] = useState('newest');
+  const [selectedTag, setSelectedTag] = useState('');
   const [pendingPosts, setPendingPosts] = useState([]);
   const [postRequests, setPostRequests] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -33,6 +36,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
     requirePostApproval: false,
     allowAnonymousPosts: true,
     maxPinnedPosts: 3,
+    tags: [],
   });
 
   const loadCommunityData = async () => {
@@ -55,6 +59,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             requirePostApproval: comm.permissions.requirePostApproval ?? false,
             allowAnonymousPosts: comm.permissions.allowAnonymousPosts ?? true,
             maxPinnedPosts: comm.maxPinnedPosts || 3,
+            tags: comm.tags || [],
           });
         }
 
@@ -208,6 +213,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         description: settingsPolicy.description,
         category: settingsPolicy.category,
         maxPinnedPosts: settingsPolicy.maxPinnedPosts,
+        tags: settingsPolicy.tags,
         permissions: {
           visibility: settingsPolicy.visibility,
           postPolicy: settingsPolicy.postPolicy,
@@ -324,6 +330,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '640px' }}>
                   {community.description}
                 </p>
+                {(community.tags || []).length > 0 && <div className="community-tag-list" aria-label="Community topics">{community.tags.map((tag) => <button key={tag} type="button" className={`community-tag-chip${selectedTag === tag ? ' is-active' : ''}`} onClick={() => { setSelectedTag((current) => current === tag ? '' : tag); setActiveTab('discussions'); }}>#{tag}</button>)}</div>}
                 <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   <span>
                     <Icon name="users" size={14} /> <strong>{community.memberCount || 0}</strong> Members
@@ -447,7 +454,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
 
       {/* TAB 1: DISCUSSIONS */}
       {activeTab === 'discussions' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '20px' }}>
+        <div className="community-discussions-layout">
           <div>
             {!canPost && (
               <div
@@ -476,106 +483,45 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               </div>
             )}
 
-            {posts.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                <p style={{ color: 'var(--text-muted)' }}>No discussions in this community yet.</p>
-                {canPost && onOpenCreatePostWithCommunity && (
-                  <button
-                    className="btn btn-primary"
-                    style={{ marginTop: '12px' }}
-                    onClick={() => onOpenCreatePostWithCommunity(community._id)}
-                  >
-                    Start First Discussion
-                  </button>
-                )}
-              </div>
-            ) : (
-              posts.map((p) => (
-                <PostCard
-                  key={p._id}
-                  post={p}
-                  modPermissions={modPerms}
-                  onPostUpdated={loadCommunityData}
-                />
-              ))
-            )}
+            <div className="community-discussion-toolbar">
+              <label className="community-discussion-search">
+                <Icon name="search" size={17} />
+                <input value={discussionSearch} onChange={(event) => setDiscussionSearch(event.target.value)} placeholder="Search discussions in this community…" aria-label="Search community discussions" />
+              </label>
+              <select value={discussionSort} onChange={(event) => setDiscussionSort(event.target.value)} aria-label="Sort discussions">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="popular">Most discussed</option>
+              </select>
+            </div>
+            {(community.tags || []).length > 0 && <div className="community-discussion-filters" aria-label="Filter by community topic">
+              <button type="button" className={!selectedTag ? 'is-active' : ''} onClick={() => setSelectedTag('')}>All topics</button>
+              {community.tags.map((tag) => <button type="button" key={tag} className={selectedTag === tag ? 'is-active' : ''} onClick={() => setSelectedTag((current) => current === tag ? '' : tag)}>#{tag}</button>)}
+            </div>}
+            {(() => {
+              const query = discussionSearch.trim().toLowerCase();
+              const visiblePosts = posts.filter((post) => {
+                const matchesText = !query || [post.title, post.body, ...(post.tags || [])].some((value) => String(value || '').toLowerCase().includes(query));
+                const matchesTag = !selectedTag || (post.tags || []).some((tag) => String(tag).toLowerCase() === selectedTag.toLowerCase());
+                return matchesText && matchesTag;
+              }).sort((a, b) => {
+                if (discussionSort === 'popular') return (b.commentsCount || 0) - (a.commentsCount || 0);
+                const dateA = new Date(a.createdAt || 0).getTime();
+                const dateB = new Date(b.createdAt || 0).getTime();
+                return discussionSort === 'oldest' ? dateA - dateB : dateB - dateA;
+              });
+              return visiblePosts.length === 0 ? (
+                <div className="card community-discussion-empty">
+                  <Icon name="messagesSquare" size={28} />
+                  <strong>{posts.length ? 'No matching discussions' : 'No discussions yet'}</strong>
+                  <p>{posts.length ? 'Try another search or topic filter.' : 'Start the first conversation in this community.'}</p>
+                  {posts.length > 0 && (discussionSearch || selectedTag) ? <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDiscussionSearch(''); setSelectedTag(''); }}>Clear filters</button> : canPost && onOpenCreatePostWithCommunity ? <button className="btn btn-primary" onClick={() => onOpenCreatePostWithCommunity(community._id)}>Start first discussion</button> : null}
+                </div>
+              ) : visiblePosts.map((post) => <PostCard key={post._id} post={post} modPermissions={modPerms} onPostUpdated={loadCommunityData} />);
+            })()}
+
           </div>
 
-          {/* Right Panel: Community Rules & Permissions */}
-          <div>
-            <div className="card" style={{ marginBottom: '16px' }}>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  marginBottom: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <Icon name="shieldCheck" size={18} color="var(--primary)" />
-                <span>Enforced Policies</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.825rem' }}>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Visibility</span>
-                  <strong>
-                    {community.permissions?.visibility === 'PUBLIC'
-                      ? 'Everyone (Public)'
-                      : 'Members Only (Private)'}
-                  </strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Posting Policy</span>
-                  <span className="badge badge-warning">
-                    {community.permissions?.postPolicy || 'MEMBERS'}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Comment Policy</span>
-                  <strong>{community.permissions?.commentPolicy || 'EVERYONE'}</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Approval Required</span>
-                  <strong>{community.permissions?.requirePostApproval ? 'Yes (Moderated)' : 'No (Instant)'}</strong>
-                </div>
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '12px', paddingTop: '10px' }}>
-                <button
-                  className="btn btn-outline btn-sm"
-                  style={{ width: '100%' }}
-                  onClick={() => setActiveTab('rules')}
-                >
-                  View Guidelines & Rules →
-                </button>
-              </div>
-            </div>
-
-            {/* Moderators Box */}
-            <div className="card">
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '10px' }}>
-                Community Moderators
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <div>
-                    <strong>{community.owner?.name}</strong>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Community Head</div>
-                  </div>
-                </div>
-                {community.moderators?.map((m) => (
-                  <div key={m._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                    <div>
-                      <strong>{m.name}</strong>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Moderator</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -921,7 +867,12 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               </label>
             </div>
 
-            <button type="submit" className="btn btn-primary">
+            <div className="form-group">
+            <label className="form-label" htmlFor="settings-community-tags">Community tags</label>
+            <input id="settings-community-tags" className="form-control" value={(settingsPolicy.tags || []).join(', ')} onChange={(event) => setSettingsPolicy((current) => ({ ...current, tags: [...new Set(event.target.value.split(',').map((tag) => tag.trim().replace(/^#/, '')).filter(Boolean))].slice(0, 12) }))} placeholder="DSA, placements, web development" />
+            <span className="form-help">Comma-separated. Up to 12 tags.</span>
+          </div>
+          <button type="submit" className="btn btn-primary">
               Save Community Settings
             </button>
           </form>
