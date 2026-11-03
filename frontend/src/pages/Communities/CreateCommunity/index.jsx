@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { communitiesApi } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { Icon } from '../../../components/common/Icons';
@@ -30,10 +30,7 @@ export const CreateCommunity = () => {
   const [serverError, setServerError] = useState(null);
   const [created, setCreated] = useState(null);
 
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   if (created) {
     return (
