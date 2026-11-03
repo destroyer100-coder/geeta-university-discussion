@@ -122,4 +122,5 @@ export const DELEGATED_PERMISSIONS = {
   DELETE_POSTS: 'delete_posts',
   MANAGE_RULES: 'manage_rules',
   MARK_ACCEPTED_ANSWERS: 'mark_accepted_answers',
+  REVIEW_REPORTS: 'review_reports',
 };
