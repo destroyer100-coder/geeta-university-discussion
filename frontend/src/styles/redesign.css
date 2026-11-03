@@ -769,3 +769,9 @@ a.post-author-name:hover { color: var(--primary); }
   .post-header > div:last-child { justify-content: flex-start; }
   .post-actions-bar > div { justify-content: flex-start; }
 }
+
+
+/* Shared profile and account surfaces */
+.profile-stat-icon { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--primary-light); color: var(--primary); }
+.profile-page .card, .profile-content .card { border-color: var(--border-color); border-radius: 14px; box-shadow: var(--shadow-xs); }
+.profile-page .badge, .profile-content .badge { font-weight: 700; }
