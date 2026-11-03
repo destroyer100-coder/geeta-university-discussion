@@ -23,6 +23,7 @@ export const CreateCommunity = () => {
     name: '',
     description: '',
     category: 'General',
+    tagsText: '',
     visibility: 'PUBLIC',
   });
   const [errors, setErrors] = useState({});
@@ -75,6 +76,7 @@ export const CreateCommunity = () => {
         name: form.name.trim(),
         description: form.description.trim(),
         category: form.category,
+        tags: [...new Set(form.tagsText.split(',').map((tag) => tag.trim().replace(/^#/, '')).filter(Boolean))].slice(0, 12),
         visibility: form.visibility,
       });
       if (res.success && res.data) {
@@ -167,6 +169,11 @@ export const CreateCommunity = () => {
               ))}
             </select>
             <span className="form-help">This helps students find your community.</span>
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="community-tags">Community tags</label>
+            <input id="community-tags" className="form-control" type="text" placeholder="e.g. DSA, placements, web development" value={form.tagsText} onChange={handleChange('tagsText')} maxLength={300} disabled={submitting} />
+            <span className="form-help">Comma-separated topics. Add up to 12 tags to help students discover this community.</span>
           </div>
         </section>
 
