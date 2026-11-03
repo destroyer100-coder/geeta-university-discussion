@@ -235,7 +235,7 @@ export const DiscussionDetails = () => {
   if (errorState || !post) {
     return (
       <div className="card" style={{ padding: '40px', textAlign: 'center', margin: '40px auto', maxWidth: '600px' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔒</div>
+        <div className="empty-state-icon"><Icon name="lock" size={28} /></div>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px' }}>
           Discussion Unavailable
         </h2>
@@ -253,7 +253,7 @@ export const DiscussionDetails = () => {
   if (post.isDeleted) {
     return (
       <div className="card" style={{ padding: '36px', textAlign: 'center', margin: '40px auto', maxWidth: '640px' }}>
-        <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🗑️</div>
+        <div className="empty-state-icon"><Icon name="info" size={26} /></div>
         <h2 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '8px' }}>
           [Discussion Removed]
         </h2>
@@ -427,7 +427,7 @@ export const DiscussionDetails = () => {
             gap: '8px',
           }}
         >
-          <span>🗑️ This discussion has been deleted or removed. Interactions and comments are disabled.</span>
+          <span><Icon name="info" size={14} /> This discussion has been deleted or removed. Interactions and comments are disabled.</span>
         </div>
       )}
 
@@ -446,7 +446,7 @@ export const DiscussionDetails = () => {
             gap: '8px',
           }}
         >
-          <span>🔒 Comments are closed for this discussion.</span>
+          <span><Icon name="lock" size={14} /> Comments are closed for this discussion.</span>
         </div>
       )}
 
@@ -468,7 +468,7 @@ export const DiscussionDetails = () => {
               marginBottom: '12px',
             }}
           >
-            <span>📌 Pinned{community.name ? ` in ${community.name}` : ''}</span>
+            <span><Icon name="bookmark" size={13} /> Pinned{community.name ? ` in ${community.name}` : ""}</span>
           </div>
         )}
 
@@ -484,30 +484,35 @@ export const DiscussionDetails = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img
-              src={
-                author.avatar ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-              }
-              alt={author.name}
-              style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover' }}
-            />
+            {post.isAnonymous ? (
+              <div className="post-avatar post-avatar-anonymous" aria-label="Anonymous member">
+                <Icon name="users" size={19} aria-hidden="true" />
+              </div>
+            ) : (
+              <img
+                src={author.avatar || 'https://api.dicebear.com/7.x/initials/svg?seed=Student'}
+                alt=""
+                className="post-avatar"
+                loading="lazy"
+                decoding="async"
+              />
+            )}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span style={{ fontWeight: 800, fontSize: '1rem' }}>
                   {post.isAnonymous ? 'Anonymous Geeta Member' : author.name}
                 </span>
-                {author.verified && <Icon name="checkCircle2" size={16} color="#3b82f6" />}
+                {!post.isAnonymous && author.verified && <Icon name="checkCircle2" size={16} color="#3b82f6" />}
                 {community.name ? (
                   <Link to={`/communities/${community.slug || community._id}`}>
                     <span className="badge badge-primary">{community.name}</span>
                   </Link>
                 ) : (
-                  <span className="badge badge-accent">🌐 Campus-Wide</span>
+                  <span className="badge badge-accent">Campus-Wide</span>
                 )}
               </div>
               <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-                {author.year || author.department} • Posted{' '}
+                {(post.isAnonymous ? 'Geeta University' : author.year || author.department || 'Student')} • Posted{' '}
                 {new Date(post.createdAt).toLocaleDateString()}
               </div>
             </div>
@@ -521,7 +526,7 @@ export const DiscussionDetails = () => {
                 onClick={handleTogglePin}
                 disabled={actionLoading}
               >
-                {post.isPinned ? 'Unpin' : '📌 Pin'}
+                {post.isPinned ? 'Unpin' : 'Pin'}
               </button>
             )}
             {modPerms.lock && (
@@ -530,7 +535,7 @@ export const DiscussionDetails = () => {
                 onClick={handleToggleLock}
                 disabled={actionLoading}
               >
-                {post.status === 'locked' ? 'Unlock' : '🔒 Lock'}
+                {post.status === 'locked' ? 'Unlock' : 'Lock'}
               </button>
             )}
             {(isPostAuthor || modPerms.delete) && (
@@ -624,7 +629,7 @@ export const DiscussionDetails = () => {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span>🎬 {v.originalName}</span>
+                  <span><Icon name="video" size={13} /> {v.originalName}</span>
                   <span>{(v.size / (1024 * 1024)).toFixed(1)} MB</span>
                 </div>
               </div>
@@ -724,7 +729,7 @@ export const DiscussionDetails = () => {
                           gap: '6px',
                         }}
                       >
-                        📁 {f.relativePath || f.name}
+                        <><Icon name="folder" size={13} /> {f.relativePath || f.name}</>
                       </div>
                       <div style={{ paddingLeft: '20px' }}>
                         {folderFiles
@@ -743,7 +748,7 @@ export const DiscussionDetails = () => {
                                 justifyContent: 'space-between',
                               }}
                             >
-                              <span>📄 {fFile.originalName}</span>
+                              <span><Icon name="fileText" size={13} /> {fFile.originalName}</span>
                               <a
                                 href={fFile.url}
                                 target="_blank"
