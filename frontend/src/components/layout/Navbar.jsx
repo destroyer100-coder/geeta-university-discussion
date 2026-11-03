@@ -6,7 +6,7 @@ import { notificationsApi } from '../../services/api';
 
 export const NOTIFICATIONS_CHANGED_EVENT = 'notifications:changed';
 
-export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = false }) => {
+export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = false, isNavigationExpanded = false }) => {
   const { user, logout, switchPersona, DEMO_ACCOUNTS } = useAuth();
   const isDevelopment = import.meta.env.DEV;
   const [showPersonaMenu, setShowPersonaMenu] = useState(false);
@@ -85,8 +85,8 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
           type="button"
           className="btn-icon navbar-menu-toggle"
           onClick={onOpenMobileNav}
-          aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Toggle navigation sidebar'}
-          aria-expanded={isMobileNavOpen}
+          aria-label={isNavigationExpanded ? 'Collapse navigation' : 'Expand navigation'}
+          aria-expanded={isNavigationExpanded}
           aria-controls="app-navigation"
           title="Toggle navigation"
         >
