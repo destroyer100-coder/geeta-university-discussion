@@ -35,6 +35,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
   // Monotonic token so an in-flight permission lookup for a previously selected
   // community can never overwrite the state of the currently selected one.
   const permissionRequestRef = useRef(0);
+  const composerBodyRef = useRef(null);
 
   // Post form state
   const [activeTab, setActiveTab] = useState('edit'); // 'edit' | 'preview'
@@ -144,6 +145,10 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
       refreshPermission(selectedCommunityId);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && composerBodyRef.current) composerBodyRef.current.scrollTop = 0;
+  }, [isOpen]);
 
   // Escape closes the topmost layer: nested request modal first, then composer.
   useEffect(() => {
@@ -365,7 +370,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
             </div>
           </div>
 
-          <div className="composer-body" style={{ padding: '20px 24px' }}>
+          <div ref={composerBodyRef} className="composer-body" style={{ padding: '20px 24px' }}>
             {/* Community Selector + Permission Indicator */}
             <div className="audience-selector composer-audience" style={{ gap: '12px', alignItems: 'center', marginBottom: '16px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', minWidth: 0, maxWidth: '100%' }}>
               <div style={{ minWidth: 0 }}>
@@ -492,7 +497,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '**Bold Text**')} title="Bold"><strong>B</strong></button>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '*Italic Text*')} title="Italic"><em>I</em></button>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '\n```cpp\n// Code snippet\n```\n')} title="Code">&lt;/&gt;</button>
-                  <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '\n- Bullet point')} title="List">• List</button>
+                  <button type="button" className="btn-icon composer-list-tool" onClick={() => setBody((prev) => prev + '\n- Bullet point')} title="Insert list" aria-label="Insert list">• <span>List</span></button>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '\n> Quote\n')} title="Quote">”</button>
                   <div style={{ height: 18, width: 1, background: 'var(--border-color)', margin: '0 4px' }} />
                   <select
