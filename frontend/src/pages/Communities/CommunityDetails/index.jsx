@@ -336,7 +336,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   </div>
                 ) : (
                   <div className="community-tags-empty">
-                    <Icon name="tag" size={13} />
+                    <Icon name="fileText" size={13} />
                     <span>No topics added yet</span>
                     {canManageSettings && <button type="button" onClick={() => setActiveTab('settings')}>Add topics</button>}
                   </div>
@@ -522,7 +522,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               });
               return visiblePosts.length === 0 ? (
                 <div className="card community-discussion-empty">
-                  <Icon name="messagesSquare" size={28} />
+                  <Icon name="messageSquare" size={28} />
                   <strong>{posts.length ? 'No matching discussions' : 'No discussions yet'}</strong>
                   <p>{posts.length ? 'Try another search or topic filter.' : 'Start the first conversation in this community.'}</p>
                   {posts.length > 0 && (discussionSearch || selectedTag) ? <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDiscussionSearch(''); setSelectedTag(''); }}>Clear filters</button> : canPost && onOpenCreatePostWithCommunity ? <button className="btn btn-primary" onClick={() => onOpenCreatePostWithCommunity(community._id)}>Start first discussion</button> : null}
