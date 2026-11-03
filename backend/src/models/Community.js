@@ -23,6 +23,11 @@ const communitySchema = new mongoose.Schema(
       type: String,
       default: 'General',
     },
+    tags: {
+      type: [{ type: String, trim: true, maxlength: 24 }],
+      default: [],
+      validate: { validator: (tags) => tags.length <= 12, message: 'A community can have at most 12 tags.' },
+    },
     permissions: {
       visibility: {
         type: String,
@@ -66,6 +71,7 @@ const communitySchema = new mongoose.Schema(
 );
 
 communitySchema.index({ category: 1 });
+communitySchema.index({ tags: 1 });
 communitySchema.index({ memberCount: -1 });
 
 export const Community = mongoose.model('Community', communitySchema);
