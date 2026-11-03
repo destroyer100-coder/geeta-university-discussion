@@ -511,3 +511,43 @@ textarea.form-control, .content-area textarea { min-height: 120px; resize: verti
   .home-cta-copy { align-items: flex-start; }
   .home-cta-card > .btn { width: 100%; }
 }
+
+
+/* Community discovery page */
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
+.page-eyebrow { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 7px; color: var(--primary); font-size: .68rem; font-weight: 800; letter-spacing: .09em; }
+.community-page-header { align-items: flex-end; }
+.community-discovery-toolbar { display: flex; flex-direction: column; gap: 13px; margin-bottom: 23px; padding: 16px; border: 1px solid var(--border-color); border-radius: 14px; background: #fff; box-shadow: var(--shadow-xs); }
+.community-search { display: flex; align-items: center; gap: 10px; width: min(100%, 560px); color: var(--text-muted); }
+.community-search .form-control { height: 44px; min-height: 44px; padding-inline: 0; border: 0; background: transparent; box-shadow: none; }
+.community-search .form-control:focus { border: 0; box-shadow: none; }
+.community-search:focus-within { outline: 3px solid rgba(37,99,235,.14); outline-offset: 3px; border-radius: 8px; }
+.community-search .btn-icon { flex: 0 0 auto; }
+.community-category-filters { display: flex; flex-wrap: wrap; gap: 7px; }
+.community-category-chip { min-height: 34px; padding: 7px 11px; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; color: var(--text-secondary); font-size: .78rem; font-weight: 650; cursor: pointer; transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast); }
+.community-category-chip:hover { border-color: var(--primary-border); background: var(--primary-light); color: var(--primary); }
+.community-category-chip.is-active { border-color: var(--primary); background: var(--primary); color: #fff; }
+.community-results-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 13px; }
+.community-results-heading h2 { margin: 0; color: var(--text-main); font-size: 1rem; font-weight: 800; }
+.community-results-heading span { color: var(--text-muted); font-size: .76rem; }
+.community-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(270px,100%),1fr)); gap: 15px; }
+.community-card-banner { min-height: 54px; background: linear-gradient(115deg, #eaf1ff, #f8f2e6); }
+.community-card-body { display: flex; flex: 1; flex-direction: column; gap: 11px; padding: 15px; }
+.community-card-header { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.community-card-info { flex: 1; min-width: 0; }
+.community-card-name { margin: 0 0 5px; overflow: hidden; font-size: .94rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.community-card-name a:hover { color: var(--primary); }
+.community-card-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.community-card-description { display: -webkit-box; min-height: 42px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.community-card-footer { display: flex; flex-direction: column; align-items: stretch; gap: 11px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border-color); }
+.community-card-stats { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--text-muted); font-size: .72rem; }
+.community-card-stats span { display: inline-flex; align-items: center; gap: 4px; }
+.community-card-stats strong { color: var(--text-secondary); }
+.community-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.community-card-actions .btn { min-height: 34px; }
+@media (max-width: 640px) {
+  .community-discovery-toolbar { padding: 13px; }
+  .community-category-filters { flex-wrap: nowrap; overflow-x: auto; padding: 2px 1px 5px; scrollbar-width: thin; }
+  .community-category-chip { flex: 0 0 auto; }
+  .community-card-actions { flex-wrap: wrap; }
+}
