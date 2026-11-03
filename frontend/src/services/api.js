@@ -99,6 +99,11 @@ export const communitiesApi = {
     }),
 };
 
+export const communityReportsApi = {
+  getAll: (communityId) => request(`/communities/${communityId}/reports`),
+  updateStatus: (communityId, reportId, status) => request(`/communities/${communityId}/reports/${reportId}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+};
+
 export const postsApi = {
   getAll: (params = {}) => {
     return request(`/posts${buildQueryString(params)}`);
