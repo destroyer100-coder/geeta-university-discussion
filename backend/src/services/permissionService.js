@@ -116,6 +116,7 @@ export const permissionService = {
       manageRequests: true,
       markAccepted: true,
       manageRules: true,
+      reviewReports: true,
     };
     const allFalse = {
       canModerate: false,
@@ -125,6 +126,7 @@ export const permissionService = {
       manageRequests: false,
       markAccepted: false,
       manageRules: false,
+      reviewReports: false,
     };
 
     if (!user) return allFalse;
@@ -159,6 +161,7 @@ export const permissionService = {
       manageRequests: has(DELEGATED_PERMISSIONS.MANAGE_REQUESTS),
       markAccepted: has(DELEGATED_PERMISSIONS.MARK_ACCEPTED_ANSWERS),
       manageRules: has(DELEGATED_PERMISSIONS.MANAGE_RULES),
+      reviewReports: has(DELEGATED_PERMISSIONS.REVIEW_REPORTS),
     };
   },
 
