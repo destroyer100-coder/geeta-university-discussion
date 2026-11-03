@@ -187,3 +187,56 @@ export const updateReportStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+
+// Community-scoped report queue. The route middleware resolves and authorizes
+// the exact community before either handler is reached.
+export const getCommunityReports = async (req, res, next) => {
+  try {
+    const reports = await Report.find({ community: req.community._id })
+      .populate('reporter', 'name email avatar')
+      .populate('reviewer', 'name email avatar')
+      .sort({ createdAt: -1 })
+      .limit(100);
+    res.json({ success: true, count: reports.length, data: reports });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateCommunityReportStatus = async (req, res, next) => {
+  try {
+    const { reportId } = req.params;
+    const { status } = req.body;
+    if (!['reviewed', 'resolved', 'dismissed'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be reviewed, resolved, or dismissed.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid status.' },
+      });
+    }
+    const report = await Report.findOne({ _id: reportId, community: req.community._id });
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: 'Report not found in this community.',
+        error: { code: ERROR_CODES.NOT_FOUND, message: 'Report not found.' },
+      });
+    }
+    report.status = status;
+    report.reviewer = req.user._id;
+    await report.save();
+    await AuditLog.create({
+      actor: req.user._id,
+      action: 'review_report',
+      targetType: 'report',
+      targetId: report._id.toString(),
+      community: req.community._id,
+      details: { status, targetType: report.targetType, targetId: report.targetId },
+      ip: req.ip || '',
+    });
+    res.json({ success: true, message: 'Report updated.', data: report });
+  } catch (error) {
+    next(error);
+  }
+};
