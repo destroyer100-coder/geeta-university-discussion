@@ -19,7 +19,7 @@ export const MainLayout = () => {
   });
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth <= 1024);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth <= 768);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ export const MainLayout = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    const updateViewport = () => setIsMobileViewport(window.innerWidth <= 1024);
+    const updateViewport = () => setIsMobileViewport(window.innerWidth <= 768);
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
   }, []);
@@ -100,11 +100,11 @@ export const MainLayout = () => {
     };
   }, [isMobileNavOpen]);
 
+  // The navbar control is exclusively for the mobile drawer.
+  // Desktop collapse is handled by the single chevron inside the sidebar.
   const handleMenuToggle = () => {
-    if (window.innerWidth <= 1024) {
+    if (window.innerWidth <= 768) {
       setIsMobileNavOpen((prev) => !prev);
-    } else {
-      handleToggleSidebar();
     }
   };
 
