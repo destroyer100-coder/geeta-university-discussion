@@ -38,7 +38,7 @@ test('platform admin endpoints enforce permissions, revoke sessions and write au
     if (server) await new Promise((resolve) => server.close(resolve));
     await Promise.all([
       User.deleteMany({ email: { $in: [`admin-${suffix}@example.test`, `student-${suffix}@example.test`] } }),
-      Report.deleteMany({ reporter: admin?._id }),
+      Report.deleteMany({ reporter: student?._id }),
       AuditLog.deleteMany({ actor: admin?._id }),
     ]);
     await mongoose.disconnect();
