@@ -709,3 +709,63 @@ textarea.form-control, .content-area textarea { min-height: 120px; resize: verti
   #create-post-modal .modal-content > div:last-child > div { width: 100%; }
   #create-post-modal #submit-post-btn { flex: 1; }
 }
+
+
+/* Post identity, moderation states and poll interaction */
+.post-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-width: 0; margin-bottom: 12px; }
+.post-author-meta { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.post-avatar { display: block; width: 42px; height: 42px; flex: 0 0 42px; border: 1px solid var(--border-color); border-radius: 50%; object-fit: cover; background: var(--bg-muted); }
+.post-avatar-anonymous { display: grid; place-items: center; border-color: var(--primary-border); background: var(--primary-light); color: var(--primary); }
+.post-author-line { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.post-author-name { color: var(--text-main); font-size: .87rem; font-weight: 750; }
+a.post-author-name:hover { color: var(--primary); }
+.post-verified-badge { display: inline-flex; align-items: center; }
+.post-author-meta > div:last-child > div:last-child { margin-top: 3px; color: var(--text-muted); font-size: .72rem; }
+.post-header > div:last-child { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.post-header > div:last-child > div { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.post-header .btn { min-height: 30px; padding: 5px 8px !important; border-radius: 7px; font-size: .68rem !important; }
+.post-title { display: inline-block; margin: 2px 0 7px; }
+.post-title:hover { color: var(--primary); }
+.post-body-snippet { margin-bottom: 12px; overflow-wrap: anywhere; }
+.post-tags { margin: 10px 0 12px; }
+.post-card .badge { gap: 4px; }
+.post-card .badge svg { flex: 0 0 auto; }
+.poll-option-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+}
+.poll-option-row:disabled { cursor: wait; opacity: .8; }
+.poll-option-row:focus-visible { outline: 3px solid rgba(37,99,235,.28); outline-offset: 2px; }
+.poll-progress-fill { position: absolute; inset: 0 auto 0 0; z-index: 0; opacity: .45; pointer-events: none; }
+.poll-option-text, .poll-option-stats { position: relative; z-index: 1; }
+.poll-option-text { min-width: 0; overflow-wrap: anywhere; }
+.poll-option-stats { flex: 0 0 auto; color: var(--text-muted); font-size: .74rem; font-variant-numeric: tabular-nums; }
+.folder-viewer-box { padding: 13px; border: 1px solid var(--border-color); border-radius: 11px; background: #f8fafc; }
+.folder-tree { color: var(--text-secondary); font-size: .8rem; }
+.video-player-box { overflow: hidden; border: 1px solid var(--border-color); border-radius: 11px; background: #0f172a; }
+.video-element { display: block; width: 100%; max-height: 420px; background: #0f172a; }
+.image-attachment-wrapper { overflow: hidden; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-muted); }
+.image-attachment-img { display: block; width: 100%; max-height: 480px; object-fit: contain; }
+.file-attachment-card { display: flex; align-items: center; gap: 11px; padding: 11px 13px; color: var(--text-main); }
+.file-attachment-card:hover { border-color: var(--primary-border); background: #fbfdff; }
+.file-icon-box { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 9px; background: var(--primary-light); }
+.file-name { color: var(--text-main); font-size: .82rem; font-weight: 700; overflow-wrap: anywhere; }
+.file-size { color: var(--text-muted); font-size: .7rem; }
+@media (max-width: 640px) {
+  .post-header { flex-direction: column; }
+  .post-header > div:last-child { justify-content: flex-start; }
+  .post-actions-bar > div { justify-content: flex-start; }
+}
