@@ -343,7 +343,7 @@ export const ProfilePage = () => {
                     onClick={() => setShowEditModal(true)}
                     style={{ fontWeight: 600 }}
                   >
-                    <Icon name="edit3" size={14} />
+                    <Icon name="fileText" size={14} />
                     <span>Edit Profile</span>
                   </button>
                   <button
