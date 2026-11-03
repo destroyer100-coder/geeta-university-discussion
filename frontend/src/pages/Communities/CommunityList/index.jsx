@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { communitiesApi } from '../../../services/api';
@@ -20,7 +19,6 @@ const CATEGORIES = [
 
 export const CommunityList = () => {
   const { user } = useAuth();
-
   const [communities, setCommunities] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,25 +27,12 @@ export const CommunityList = () => {
 
   const fetchCommunities = async () => {
     setLoading(true);
-
     try {
       const params = {};
-
-      if (selectedCategory && selectedCategory !== 'All') {
-        params.category = selectedCategory;
-      }
-
-      if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
-      }
-
+      if (selectedCategory && selectedCategory !== 'All') params.category = selectedCategory;
+      if (searchTerm.trim()) params.search = searchTerm.trim();
       const res = await communitiesApi.getAll(params);
-
-      if (res.success && res.data) {
-        setCommunities(res.data);
-      } else {
-        setCommunities([]);
-      }
+      setCommunities(res.success && res.data ? res.data : []);
     } catch (err) {
       console.error('Failed to load communities:', err);
     } finally {
@@ -61,22 +46,15 @@ export const CommunityList = () => {
 
   const handleJoinToggle = async (communityId, isJoined) => {
     if (!user) {
-      alert(
-        'Please log in first or select a demo persona from the top right menu.'
-      );
+      alert('Please log in first or select a demo persona from the top right menu.');
       return;
     }
-
     setJoiningId(communityId);
-
     try {
       const res = isJoined
         ? await communitiesApi.leave(communityId)
         : await communitiesApi.join(communityId);
-
-      if (res.success) {
-        await fetchCommunities();
-      }
+      if (res.success) await fetchCommunities();
     } catch (err) {
       alert(err.message || 'Action failed');
       await fetchCommunities();
@@ -86,248 +64,156 @@ export const CommunityList = () => {
   };
 
   return (
-    <div>
-      <div className="page-header">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-          }}
-        >
-          <div>
-            <h1>Explore University Communities</h1>
-            <p>
-              Discover department hubs, student clubs, placement circles and
-              academic channels.
-            </p>
-          </div>
-
-          {user && (
-            <Link
-              to="/communities/create"
-              className="btn btn-primary"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <Icon name="plus" size={16} />
-              Create Community
-            </Link>
-          )}
+    <div className="community-discovery-page">
+      <header className="page-header community-page-header">
+        <div>
+          <span className="page-eyebrow"><Icon name="users" size={13} /> CAMPUS NETWORK</span>
+          <h1>Find your community</h1>
+          <p>Join department hubs, student clubs, placement circles and academic channels.</p>
         </div>
-      </div>
+        {user && (
+          <Link to="/communities/create" className="btn btn-primary">
+            <Icon name="plus" size={16} aria-hidden="true" />
+            Create Community
+          </Link>
+        )}
+      </header>
 
-      <div
-        style={{
-          marginBottom: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        <div style={{ maxWidth: '400px' }}>
+      <section className="community-discovery-toolbar" aria-label="Find communities">
+        <label className="community-search">
+          <Icon name="search" size={17} aria-hidden="true" />
+          <span className="sr-only">Search communities</span>
           <input
-            type="text"
+            type="search"
             className="form-control"
-            placeholder="Search communities by name or topic..."
+            placeholder="Search by community name or topic…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </div>
+          {searchTerm && (
+            <button type="button" className="btn-icon" aria-label="Clear search" onClick={() => setSearchTerm('')}>
+              <Icon name="x" size={16} />
+            </button>
+          )}
+        </label>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            overflowX: 'auto',
-            paddingBottom: '6px',
-          }}
-        >
+        <div className="community-category-filters" role="group" aria-label="Filter by category">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               type="button"
-              className={`btn btn-sm ${
-                selectedCategory === cat ? 'btn-primary' : 'btn-outline'
-              }`}
+              className={`community-category-chip${selectedCategory === cat ? ' is-active' : ''}`}
               onClick={() => setSelectedCategory(cat)}
+              aria-pressed={selectedCategory === cat}
             >
-              {cat}
+              {cat === 'All' ? 'All communities' : cat}
             </button>
           ))}
         </div>
+      </section>
+
+      <div className="community-results-heading">
+        <h2>{selectedCategory === 'All' ? 'Campus communities' : selectedCategory}</h2>
+        {!loading && <span>{communities.length} {communities.length === 1 ? 'community' : 'communities'}</span>}
       </div>
 
       {loading ? (
-        <div className="loading-state">
-          <div className="spinner" />
-          <p>Loading communities...</p>
+        <div className="loading-state" role="status" aria-live="polite">
+          <div className="spinner" aria-hidden="true" />
+          <p>Loading communities…</p>
         </div>
       ) : communities.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">🏫</div>
+          <div className="empty-state-icon"><Icon name="users" size={24} /></div>
           <h3>No communities found</h3>
-          <p>Try adjusting your search or category filter.</p>
+          <p>Try another search or category. You can also create a community for your campus group.</p>
+          {user && (
+            <Link to="/communities/create" className="btn btn-primary">
+              <Icon name="plus" size={16} aria-hidden="true" />
+              Create Community
+            </Link>
+          )}
         </div>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fill, minmax(min(320px, 100%), 1fr))',
-            gap: '16px',
-          }}
-        >
-          {communities.map((c) => {
-            const isMember = c.isCurrentUserMember;
-            const membershipStatus = c.currentUserMembershipStatus;
+        <div className="community-grid">
+          {communities.map((community) => {
+            const isMember = community.isCurrentUserMember;
+            const membershipStatus = community.currentUserMembershipStatus;
             const isPending = membershipStatus === 'pending';
-            const isPrivate =
-              c.permissions?.visibility === 'MEMBERS_ONLY';
-            const isOwner = user && c.owner?._id === user._id;
+            const isPrivate = community.permissions?.visibility === 'MEMBERS_ONLY';
+            const isOwner = user && community.owner?._id === user._id;
 
             return (
-              <div
-                key={c._id}
-                className="card community-card"
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <img
-                    className="community-card-avatar"
-                    src={c.avatar}
-                    alt={c.name || 'Community'}
-                  />
+              <article key={community._id} className="community-card">
+                <div className="community-card-banner" aria-hidden="true" />
+                <div className="community-card-body">
+                  <div className="community-card-header">
+                    <img
+                      className="community-card-avatar"
+                      src={community.avatar}
+                      alt=""
+                      loading="lazy"
+                    />
+                    <div className="community-card-info">
+                      <h3 className="community-card-name">
+                        <Link to={`/communities/${community.slug || community._id}`}>
+                          {community.name}
+                        </Link>
+                      </h3>
+                      <div className="community-card-badges">
+                        <span className="badge badge-primary">{community.category || community.type}</span>
+                        {isPrivate && (
+                          <span className="badge badge-warning">
+                            <Icon name="lock" size={11} aria-hidden="true" /> Private
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3
-                      style={{
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      <Link to={`/communities/${c.slug || c._id}`}>
-                        {c.name}
-                      </Link>
-                    </h3>
+                  <p className="community-card-description">
+                    {community.description || 'A place for students to connect, share and learn.'}
+                  </p>
 
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '6px',
-                        alignItems: 'center',
-                        marginTop: '2px',
-                      }}
-                    >
-                      <span
-                        className="badge badge-primary"
-                        style={{ fontSize: '0.675rem' }}
-                      >
-                        {c.category || c.type}
-                      </span>
+                  <div className="community-card-footer">
+                    <div className="community-card-stats">
+                      <span><Icon name="users" size={13} aria-hidden="true" /> <strong>{community.memberCount || 0}</strong> members</span>
+                      <span><Icon name="messages-square" size={13} aria-hidden="true" /> <strong>{community.postCount || 0}</strong> posts</span>
+                    </div>
 
-                      {isPrivate && (
-                        <span
-                          className="badge"
-                          style={{
-                            fontSize: '0.675rem',
-                            background: '#fef3c7',
-                            color: '#92400e',
-                          }}
+                    <div className="community-card-actions">
+                      {isOwner ? (
+                        <span className="badge badge-primary">Community head</span>
+                      ) : isPending ? (
+                        <span className="badge badge-warning">Pending approval</span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${isMember ? 'btn-secondary' : 'btn-primary'}`}
+                          disabled={joiningId === community._id}
+                          onClick={() => handleJoinToggle(community._id, isMember)}
                         >
-                          🔒 Private
-                        </span>
+                          {joiningId === community._id
+                            ? 'Please wait…'
+                            : isMember
+                              ? 'Joined'
+                              : isPrivate
+                                ? 'Request to join'
+                                : 'Join'}
+                        </button>
                       )}
+
+                      <Link
+                        to={`/communities/${community.slug || community._id}`}
+                        className="btn btn-outline btn-sm"
+                      >
+                        View
+                        <Icon name="arrow-up-right" size={13} aria-hidden="true" />
+                      </Link>
                     </div>
                   </div>
                 </div>
-
-                <p className="community-card-description">
-                  {c.description}
-                </p>
-
-                <div className="community-card-footer">
-                  <div className="community-card-stats">
-                    👥 <strong>{c.memberCount || 0}</strong> Members • 💬{' '}
-                    <strong>{c.postCount || 0}</strong> Posts
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '8px',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {isOwner ? (
-                      <span
-                        className="badge badge-primary"
-                        style={{ fontSize: '0.7rem' }}
-                      >
-                        Head
-                      </span>
-                    ) : isPending ? (
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: '0.7rem',
-                          background: '#fef3c7',
-                          color: '#92400e',
-                        }}
-                      >
-                        ⏳ Pending
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className={`btn btn-sm ${
-                          isMember ? 'btn-secondary' : 'btn-primary'
-                        }`}
-                        disabled={joiningId === c._id}
-                        onClick={() =>
-                          handleJoinToggle(c._id, isMember)
-                        }
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '4px 10px',
-                        }}
-                      >
-                        {joiningId === c._id
-                          ? '...'
-                          : isMember
-                            ? 'Joined'
-                            : isPrivate
-                              ? 'Request to Join'
-                              : '+ Join'}
-                      </button>
-                    )}
-
-                    <Link
-                      to={`/communities/${c.slug || c._id}`}
-                      className="btn btn-outline btn-sm"
-                      style={{
-                        fontSize: '0.75rem',
-                        padding: '4px 8px',
-                      }}
-                    >
-                      View →
-                    </Link>
-                  </div>
-                </div>
-              </div>
+              </article>
             );
           })}
         </div>
