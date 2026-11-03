@@ -195,7 +195,7 @@ export const CreateCommunity = () => {
                 <strong>Public community</strong>
                 <small>Discoverable by everyone. Students can join directly.</small>
               </span>
-              <Icon name={form.visibility === 'PUBLIC' ? 'checkCircle2' : 'circle'} size={18} />
+              {form.visibility === 'PUBLIC' ? <Icon name="checkCircle2" size={18} /> : <span className="visibility-option-radio" aria-hidden="true" />}
             </button>
 
             <button
@@ -210,7 +210,7 @@ export const CreateCommunity = () => {
                 <strong>Private community</strong>
                 <small>Students request to join. Moderators review requests.</small>
               </span>
-              <Icon name={form.visibility === 'MEMBERS_ONLY' ? 'checkCircle2' : 'circle'} size={18} />
+              {form.visibility === 'MEMBERS_ONLY' ? <Icon name="checkCircle2" size={18} /> : <span className="visibility-option-radio" aria-hidden="true" />}
             </button>
           </div>
         </section>
