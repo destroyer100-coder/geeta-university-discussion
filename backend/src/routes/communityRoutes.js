@@ -16,6 +16,7 @@ import {
   getCommunityPostRequests,
 } from '../controllers/postRequestController.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { getCommunityReports, updateCommunityReportStatus } from '../controllers/reportController.js';
 import { checkModeratorPermission } from '../middleware/communityPermission.js';
 import { DELEGATED_PERMISSIONS } from '../constants/index.js';
 
@@ -33,6 +34,8 @@ router.get('/:id/join-requests', authenticate, getJoinRequests);
 router.patch('/:id/join-requests/:userId', authenticate, reviewJoinRequest);
 router.get('/:id/members', authenticate, getCommunityMembers);
 router.get('/:id/audit-logs', authenticate, getCommunityAuditLogs);
+router.get('/:id/reports', authenticate, checkModeratorPermission(DELEGATED_PERMISSIONS.REVIEW_REPORTS), getCommunityReports);
+router.patch('/:id/reports/:reportId', authenticate, checkModeratorPermission(DELEGATED_PERMISSIONS.REVIEW_REPORTS), updateCommunityReportStatus);
 
 // Community Post Requests (Section 13 & 15)
 router.post('/:id/post-requests', authenticate, createPostRequest);
