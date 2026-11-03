@@ -230,7 +230,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
     return (
       <article className="post-card" style={{ opacity: 0.8, backgroundColor: 'var(--bg-secondary, #f8fafc)', padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted, #64748b)', fontStyle: 'italic', fontSize: '0.9rem' }}>
-          <span>🗑️</span>
+          <Icon name="info" size={15} aria-hidden="true" />
           <span>[This discussion was deleted or removed by community moderation.]</span>
         </div>
       </article>
@@ -255,37 +255,40 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
             marginBottom: '12px',
           }}
         >
-          <span>📌 Pinned in {community.name || 'Community'}</span>
+          <><Icon name="bookmark" size={13} aria-hidden="true" /> Pinned in {community.name || "Community"}</>
         </div>
       )}
 
       {/* Header */}
       <div className="post-header">
         <div className="post-author-meta">
-          <Link to={`/profile/${author._id || 'user'}`}>
-            <img
-              src={
-                author.avatar ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-              }
-              alt={author.name}
-              className="post-avatar"
-            />
-          </Link>
+          {currentPost.isAnonymous ? (
+            <div className="post-avatar post-avatar-anonymous" aria-label="Anonymous member">
+              <Icon name="users" size={19} aria-hidden="true" />
+            </div>
+          ) : (
+            <Link to={'/profile/' + (author._id || 'user')} aria-label={'View ' + (author.name || 'student') + ' profile'}>
+              <img
+                src={author.avatar || 'https://api.dicebear.com/7.x/initials/svg?seed=Student'}
+                alt=""
+                className="post-avatar"
+                loading="lazy"
+                decoding="async"
+              />
+            </Link>
+          )}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <Link
-                to={`/profile/${author._id || 'user'}`}
-                style={{ fontWeight: 700, fontSize: '0.925rem', color: 'var(--text-main)' }}
-              >
-                {currentPost.isAnonymous ? 'Anonymous Member' : author.name}
-              </Link>
-              {author.verified && (
-                <span
-                  title="Verified Student"
-                  style={{ color: '#3b82f6', display: 'flex', alignItems: 'center' }}
-                >
-                  <Icon name="checkCircle2" size={14} color="#3b82f6" />
+            <div className="post-author-line">
+              {currentPost.isAnonymous ? (
+                <span className="post-author-name">Anonymous Member</span>
+              ) : (
+                <Link to={'/profile/' + (author._id || 'user')} className="post-author-name">
+                  {author.name || 'Student'}
+                </Link>
+              )}
+              {!currentPost.isAnonymous && author.verified && (
+                <span title="Verified Student" className="post-verified-badge">
+                  <Icon name="checkCircle2" size={14} color="#2563eb" />
                 </span>
               )}
               {community?.name ? (
@@ -296,7 +299,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
                 </Link>
               ) : (
                 <span className="badge badge-accent" style={{ fontSize: '0.7rem' }}>
-                  🌐 Campus-Wide
+                  Campus-Wide
                 </span>
               )}
             </div>
@@ -316,7 +319,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
               className="badge"
               style={{ backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '0.7rem' }}
             >
-              🔒 Locked
+              <><Icon name="lock" size={11} /> Locked</>
             </span>
           )}
           {currentPost.status === 'pending' && (
@@ -324,7 +327,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
               className="badge"
               style={{ backgroundColor: '#fef3c7', color: '#92400e', fontSize: '0.7rem' }}
             >
-              ⏳ Pending Approval
+              <><Icon name="info" size={11} /> Pending Approval</>
             </span>
           )}
           {currentPost.status === 'rejected' && (
@@ -332,7 +335,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
               className="badge"
               style={{ backgroundColor: '#fee2e2', color: '#b91c1c', fontSize: '0.7rem' }}
             >
-              ❌ Rejected
+              <><Icon name="x" size={11} /> Rejected</>
             </span>
           )}
           {currentPost.type === 'resource' && <span className="badge badge-accent">Resource</span>}
@@ -354,7 +357,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
                 title={currentPost.isPinned ? 'Unpin post' : 'Pin post'}
                 disabled={actionLoading}
               >
-                {currentPost.isPinned ? 'Unpin' : '📌 Pin'}
+                {currentPost.isPinned ? 'Unpin' : 'Pin'}
               </button>
             )}
             {canLockThisPost && (
@@ -365,7 +368,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
                 title={currentPost.status === 'locked' ? 'Unlock comments' : 'Lock comments'}
                 disabled={actionLoading}
               >
-                {currentPost.status === 'locked' ? 'Unlock' : '🔒 Lock'}
+                {currentPost.status === 'locked' ? 'Unlock' : 'Lock'}
               </button>
             )}
             {canDeletePost && (
@@ -445,7 +448,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
                       background: '#f8fafc',
                     }}
                   >
-                    <span>🎬 {vid.originalName}</span>
+                    <span><Icon name="video" size={13} /> {vid.originalName}</span>
                     <span>{(vid.size / (1024 * 1024)).toFixed(1)} MB</span>
                   </div>
                 </div>
@@ -521,7 +524,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
                 {folders.map((f, idx) => (
                   <div key={idx} style={{ paddingLeft: '8px', marginBottom: '4px' }}>
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      📁 {f.relativePath || f.name}
+                      <><Icon name="folder" size={13} /> {f.relativePath || f.name}</>
                     </div>
                     {/* Render files in this folder */}
                     <div style={{ paddingLeft: '20px' }}>
@@ -538,7 +541,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
                               justifyContent: 'space-between',
                             }}
                           >
-                            <span>📄 {fFile.originalName}</span>
+                            <span><Icon name="fileText" size={13} /> {fFile.originalName}</span>
                             <a
                               href={fFile.url}
                               target="_blank"
@@ -582,10 +585,13 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
                   const isVoted = poll.userVotedOption === optIdx;
 
                   return (
-                    <div
+                    <button
                       key={optIdx}
+                      type="button"
                       className="poll-option-row"
                       onClick={() => handleVotePoll(optIdx)}
+                      disabled={voting}
+                      aria-pressed={isVoted}
                       style={{
                         borderColor: isVoted ? 'var(--primary)' : 'var(--border-color)',
                         backgroundColor: isVoted ? 'var(--primary-light)' : '#ffffff',
@@ -604,7 +610,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
                       <span className="poll-option-stats">
                         {percent}% ({opt.votesCount || 0})
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
