@@ -521,8 +521,6 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             })()}
 
           </div>
-
-          </div>
         </div>
       )}
 
