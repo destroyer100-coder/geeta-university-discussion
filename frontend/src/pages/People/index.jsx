@@ -114,7 +114,7 @@ export const PeoplePage = () => {
         </div>
       ) : people.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
+          <div className="empty-state-icon"><Icon name="search" size={24} /></div>
           <h3>No people found</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
             Try searching with a different name or resetting the role filter.
@@ -155,7 +155,7 @@ export const PeoplePage = () => {
                   </h3>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', margin: '4px 0 8px' }}>
                     <span className={`badge ${person.role === 'faculty' ? 'badge-primary' : person.role === 'admin' ? 'badge-warning' : 'badge-secondary'}`} style={{ fontSize: '0.7rem' }}>
-                      {person.role === 'faculty' ? '🎓 Faculty' : person.role === 'admin' ? '🛡️ Admin' : '🎒 Student'}
+                      {person.role === 'faculty' ? 'Faculty' : person.role === 'admin' ? 'Admin' : 'Student'}
                     </span>
                     {person.verified && (
                       <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>✓ Verified</span>
