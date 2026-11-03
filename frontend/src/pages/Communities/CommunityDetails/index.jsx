@@ -330,7 +330,17 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '640px' }}>
                   {community.description}
                 </p>
-                {(community.tags || []).length > 0 && <div className="community-tag-list" aria-label="Community topics">{community.tags.map((tag) => <button key={tag} type="button" className={`community-tag-chip${selectedTag === tag ? ' is-active' : ''}`} onClick={() => { setSelectedTag((current) => current === tag ? '' : tag); setActiveTab('discussions'); }}>#{tag}</button>)}</div>}
+                {(community.tags || []).length > 0 ? (
+                  <div className="community-tag-list" aria-label="Community topics">
+                    {community.tags.map((tag) => <button key={tag} type="button" className={`community-tag-chip${selectedTag === tag ? ' is-active' : ''}`} onClick={() => { setSelectedTag((current) => current === tag ? '' : tag); setActiveTab('discussions'); }}>#{tag}</button>)}
+                  </div>
+                ) : (
+                  <div className="community-tags-empty">
+                    <Icon name="tag" size={13} />
+                    <span>No topics added yet</span>
+                    {canManageSettings && <button type="button" onClick={() => setActiveTab('settings')}>Add topics</button>}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   <span>
                     <Icon name="users" size={14} /> <strong>{community.memberCount || 0}</strong> Members
@@ -868,7 +878,13 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             <div className="form-group">
             <label className="form-label" htmlFor="settings-community-tags">Community tags</label>
             <input id="settings-community-tags" className="form-control" value={(settingsPolicy.tags || []).join(', ')} onChange={(event) => setSettingsPolicy((current) => ({ ...current, tags: [...new Set(event.target.value.split(',').map((tag) => tag.trim().replace(/^#/, '')).filter(Boolean))].slice(0, 12) }))} placeholder="DSA, placements, web development" />
-            <span className="form-help">Comma-separated. Up to 12 tags.</span>
+            <span className="form-help">Comma-separated. Up to 12 tags. These appear on the community page and help students discover it.</span>
+            <div className="community-tag-suggestions">
+              <span>Quick add:</span>
+              {['Programming', 'DSA', 'Web Development', 'AI/ML', 'Projects', 'Placements', 'Internships', 'Academics'].map((tag) => (
+                <button key={tag} type="button" onClick={() => setSettingsPolicy((current) => ({ ...current, tags: [...new Set([...(current.tags || []), tag])].slice(0, 12) }))} disabled={(settingsPolicy.tags || []).includes(tag) || (settingsPolicy.tags || []).length >= 12}>+ {tag}</button>
+              ))}
+            </div>
           </div>
           <button type="submit" className="btn btn-primary">
               Save Community Settings
