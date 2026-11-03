@@ -52,7 +52,7 @@ export const Home = ({ onOpenCreatePost }) => {
       <section className="home-cta-card" aria-label="Start a discussion">
         <div className="home-cta-copy">
           <span className="home-cta-icon" aria-hidden="true">
-            <Icon name="messageSquarePlus" size={19} />
+            <Icon name="messageSquare" size={19} />
           </span>
           <div className="home-cta-text">
             <strong>Have something academic to ask or share?</strong>
@@ -106,7 +106,7 @@ export const Home = ({ onOpenCreatePost }) => {
 
         {error && !loading ? (
           <div className="card feed-state-card" role="alert">
-            <span className="feed-state-icon"><Icon name="alertCircle" size={22} /></span>
+            <span className="feed-state-icon"><Icon name="info" size={22} /></span>
             <h3>Could not load discussions</h3>
             <p>{error}</p>
             <button type="button" className="btn btn-primary" onClick={fetchPosts}>Try again</button>
@@ -118,7 +118,7 @@ export const Home = ({ onOpenCreatePost }) => {
           </div>
         ) : posts.length === 0 ? (
           <div className="card feed-state-card">
-            <span className="feed-state-icon"><Icon name="messagesSquare" size={23} /></span>
+            <span className="feed-state-icon"><Icon name="messageSquare" size={23} /></span>
             <h3>No discussions yet</h3>
             <p>Start the first conversation and help your campus community learn together.</p>
             <button type="button" className="btn btn-primary" onClick={() => onOpenCreatePost?.()}>
