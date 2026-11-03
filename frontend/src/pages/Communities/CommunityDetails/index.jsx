@@ -317,7 +317,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   <span className="badge badge-primary">{community.category || community.type}</span>
                   {community.permissions?.visibility === 'MEMBERS_ONLY' && (
                     <span className="badge" style={{ background: '#fef3c7', color: '#92400e' }}>
-                      🔒 Members Only
+                      <><Icon name="lock" size={12} /> Members Only</>
                     </span>
                   )}
                 </div>
@@ -326,13 +326,13 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 </p>
                 <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   <span>
-                    👥 <strong>{community.memberCount || 0}</strong> Members
+                    <Icon name="users" size={14} /> <strong>{community.memberCount || 0}</strong> Members
                   </span>
                   <span>
-                    💬 <strong>{community.postCount || 0}</strong> Discussions
+                    <Icon name="messageSquare" size={14} /> <strong>{community.postCount || 0}</strong> Discussions
                   </span>
                   <span>
-                    🛡️ Head: <strong>{community.owner?.name || 'Faculty Head'}</strong>
+                    <Icon name="shieldCheck" size={14} /> Head: <strong>{community.owner?.name || "Faculty Head"}</strong>
                   </span>
                 </div>
               </div>
@@ -342,7 +342,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               {isOwner ? (
                 <span className="badge badge-primary" style={{ padding: '8px 14px' }}>
-                  👑 Community Head
+                  <><Icon name="award" size={13} /> Community Head</>
                 </span>
               ) : isMember ? (
                 <button
@@ -358,7 +358,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   disabled
                   title="Your request is awaiting moderator approval"
                 >
-                  ⏳ Pending Approval
+                  Pending Approval
                 </button>
               ) : (
                 <button
@@ -366,7 +366,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   onClick={handleJoinToggle}
                   disabled={actionLoading}
                 >
-                  {isPrivateCommunity ? '🔒 Request to Join' : '+ Join Community'}
+                  {isPrivateCommunity ? 'Request to Join' : 'Join Community'}
                 </button>
               )}
 
