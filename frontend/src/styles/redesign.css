@@ -1117,3 +1117,11 @@ a.post-author-name:hover { color: var(--primary); }
   .community-discussion-toolbar{grid-template-columns:minmax(0,1fr)}
   .community-discussion-toolbar>select{width:100%}
 }
+
+
+.community-tags-empty{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:10px;color:var(--text-muted);font-size:.75rem}
+.community-tags-empty button{padding:4px 9px;border:1px solid #d7e3fa;border-radius:999px;background:#f3f7ff;color:#2452a2;font-size:.72rem;font-weight:750}
+.community-tag-suggestions{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:9px}
+.community-tag-suggestions>span{color:var(--text-muted);font-size:.74rem;font-weight:700}
+.community-tag-suggestions button{padding:5px 9px;border:1px solid #dce6f6;border-radius:999px;background:#f5f8ff;color:#315da8;font-size:.7rem;font-weight:700}
+.community-tag-suggestions button:disabled{opacity:.45;cursor:not-allowed}
