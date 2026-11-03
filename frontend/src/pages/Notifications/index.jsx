@@ -68,7 +68,7 @@ export const NotificationsPage = () => {
         </div>
       ) : notifications.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔔</div>
+          <div className="empty-state-icon"><Icon name="bell" size={24} /></div>
           <h3>No notifications</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>You're all caught up!</p>
         </div>
