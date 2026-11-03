@@ -161,11 +161,11 @@ export const EventsPage = () => {
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Icon name="info" size={14} aria-hidden="true" />
-                      <span><strong>Venue:</strong> {ev.venue || 'Geeta University Campus'}</span>
+                      <span><strong>Venue:</strong> {ev.venue || 'Venue to be announced'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Icon name="calendar" size={14} aria-hidden="true" />
-                      <span><strong>Time:</strong> {ev.time || '10:00 AM'}</span>
+                      <span><strong>Time:</strong> {ev.time || 'Time to be announced'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Icon name="users" size={14} aria-hidden="true" />
