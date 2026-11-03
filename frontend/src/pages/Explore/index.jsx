@@ -15,15 +15,24 @@ const EXPLORE_TAGS = [
   'Campus',
 ];
 
+const CONTENT_TYPES = [
+  { key: 'all', label: 'All content', icon: 'compass' },
+  { key: 'resource', label: 'Resources', icon: 'fileText' },
+  { key: 'question', label: 'Questions', icon: 'helpCircle' },
+  { key: 'discussion', label: 'Discussions', icon: 'messageSquare' },
+];
+
 export const ExplorePage = ({ onOpenCreatePost }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState('All');
   const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState('');
 
   const fetchExplorePosts = async () => {
     setLoading(true);
+    setError('');
     try {
       const res = await postsApi.getAll({
         tag: selectedTag !== 'All' ? selectedTag : undefined,
@@ -33,9 +42,14 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
       });
       if (res.success && res.data) {
         setPosts(res.data);
+      } else {
+        setPosts([]);
+        setError(res.message || 'Explore discussions could not be loaded.');
       }
     } catch (err) {
       console.error('Failed to load explore feed:', err);
+      setPosts([]);
+      setError(err.message || 'Unable to connect to the server. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -46,99 +60,111 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
   }, [selectedTag, selectedType, searchQuery]);
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <Icon name="compass" size={24} color="var(--primary)" />
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Explore Geeta University Discussions</h1>
+    <div className="explore-page">
+      <header className="page-header explore-page-header">
+        <div>
+          <span className="page-eyebrow"><Icon name="compass" size={13} /> DISCOVER</span>
+          <h1>Explore discussions</h1>
+          <p>Find useful roadmaps, study resources, campus questions and conversations worth joining.</p>
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Discover trending academic roadmaps, study resources, campus questions and active conversations.
-        </p>
-      </div>
+        {onOpenCreatePost && (
+          <button type="button" className="btn btn-primary" onClick={() => onOpenCreatePost()}>
+            <Icon name="plus" size={16} aria-hidden="true" />
+            Start a discussion
+          </button>
+        )}
+      </header>
 
-      {/* Filter Controls */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-        {/* Search Input */}
-        <div style={{ maxWidth: '440px' }}>
+      <section className="explore-controls" aria-label="Filter discussions">
+        <label className="explore-search">
+          <Icon name="search" size={17} aria-hidden="true" />
+          <span className="sr-only">Search discussions</span>
           <input
-            type="text"
+            type="search"
             className="form-control"
-            placeholder="Filter discussions by keywords..."
+            placeholder="Search discussions, topics or keywords…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
+          {searchQuery && (
+            <button type="button" className="btn-icon" aria-label="Clear search" onClick={() => setSearchQuery('')}>
+              <Icon name="x" size={16} />
+            </button>
+          )}
+        </label>
 
-        {/* Post Type Selector */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {[
-            { key: 'all', label: 'All Content' },
-            { key: 'resource', label: '📚 Resources' },
-            { key: 'question', label: '❓ Questions' },
-            { key: 'discussion', label: '💬 Discussions' },
-          ].map((t) => (
+        <div className="explore-type-filters" role="group" aria-label="Content type">
+          {CONTENT_TYPES.map((type) => (
             <button
-              key={t.key}
-              className={`btn btn-sm ${selectedType === t.key ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setSelectedType(t.key)}
+              key={type.key}
+              type="button"
+              className={`explore-type-chip${selectedType === type.key ? ' is-active' : ''}`}
+              onClick={() => setSelectedType(type.key)}
+              aria-pressed={selectedType === type.key}
             >
-              {t.label}
+              <Icon name={type.icon} size={14} aria-hidden="true" />
+              {type.label}
             </button>
           ))}
         </div>
 
-        {/* Tag Pills */}
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+        <div className="explore-topic-filters" role="group" aria-label="Filter by topic">
           {EXPLORE_TAGS.map((tag) => (
             <button
               key={tag}
-              className={`tag-pill ${selectedTag === tag ? 'active' : ''}`}
+              type="button"
+              className={`explore-topic-chip${selectedTag === tag ? ' is-active' : ''}`}
               onClick={() => setSelectedTag(tag)}
-              style={{
-                cursor: 'pointer',
-                border: selectedTag === tag ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                background: selectedTag === tag ? 'var(--primary)' : 'var(--bg-muted)',
-                color: selectedTag === tag ? '#ffffff' : 'var(--text-main)',
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                padding: '4px 12px',
-                borderRadius: '16px',
-              }}
+              aria-pressed={selectedTag === tag}
             >
-              {tag === 'All' ? 'All Topics' : `#${tag}`}
+              {tag === 'All' ? 'All topics' : `#${tag}`}
             </button>
           ))}
         </div>
+      </section>
+
+      <div className="explore-results-heading">
+        <div>
+          <h2>Trending on campus</h2>
+          <p>Popular conversations from across the university</p>
+        </div>
+        {!loading && <span>{posts.length} {posts.length === 1 ? 'discussion' : 'discussions'}</span>}
       </div>
 
-      {/* Posts List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-          Loading trending discussions...
+        <div className="card feed-state-card" role="status" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />
+          <p>Finding conversations…</p>
+        </div>
+      ) : error ? (
+        <div className="card feed-state-card" role="alert">
+          <span className="feed-state-icon"><Icon name="info" size={22} /></span>
+          <h3>Could not load discussions</h3>
+          <p>{error}</p>
+          <button type="button" className="btn btn-primary" onClick={fetchExplorePosts}>Try again</button>
         </div>
       ) : posts.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
-          <h3>No matching discussions found</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '8px 0 16px' }}>
-            Try selecting a different topic or start a new discussion.
-          </p>
+        <div className="card feed-state-card">
+          <span className="feed-state-icon"><Icon name="search" size={22} /></span>
+          <h3>No matching discussions</h3>
+          <p>Try another topic or content type, or start a new campus conversation.</p>
           {onOpenCreatePost && (
-            <button className="btn btn-primary" onClick={() => onOpenCreatePost?.()}>
-              + Start Discussion
+            <button type="button" className="btn btn-primary" onClick={() => onOpenCreatePost()}>
+              <Icon name="plus" size={16} aria-hidden="true" />
+              Start a discussion
             </button>
           )}
         </div>
       ) : (
-        posts.map((post) => (
-          <PostCard
-            key={post._id}
-            post={post}
-            onPostUpdated={fetchExplorePosts}
-          />
-        ))
+        <div className="feed-post-list">
+          {posts.map((post) => (
+            <PostCard
+              key={post._id}
+              post={post}
+              onPostUpdated={fetchExplorePosts}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
