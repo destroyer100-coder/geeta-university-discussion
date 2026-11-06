@@ -320,7 +320,8 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
       <div
         style={{
           borderRadius: 'var(--radius-lg)',
-          overflow: 'hidden',
+          // Let the management dropdown escape the community header card.
+          overflow: 'visible',
           border: '1px solid var(--border-color)',
           background: '#ffffff',
           marginBottom: '20px',
@@ -329,6 +330,9 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         <div
           style={{
             height: '160px',
+            borderTopLeftRadius: 'var(--radius-lg)',
+            borderTopRightRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
             background: `url(${
               community.banner ||
               'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200'
