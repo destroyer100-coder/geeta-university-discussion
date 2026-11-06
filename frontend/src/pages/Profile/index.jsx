@@ -230,7 +230,7 @@ export const ProfilePage = () => {
   if (errorNotice || !profileData) {
     return (
       <div className="card" style={{ padding: '40px', textAlign: 'center', margin: '40px auto', maxWidth: '600px' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🔒</div>
+        <div className="empty-state-icon"><Icon name="lock" size={26} /></div>
         <h2 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '8px' }}>Profile Unavailable</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
           {errorNotice || 'This profile is deleted or restricted by user block settings.'}
@@ -343,7 +343,7 @@ export const ProfilePage = () => {
                     onClick={() => setShowEditModal(true)}
                     style={{ fontWeight: 600 }}
                   >
-                    <Icon name="edit3" size={14} />
+                    <Icon name="fileText" size={14} />
                     <span>Edit Profile</span>
                   </button>
                   <button
@@ -433,7 +433,7 @@ export const ProfilePage = () => {
         <div>
           {userPosts.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📝</div>
+              <div className="empty-state-icon"><Icon name="fileText" size={24} /></div>
               <h3>No discussions posted yet</h3>
               <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>
                 {isOwnProfile ? 'Start your first discussion to share resources with the university.' : 'This user hasn\'t posted any discussions yet.'}
@@ -450,7 +450,7 @@ export const ProfilePage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {userComments.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>💬</div>
+              <div className="empty-state-icon"><Icon name="messageSquare" size={24} /></div>
               <h3>No comments or answers yet</h3>
               <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>
                 Comments and answers posted in discussions will appear here.
@@ -506,7 +506,7 @@ export const ProfilePage = () => {
         <div>
           {(!profileData.communities || profileData.communities.length === 0) ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>👥</div>
+              <div className="empty-state-icon"><Icon name="users" size={24} /></div>
               <h3>No communities joined yet</h3>
               <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>
                 {isOwnProfile ? (
@@ -541,17 +541,17 @@ export const ProfilePage = () => {
                     <div>
                       {role === 'owner' && (
                         <span className="badge badge-primary" style={{ fontSize: '0.725rem', whiteSpace: 'nowrap' }}>
-                          👑 Head
+                          Head
                         </span>
                       )}
                       {role === 'moderator' && (
                         <span className="badge badge-success" style={{ fontSize: '0.725rem', whiteSpace: 'nowrap' }}>
-                          🛡️ Moderator
+                          Moderator
                         </span>
                       )}
                       {role === 'member' && (
                         <span className="badge badge-muted" style={{ fontSize: '0.725rem', whiteSpace: 'nowrap' }}>
-                          👤 Member
+                          Member
                         </span>
                       )}
                     </div>
@@ -603,7 +603,7 @@ export const ProfilePage = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {userPosts.slice(0, 3).map((p) => (
                 <div key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.85rem' }}>
-                  <span style={{ fontSize: '1.2rem' }}>📝</span>
+                  <span className="profile-stat-icon"><Icon name="fileText" size={18} /></span>
                   <div style={{ flex: 1 }}>
                     <span>Published discussion: </span>
                     <Link to={`/discussions/${p._id}`} style={{ fontWeight: 700, color: 'var(--primary)' }}>
@@ -617,7 +617,7 @@ export const ProfilePage = () => {
               ))}
               {userComments.slice(0, 3).map((c) => (
                 <div key={c._id} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.85rem' }}>
-                  <span style={{ fontSize: '1.2rem' }}>💬</span>
+                  <span className="profile-stat-icon"><Icon name="messageSquare" size={18} /></span>
                   <div style={{ flex: 1 }}>
                     <span>Answered in: </span>
                     <Link to={`/discussions/${c.post?._id}`} style={{ fontWeight: 700, color: 'var(--primary)' }}>
@@ -642,7 +642,7 @@ export const ProfilePage = () => {
         <div>
           {savedPosts.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔖</div>
+              <div className="empty-state-icon"><Icon name="bookmark" size={24} /></div>
               <h3>No saved discussions</h3>
               <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>
                 Click the bookmark icon on any discussion to save it for quick reference later.

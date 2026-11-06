@@ -1,4 +1,4 @@
-const BASE_URL = '/api';
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
 export const getAuthToken = () => localStorage.getItem('gu_auth_token');
 export const setAuthToken = (token) => localStorage.setItem('gu_auth_token', token);
@@ -97,6 +97,11 @@ export const communitiesApi = {
       method: 'PATCH',
       body: JSON.stringify(payload),
     }),
+};
+
+export const communityReportsApi = {
+  getAll: (communityId) => request(`/communities/${communityId}/reports`),
+  updateStatus: (communityId, reportId, status) => request(`/communities/${communityId}/reports/${reportId}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 };
 
 export const postsApi = {

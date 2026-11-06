@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { communitiesApi, postsApi } from '../../../services/api';
+import { communitiesApi, postsApi, communityReportsApi } from '../../../services/api';
 import { PostCard } from '../../../components/post/PostCard';
 import { RequestToPostModal } from '../../../components/community/RequestToPostModal';
 import { useAuth } from '../../../context/AuthContext';
@@ -11,9 +11,15 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const { user } = useAuth();
   const [community, setCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [discussionSearch, setDiscussionSearch] = useState('');
+  const [discussionSort, setDiscussionSort] = useState('newest');
+  const [selectedTag, setSelectedTag] = useState('');
   const [pendingPosts, setPendingPosts] = useState([]);
   const [postRequests, setPostRequests] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [communityReports, setCommunityReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [manageMenuOpen, setManageMenuOpen] = useState(false);
   const [joinRequests, setJoinRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('discussions'); // 'discussions' | 'rules' | 'members' | 'settings' | 'requests' | 'audit'
   const [loading, setLoading] = useState(true);
@@ -33,6 +39,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
     requirePostApproval: false,
     allowAnonymousPosts: true,
     maxPinnedPosts: 3,
+    tags: [],
   });
 
   const loadCommunityData = async () => {
@@ -55,6 +62,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             requirePostApproval: comm.permissions.requirePostApproval ?? false,
             allowAnonymousPosts: comm.permissions.allowAnonymousPosts ?? true,
             maxPinnedPosts: comm.maxPinnedPosts || 3,
+            tags: comm.tags || [],
           });
         }
 
@@ -89,13 +97,23 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         // Audit trail visibility is identity-scoped (any active moderator of THIS
         // community may read the trail); it is NOT gated by manage_rules or any
         // action delegation (rules §19).
-        if (modPermsLoad.manageRules) {
+        if (isModIdentity) {
           communitiesApi
             .getAuditLogs(comm._id)
             .then((aRes) => {
               if (aRes.success) setAuditLogs(aRes.data || []);
             })
             .catch(() => {});
+        }
+
+        if (modPermsLoad.reviewReports) {
+          setReportsLoading(true);
+          communityReportsApi.getAll(comm._id)
+            .then((reportRes) => { if (reportRes.success) setCommunityReports(reportRes.data || []); })
+            .catch(() => setCommunityReports([]))
+            .finally(() => setReportsLoading(false));
+        } else {
+          setCommunityReports([]);
         }
 
         // Join Requests queue is only fetched when the backend says this user may review them
@@ -200,6 +218,38 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
     }
   };
 
+  const handlePolicyAction = async (post, action) => {
+    if (!post?._id || actionLoading) return;
+    const labels = { pin: 'change pin status for', lock: 'change lock status for', delete: 'remove' };
+    if (action === 'delete' && !window.confirm(`Are you sure you want to remove "${post.title}" from this community?`)) return;
+    setActionLoading(true);
+    try {
+      if (action === 'pin') await postsApi.pin(post._id);
+      if (action === 'lock') await postsApi.lock(post._id);
+      if (action === 'delete') await postsApi.delete(post._id);
+      await loadCommunityData();
+    } catch (error) {
+      alert(error.message || `Could not ${labels[action]} this discussion.`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCommunityReportStatus = async (reportId, status) => {
+    if (actionLoading) return;
+    setActionLoading(true);
+    try {
+      const result = await communityReportsApi.updateStatus(community._id, reportId, status);
+      if (result.success) {
+        setCommunityReports((current) => current.map((report) => report._id === reportId ? { ...report, status, reviewer: user } : report));
+      }
+    } catch (error) {
+      alert(error.message || 'Could not update this report.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     try {
@@ -208,6 +258,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         description: settingsPolicy.description,
         category: settingsPolicy.category,
         maxPinnedPosts: settingsPolicy.maxPinnedPosts,
+        tags: settingsPolicy.tags,
         permissions: {
           visibility: settingsPolicy.visibility,
           postPolicy: settingsPolicy.postPolicy,
@@ -252,7 +303,9 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const isMod = Boolean(community.canModerate);
   const modPerms = community.moderationPermissions || {};
   const canManagePostRequests = Boolean(modPerms.manageRequests);
-  const canManageSettings = Boolean(modPerms.manageRules);
+  const canManageSettings = Boolean(isOwner || user?.role === 'admin');
+  const canManagePolicy = Boolean(isOwner || user?.role === 'admin' || modPerms.pin || modPerms.lock || modPerms.delete);
+  const canReviewReports = Boolean(modPerms.reviewReports);
   const canPost = community.currentUserPermission?.allowed;
   const membershipStatus = community.currentUserMembership?.status || 'none';
   const isMember = membershipStatus === 'active';
@@ -267,7 +320,8 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
       <div
         style={{
           borderRadius: 'var(--radius-lg)',
-          overflow: 'hidden',
+          // Let the management dropdown escape the community header card.
+          overflow: 'visible',
           border: '1px solid var(--border-color)',
           background: '#ffffff',
           marginBottom: '20px',
@@ -276,6 +330,9 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         <div
           style={{
             height: '160px',
+            borderTopLeftRadius: 'var(--radius-lg)',
+            borderTopRightRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
             background: `url(${
               community.banner ||
               'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200'
@@ -317,22 +374,33 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   <span className="badge badge-primary">{community.category || community.type}</span>
                   {community.permissions?.visibility === 'MEMBERS_ONLY' && (
                     <span className="badge" style={{ background: '#fef3c7', color: '#92400e' }}>
-                      🔒 Members Only
+                      <><Icon name="lock" size={12} /> Members Only</>
                     </span>
                   )}
                 </div>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '640px' }}>
                   {community.description}
                 </p>
+                {(community.tags || []).length > 0 ? (
+                  <div className="community-tag-list" aria-label="Community topics">
+                    {community.tags.map((tag) => <button key={tag} type="button" className={`community-tag-chip${selectedTag === tag ? ' is-active' : ''}`} onClick={() => { setSelectedTag((current) => current === tag ? '' : tag); setActiveTab('discussions'); }}>#{tag}</button>)}
+                  </div>
+                ) : (
+                  <div className="community-tags-empty">
+                    <Icon name="fileText" size={13} />
+                    <span>No topics added yet</span>
+                    {canManageSettings && <button type="button" onClick={() => setActiveTab('settings')}>Add topics</button>}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   <span>
-                    👥 <strong>{community.memberCount || 0}</strong> Members
+                    <Icon name="users" size={14} /> <strong>{community.memberCount || 0}</strong> Members
                   </span>
                   <span>
-                    💬 <strong>{community.postCount || 0}</strong> Discussions
+                    <Icon name="messageSquare" size={14} /> <strong>{community.postCount || 0}</strong> Discussions
                   </span>
                   <span>
-                    🛡️ Head: <strong>{community.owner?.name || 'Faculty Head'}</strong>
+                    <Icon name="shieldCheck" size={14} /> Head: <strong>{community.owner?.name || "Faculty Head"}</strong>
                   </span>
                 </div>
               </div>
@@ -342,7 +410,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               {isOwner ? (
                 <span className="badge badge-primary" style={{ padding: '8px 14px' }}>
-                  👑 Community Head
+                  <><Icon name="award" size={13} /> Community Head</>
                 </span>
               ) : isMember ? (
                 <button
@@ -358,7 +426,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   disabled
                   title="Your request is awaiting moderator approval"
                 >
-                  ⏳ Pending Approval
+                  Pending Approval
                 </button>
               ) : (
                 <button
@@ -366,7 +434,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   onClick={handleJoinToggle}
                   disabled={actionLoading}
                 >
-                  {isPrivateCommunity ? '🔒 Request to Join' : '+ Join Community'}
+                  {isPrivateCommunity ? 'Request to Join' : 'Join Community'}
                 </button>
               )}
 
@@ -387,67 +455,96 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', marginTop: '18px', paddingTop: '12px', flexWrap: 'wrap' }}>
-            <button
-              className={`btn btn-sm ${activeTab === 'discussions' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('discussions')}
-            >
-              Discussions
-            </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'rules' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('rules')}
-            >
-              Rules & Policy
-            </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'members' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('members')}
-            >
-              Members ({community.memberCount || 0})
-            </button>
-
-            {canManageJoinRequests && (
-              <button
-                className={`btn btn-sm ${activeTab === 'join-requests' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('join-requests')}
-              >
-                Join Requests ({joinRequests.length})
-              </button>
+          {/* Primary community navigation */}
+          <nav className="community-primary-tabs" aria-label="Community navigation">
+            <div className="community-primary-tab-list">
+              {[
+                { id: 'discussions', label: 'Discussions' },
+                { id: 'rules', label: 'Rules & Policy' },
+                { id: 'members', label: `Members (${community.memberCount || 0})` },
+              ].map((tab) => (
+                <button key={tab.id} type="button" className={`community-primary-tab ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {(canManageJoinRequests || canManagePostRequests || canManagePolicy || canReviewReports || isMod || canManageSettings) && (
+              <div className="community-manage-menu-wrap">
+                <button type="button" className={`community-manage-trigger ${['join-requests','requests','policy','reports','audit','settings'].includes(activeTab) ? 'is-active' : ''}`} aria-expanded={manageMenuOpen} onClick={() => setManageMenuOpen((open) => !open)}>
+                  <Icon name="settings" size={15} /> Manage Community <Icon name="chevronDown" size={14} />
+                </button>
+                {manageMenuOpen && (
+                  <>
+                    <button className="community-menu-backdrop" aria-label="Close management menu" onClick={() => setManageMenuOpen(false)} />
+                    <div className="community-manage-menu" role="menu">
+                      <div className="community-manage-menu-heading">Requests & review</div>
+                      {canManageJoinRequests && <button role="menuitem" className={activeTab === 'join-requests' ? 'is-active' : ''} onClick={() => { setActiveTab('join-requests'); setManageMenuOpen(false); }}>Join Requests <span>{joinRequests.length}</span></button>}
+                      {canManagePostRequests && <button role="menuitem" className={activeTab === 'requests' ? 'is-active' : ''} onClick={() => { setActiveTab('requests'); setManageMenuOpen(false); }}>Post Requests <span>{pendingPosts.length + postRequests.filter((item) => item.status === 'pending').length}</span></button>}
+                      {(canManagePolicy || canReviewReports) && <div className="community-manage-menu-heading">Moderation</div>}
+                      {canManagePolicy && <button role="menuitem" className={activeTab === 'policy' ? 'is-active' : ''} onClick={() => { setActiveTab('policy'); setManageMenuOpen(false); }}>Policy Enforcement</button>}
+                      {canReviewReports && <button role="menuitem" className={activeTab === 'reports' ? 'is-active' : ''} onClick={() => { setActiveTab('reports'); setManageMenuOpen(false); }}>Reports & Moderation <span>{communityReports.filter((item) => item.status === 'pending').length}</span></button>}
+                      {(isMod || canManageSettings) && <div className="community-manage-menu-heading">Administration</div>}
+                      {isMod && <button role="menuitem" className={activeTab === 'audit' ? 'is-active' : ''} onClick={() => { setActiveTab('audit'); setManageMenuOpen(false); }}>Audit Logs</button>}
+                      {canManageSettings && <button role="menuitem" className={activeTab === 'settings' ? 'is-active' : ''} onClick={() => { setActiveTab('settings'); setManageMenuOpen(false); }}>Settings & Permissions</button>}
+                    </div>
+                  </>
+                )}
+              </div>
             )}
-
-            {canManagePostRequests && (
-              <button
-                className={`btn btn-sm ${activeTab === 'requests' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('requests')}
-              >
-                Post Requests ({pendingPosts.length + postRequests.filter((r) => r.status === 'pending').length})
-              </button>
-            )}
-            {canManageSettings && (
-              <button
-                className={`btn btn-sm ${activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('settings')}
-              >
-                Settings & Permissions
-              </button>
-            )}
-            {isMod && (
-              <button
-                className={`btn btn-sm ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('audit')}
-              >
-                Audit Logs
-              </button>
-            )}
-          </div>
+          </nav>
         </div>
       </div>
 
+      {/* Policy enforcement: each action is shown only when its exact server flag allows it. */}
+      {activeTab === 'policy' && canManagePolicy && (
+        <section className="community-management-panel">
+          <div className="community-management-heading">
+            <div><span className="community-management-eyebrow">MODERATION TOOLS</span><h2>Policy Enforcement</h2><p>Manage published discussions using your delegated permissions.</p></div>
+            <span className="community-management-count">{posts.length} discussions</span>
+          </div>
+          {posts.length === 0 ? <div className="community-management-empty">No discussions are available to moderate yet.</div> : (
+            <div className="community-policy-list">
+              {posts.map((post) => (
+                <article className="community-policy-item" key={post._id}>
+                  <div className="community-policy-copy"><strong>{post.title || 'Untitled discussion'}</strong><p>{(post.body || '').slice(0, 180)}{(post.body || '').length > 180 ? '…' : ''}</p><small>{post.author?.name || 'Community member'} · {post.status || 'published'} · {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</small></div>
+                  <div className="community-policy-actions">
+                    {modPerms.pin && <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={() => handlePolicyAction(post, 'pin')}>{post.isPinned || post.pinned ? 'Unpin' : 'Pin'}</button>}
+                    {modPerms.lock && <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={() => handlePolicyAction(post, 'lock')}>{post.status === 'locked' ? 'Unlock' : 'Lock'}</button>}
+                    {modPerms.delete && <button type="button" className="btn btn-danger btn-sm" disabled={actionLoading} onClick={() => handlePolicyAction(post, 'delete')}>Remove</button>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Community-scoped report review; backend enforces review_reports for this community. */}
+      {activeTab === 'reports' && canReviewReports && (
+        <section className="community-management-panel">
+          <div className="community-management-heading"><div><span className="community-management-eyebrow">COMMUNITY SAFETY</span><h2>Reports & Moderation</h2><p>Review reports submitted about content in this community.</p></div><span className="community-management-count">{communityReports.filter((item) => item.status === 'pending').length} pending</span></div>
+          {reportsLoading ? <div className="community-management-empty">Loading community reports…</div> : communityReports.length === 0 ? <div className="community-management-empty">No reports have been submitted for this community.</div> : (
+            <div className="community-report-list">
+              {communityReports.map((report) => (
+                <article className="community-report-item" key={report._id}>
+                  <div className="community-report-top"><strong>{report.reason || 'Reported content'}</strong><span className={`community-report-status status-${report.status}`}>{report.status}</span></div>
+                  <p>{report.details || 'No additional details provided.'}</p>
+                  <small>Reported by {report.reporter?.name || 'User'} · {new Date(report.createdAt).toLocaleString()} · {report.targetType}</small>
+                  <div className="community-policy-actions">
+                    {report.status !== 'reviewed' && <button className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={() => handleCommunityReportStatus(report._id, 'reviewed')}>Mark reviewed</button>}
+                    {report.status !== 'resolved' && <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={() => handleCommunityReportStatus(report._id, 'resolved')}>Resolve</button>}
+                    {report.status !== 'dismissed' && <button className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={() => handleCommunityReportStatus(report._id, 'dismissed')}>Dismiss</button>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* TAB 1: DISCUSSIONS */}
       {activeTab === 'discussions' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '20px' }}>
+        <div className="community-discussions-layout">
           <div>
             {!canPost && (
               <div
@@ -476,106 +573,43 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               </div>
             )}
 
-            {posts.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                <p style={{ color: 'var(--text-muted)' }}>No discussions in this community yet.</p>
-                {canPost && onOpenCreatePostWithCommunity && (
-                  <button
-                    className="btn btn-primary"
-                    style={{ marginTop: '12px' }}
-                    onClick={() => onOpenCreatePostWithCommunity(community._id)}
-                  >
-                    Start First Discussion
-                  </button>
-                )}
-              </div>
-            ) : (
-              posts.map((p) => (
-                <PostCard
-                  key={p._id}
-                  post={p}
-                  modPermissions={modPerms}
-                  onPostUpdated={loadCommunityData}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Right Panel: Community Rules & Permissions */}
-          <div>
-            <div className="card" style={{ marginBottom: '16px' }}>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  marginBottom: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <Icon name="shieldCheck" size={18} color="var(--primary)" />
-                <span>Enforced Policies</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.825rem' }}>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Visibility</span>
-                  <strong>
-                    {community.permissions?.visibility === 'PUBLIC'
-                      ? 'Everyone (Public)'
-                      : 'Members Only (Private)'}
-                  </strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Posting Policy</span>
-                  <span className="badge badge-warning">
-                    {community.permissions?.postPolicy || 'MEMBERS'}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Comment Policy</span>
-                  <strong>{community.permissions?.commentPolicy || 'EVERYONE'}</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Approval Required</span>
-                  <strong>{community.permissions?.requirePostApproval ? 'Yes (Moderated)' : 'No (Instant)'}</strong>
-                </div>
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '12px', paddingTop: '10px' }}>
-                <button
-                  className="btn btn-outline btn-sm"
-                  style={{ width: '100%' }}
-                  onClick={() => setActiveTab('rules')}
-                >
-                  View Guidelines & Rules →
-                </button>
-              </div>
+            <div className="community-discussion-toolbar">
+              <label className="community-discussion-search">
+                <Icon name="search" size={17} />
+                <input value={discussionSearch} onChange={(event) => setDiscussionSearch(event.target.value)} placeholder="Search discussions in this community…" aria-label="Search community discussions" />
+              </label>
+              <select value={discussionSort} onChange={(event) => setDiscussionSort(event.target.value)} aria-label="Sort discussions">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="popular">Most discussed</option>
+              </select>
             </div>
-
-            {/* Moderators Box */}
-            <div className="card">
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '10px' }}>
-                Community Moderators
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <div>
-                    <strong>{community.owner?.name}</strong>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Community Head</div>
-                  </div>
+            {(community.tags || []).length > 0 && <div className="community-discussion-filters" aria-label="Filter by community topic">
+              <button type="button" className={!selectedTag ? 'is-active' : ''} onClick={() => setSelectedTag('')}>All topics</button>
+              {community.tags.map((tag) => <button type="button" key={tag} className={selectedTag === tag ? 'is-active' : ''} onClick={() => setSelectedTag((current) => current === tag ? '' : tag)}>#{tag}</button>)}
+            </div>}
+            {(() => {
+              const query = discussionSearch.trim().toLowerCase();
+              const visiblePosts = posts.filter((post) => {
+                const matchesText = !query || [post.title, post.body, ...(post.tags || [])].some((value) => String(value || '').toLowerCase().includes(query));
+                const matchesTag = !selectedTag || (post.tags || []).some((tag) => String(tag).toLowerCase() === selectedTag.toLowerCase());
+                return matchesText && matchesTag;
+              }).sort((a, b) => {
+                if (discussionSort === 'popular') return (b.commentsCount || 0) - (a.commentsCount || 0);
+                const dateA = new Date(a.createdAt || 0).getTime();
+                const dateB = new Date(b.createdAt || 0).getTime();
+                return discussionSort === 'oldest' ? dateA - dateB : dateB - dateA;
+              });
+              return visiblePosts.length === 0 ? (
+                <div className="card community-discussion-empty">
+                  <Icon name="messageSquare" size={28} />
+                  <strong>{posts.length ? 'No matching discussions' : 'No discussions yet'}</strong>
+                  <p>{posts.length ? 'Try another search or topic filter.' : 'Start the first conversation in this community.'}</p>
+                  {posts.length > 0 && (discussionSearch || selectedTag) ? <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDiscussionSearch(''); setSelectedTag(''); }}>Clear filters</button> : canPost && onOpenCreatePostWithCommunity ? <button className="btn btn-primary" onClick={() => onOpenCreatePostWithCommunity(community._id)}>Start first discussion</button> : null}
                 </div>
-                {community.moderators?.map((m) => (
-                  <div key={m._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                    <div>
-                      <strong>{m.name}</strong>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Moderator</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+              ) : visiblePosts.map((post) => <PostCard key={post._id} post={post} modPermissions={modPerms} onPostUpdated={loadCommunityData} />);
+            })()}
+
           </div>
         </div>
       )}
@@ -921,7 +955,18 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               </label>
             </div>
 
-            <button type="submit" className="btn btn-primary">
+            <div className="form-group">
+            <label className="form-label" htmlFor="settings-community-tags">Community tags</label>
+            <input id="settings-community-tags" className="form-control" value={(settingsPolicy.tags || []).join(', ')} onChange={(event) => setSettingsPolicy((current) => ({ ...current, tags: [...new Set(event.target.value.split(',').map((tag) => tag.trim().replace(/^#/, '')).filter(Boolean))].slice(0, 12) }))} placeholder="DSA, placements, web development" />
+            <span className="form-help">Comma-separated. Up to 12 tags. These appear on the community page and help students discover it.</span>
+            <div className="community-tag-suggestions">
+              <span>Quick add:</span>
+              {['Programming', 'DSA', 'Web Development', 'AI/ML', 'Projects', 'Placements', 'Internships', 'Academics'].map((tag) => (
+                <button key={tag} type="button" onClick={() => setSettingsPolicy((current) => ({ ...current, tags: [...new Set([...(current.tags || []), tag])].slice(0, 12) }))} disabled={(settingsPolicy.tags || []).includes(tag) || (settingsPolicy.tags || []).length >= 12}>+ {tag}</button>
+              ))}
+            </div>
+          </div>
+          <button type="submit" className="btn btn-primary">
               Save Community Settings
             </button>
           </form>

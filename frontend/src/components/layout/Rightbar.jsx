@@ -3,169 +3,118 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../common/Icons';
 import { eventsApi, postsApi } from '../../services/api';
 
+const formatEventDate = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    day: new Intl.DateTimeFormat('en', { day: '2-digit' }).format(date),
+    month: new Intl.DateTimeFormat('en', { month: 'short' }).format(date),
+    full: new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(date),
+  };
+};
+
 export const Rightbar = () => {
   const [events, setEvents] = useState([]);
   const [trendingPosts, setTrendingPosts] = useState([]);
 
   useEffect(() => {
     eventsApi.getAll().then((res) => {
-      if (res.success && res.data) {
-        setEvents(res.data.slice(0, 3));
-      }
+      if (res.success && res.data) setEvents(res.data.slice(0, 3));
     }).catch(() => {});
 
     postsApi.getAll({ sort: 'trending', limit: 4 }).then((res) => {
-      if (res.success && res.data) {
-        setTrendingPosts(res.data.slice(0, 4));
-      }
+      if (res.success && res.data) setTrendingPosts(res.data.slice(0, 4));
     }).catch(() => {});
   }, []);
 
   return (
-    <aside className="right-sidebar">
-      {/* Upcoming Events (Visual Reference 1) */}
-      <div className="card" style={{ marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Icon name="calendar" size={16} color="var(--primary)" />
-            <span>Upcoming Events</span>
-          </div>
-          <Link to="/events" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
-            View All
-          </Link>
+    <aside className="right-sidebar" aria-label="Campus updates">
+      <section className="card rail-card">
+        <div className="rail-card-heading">
+          <h2><Icon name="calendar" size={16} /> Upcoming Events</h2>
+          <Link to="/events">View all</Link>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {events.length > 0 ? (
-            events.map((ev, idx) => {
-              const d = new Date(ev.date);
-              const day = d.getDate();
-              const month = d.toLocaleString('en-US', { month: 'short' });
+        {events.length > 0 ? (
+          <div className="rail-list">
+            {events.map((event, index) => {
+              const date = formatEventDate(event.date);
+              const eventContent = (
+                <>
+                  <span className="rail-event-date" aria-hidden="true">
+                    {date ? <><strong>{date.day}</strong><small>{date.month}</small></> : <Icon name="calendar" size={17} />}
+                  </span>
+                  <span className="rail-event-copy">
+                    <strong>{event.title || 'Campus event'}</strong>
+                    <small>
+                      {date?.full}
+                      {event.venue ? ` · ${event.venue}` : ''}
+                      {event.time ? ` · ${event.time}` : ''}
+                    </small>
+                  </span>
+                  <Icon name="arrowRight" size={14} className="rail-row-arrow" />
+                </>
+              );
 
-              return (
-                <div key={ev._id || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div
-                    style={{
-                      background: 'var(--primary-light)',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: 'var(--radius-md)',
-                      width: '44px',
-                      height: '44px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1 }}>
-                      {day}
-                    </span>
-                    <span style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      {month}
-                    </span>
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {ev.title}
-                    </div>
-                    <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                      {ev.venue || 'Geeta Campus'} • {ev.time || '10:00 AM'}
-                    </div>
-                  </div>
+              return event._id ? (
+                <Link key={event._id} to={`/events/${event._id}`} className="rail-event-row">
+                  {eventContent}
+                </Link>
+              ) : (
+                <div key={index} className="rail-event-row is-static">
+                  {eventContent}
                 </div>
               );
-            })
-          ) : (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No upcoming events scheduled.</div>
-          )}
-        </div>
-      </div>
-
-      {/* Trending Discussions (Visual Reference 1) */}
-      <div className="card" style={{ marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Icon name="trendingUp" size={16} color="#f59e0b" />
-            <span>Trending Discussions</span>
+            })}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Week</span>
+        ) : (
+          <p className="rail-empty">No upcoming events scheduled.</p>
+        )}
+      </section>
+
+      <section className="card rail-card">
+        <div className="rail-card-heading">
+          <h2><Icon name="barChart2" size={16} /> Trending Discussions</h2>
+          <span className="rail-period-label">This week</span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {trendingPosts && trendingPosts.length > 0 ? (
-            trendingPosts.map((item, i) => (
-              <Link
-                key={item._id}
-                to={`/discussions/${item._id}`}
-                style={{
-                  display: 'flex',
-                  gap: '10px',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  padding: '4px 6px',
-                  borderRadius: 'var(--radius-sm)',
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-muted)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.95rem' }}>{i + 1}</span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.3 }}>
-                    {item.title}
-                  </div>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {item.commentsCount || 0} comments • {item.viewsCount || 0} views
-                  </div>
-                </div>
+        {trendingPosts.length > 0 ? (
+          <div className="rail-list">
+            {trendingPosts.map((post, index) => (
+              <Link key={post._id} to={`/discussions/${post._id}`} className="rail-trending-row">
+                <span className="rail-trending-rank">{String(index + 1).padStart(2, '0')}</span>
+                <span className="rail-trending-copy">
+                  <strong>{post.title}</strong>
+                  <small>{post.commentsCount || 0} comments · {post.viewsCount || 0} views</small>
+                </span>
+                <Icon name="arrowRight" size={14} className="rail-row-arrow" />
               </Link>
-            ))
-          ) : (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              No trending discussions are available yet.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Top Contributors (Visual Reference 1) */}
-      <div className="card" style={{ marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-            Top Contributors
+            ))}
           </div>
-          <Link to="/people" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
-            View All
-          </Link>
-        </div>
+        ) : (
+          <p className="rail-empty">Trending discussions will appear here as conversations grow.</p>
+        )}
+      </section>
 
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Live contributor rankings are not available yet.
+      <section className="card rail-card">
+        <div className="rail-card-heading">
+          <h2><Icon name="award" size={16} /> Top Contributors</h2>
+          <Link to="/people">View all</Link>
         </div>
-      </div>
+        <p className="rail-empty">Contributor rankings are not available yet.</p>
+      </section>
 
-      {/* Verified University Community Box (Reference 1) */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #172554 100%)',
-          color: '#ffffff',
-          borderRadius: 'var(--radius-lg)',
-          padding: '16px',
-          border: '1px solid #3b82f6',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <Icon name="shieldCheck" size={18} color="#f59e0b" />
-          <span style={{ fontSize: '0.875rem', fontWeight: 800 }}>University Email Verification</span>
+      <section className="verification-card" aria-labelledby="verification-heading">
+        <div className="verification-card-heading">
+          <Icon name="shieldCheck" size={18} aria-hidden="true" />
+          <h2 id="verification-heading">University community</h2>
         </div>
-        <div style={{ fontSize: '0.75rem', color: '#cbd5e1', lineHeight: 1.5, marginBottom: '12px' }}>
-          Actual university email verification is required before production launch. Community-specific posting and visibility rules apply separately.
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '3px 8px' }}>Production requirement</span>
-        </div>
-      </div>
+        <p>
+          Keep campus conversations trustworthy. University verification and
+          community-specific posting rules are applied separately.
+        </p>
+        <span className="badge badge-success">Community guidelines apply</span>
+      </section>
     </aside>
   );
 };

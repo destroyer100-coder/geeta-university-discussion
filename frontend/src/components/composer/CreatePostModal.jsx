@@ -35,6 +35,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
   // Monotonic token so an in-flight permission lookup for a previously selected
   // community can never overwrite the state of the currently selected one.
   const permissionRequestRef = useRef(0);
+  const composerBodyRef = useRef(null);
 
   // Post form state
   const [activeTab, setActiveTab] = useState('edit'); // 'edit' | 'preview'
@@ -144,6 +145,10 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
       refreshPermission(selectedCommunityId);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && composerBodyRef.current) composerBodyRef.current.scrollTop = 0;
+  }, [isOpen]);
 
   // Escape closes the topmost layer: nested request modal first, then composer.
   useEffect(() => {
@@ -333,11 +338,11 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        <div className="modal-content">
+        <div className="modal-content composer-modal">
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', rowGap: '10px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, flexShrink: 0, background: '#ffffff', zIndex: 2 }}>
+          <div className="composer-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', rowGap: '10px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, flexShrink: 0, background: '#ffffff', zIndex: 2 }}>
             <div style={{ minWidth: 0 }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>Create a Discussion</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>Create a post</h2>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', width: '100%' }}>
                 Share ideas, ask questions, or post study materials to Geeta University.
               </div>
@@ -361,13 +366,13 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                   Preview
                 </button>
               </div>
-              <button className="btn-icon" onClick={onClose}><Icon name="x" size={20} /></button>
+              <button type="button" className="btn-icon" onClick={onClose} aria-label="Close composer"><Icon name="x" size={20} /></button>
             </div>
           </div>
 
-          <div style={{ padding: '20px 24px' }}>
+          <div ref={composerBodyRef} className="composer-body" style={{ padding: '20px 24px' }}>
             {/* Community Selector + Permission Indicator */}
-            <div className="audience-selector" style={{ gap: '12px', alignItems: 'center', marginBottom: '16px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', minWidth: 0, maxWidth: '100%' }}>
+            <div className="audience-selector composer-audience" style={{ gap: '12px', alignItems: 'center', marginBottom: '16px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', minWidth: 0, maxWidth: '100%' }}>
               <div style={{ minWidth: 0 }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>
                   Target Audience / Community (Optional)
@@ -378,10 +383,10 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                   onChange={(e) => setSelectedCommunityId(e.target.value)}
                   style={{ fontWeight: 600, background: '#fff', minWidth: 0 }}
                 >
-                  <option value="">🌐 Campus-Wide (Global Discussion • Open to all)</option>
+                  <option value="">Campus-Wide (Global Discussion · Open to all)</option>
                   {communities.map((c) => (
                     <option key={c._id} value={c._id}>
-                      {c.name} {c.permissions?.visibility === 'MEMBERS_ONLY' ? '(Private 🔒)' : '(Public 🌐)'}
+                      {c.name} {c.permissions?.visibility === 'MEMBERS_ONLY' ? '(Private)' : '(Public)'}
                     </option>
                   ))}
                 </select>
@@ -397,12 +402,12 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                   /* Global / Campus-Wide: community = null, no membership required */
                   <span className="badge badge-success" style={{ gap: '6px' }}>
                     <Icon name="users" size={12} />
-                    <span>🌐 Open to all</span>
+                    <span>Open to all</span>
                   </span>
                 ) : isAllowed ? (
                   requireApproval ? (
                     <span className="badge badge-warning" style={{ gap: '6px' }}>
-                      <Icon name="clock" size={12} />
+                      <Icon name="info" size={12} />
                       <span>Pending Admin Approval</span>
                     </span>
                   ) : (
@@ -458,7 +463,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                       onClick={handleQuickJoin}
                     >
                       {currentComm?.permissions?.status === 'pending' || currentComm?.currentUserMembership?.status === 'pending'
-                        ? '🔒 Request to Join'
+                        ? 'Request to Join'
                         : '+ Join Community to Post'}
                     </button>
                   )
@@ -488,11 +493,11 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                 </div>
 
                 {/* Toolbar (wraps on narrow screens so it never overflows the modal) */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', padding: '6px 10px', background: 'var(--bg-muted)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRadius: 'var(--radius-md) var(--radius-md) 0 0' }}>
+                <div className="composer-editor-toolbar" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', padding: '6px 10px', background: 'var(--bg-muted)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRadius: 'var(--radius-md) var(--radius-md) 0 0' }}>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '**Bold Text**')} title="Bold"><strong>B</strong></button>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '*Italic Text*')} title="Italic"><em>I</em></button>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '\n```cpp\n// Code snippet\n```\n')} title="Code">&lt;/&gt;</button>
-                  <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '\n- Bullet point')} title="List">• List</button>
+                  <button type="button" className="btn-icon composer-list-tool" onClick={() => setBody((prev) => prev + '\n- Bullet point')} title="Insert list" aria-label="Insert list">• <span>List</span></button>
                   <button type="button" className="btn-icon" onClick={() => setBody((prev) => prev + '\n> Quote\n')} title="Quote">”</button>
                   <div style={{ height: 18, width: 1, background: 'var(--border-color)', margin: '0 4px' }} />
                   <select
@@ -521,7 +526,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                 </div>
 
                 {/* SINGLE "+ Add Attachment" BUTTON & MENU (Section 6 Requirement) */}
-                <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px', background: '#fafafa', marginBottom: '16px' }}>
+                <div className="composer-attachments" style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px', background: '#fafafa', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                     <div style={{ position: 'relative' }}>
                       <button
@@ -563,7 +568,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               imageInputRef.current?.click();
                             }}
                           >
-                            <span style={{ marginRight: '8px' }}>🖼️</span>
+                            <Icon name="image" size={16} />
                             <span>Image</span>
                           </button>
                           <button
@@ -575,7 +580,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               videoInputRef.current?.click();
                             }}
                           >
-                            <span style={{ marginRight: '8px' }}>🎬</span>
+                            <Icon name="video" size={16} />
                             <span>Video</span>
                           </button>
                           <button
@@ -587,7 +592,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               fileInputRef.current?.click();
                             }}
                           >
-                            <span style={{ marginRight: '8px' }}>📄</span>
+                            <Icon name="fileText" size={16} />
                             <span>File (PDF/Doc/Zip)</span>
                           </button>
                           <button
@@ -596,7 +601,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                             style={{ justifyContent: 'flex-start', background: 'transparent', border: 'none', padding: '8px 12px', fontSize: '0.825rem' }}
                             onClick={handleAddFolderPrompt}
                           >
-                            <span style={{ marginRight: '8px' }}>📁</span>
+                            <Icon name="folder" size={16} />
                             <span>Folder</span>
                           </button>
                           <button
@@ -608,7 +613,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               setShowLinkInput(true);
                             }}
                           >
-                            <span style={{ marginRight: '8px' }}>🔗</span>
+                            <Icon name="link" size={16} />
                             <span>Link</span>
                           </button>
                           <button
@@ -620,7 +625,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               setShowPollBuilder(true);
                             }}
                           >
-                            <span style={{ marginRight: '8px' }}>📊</span>
+                            <Icon name="barChart2" size={16} />
                             <span>Poll</span>
                           </button>
                         </div>
@@ -688,7 +693,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               className="btn btn-secondary btn-sm"
                               onClick={() => setPollOptions(pollOptions.filter((_, idx) => idx !== i))}
                             >
-                              ✕
+                              <Icon name="x" size={12} />
                             </button>
                           )}
                         </div>
@@ -731,14 +736,14 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               fontSize: '0.8rem',
                             }}
                           >
-                            <span>{att.type === 'video' ? '🎬' : att.type === 'image' ? '🖼️' : '📄'}</span>
+                            <Icon name={att.type === 'video' ? 'video' : att.type === 'image' ? 'image' : 'fileText'} size={14} />
                             <span>{att.originalName}</span>
                             <button
                               type="button"
                               onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
                               style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', fontWeight: 700, marginLeft: '4px' }}
                             >
-                              ✕
+                              <Icon name="x" size={12} />
                             </button>
                           </div>
                         ))}
@@ -757,13 +762,13 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               fontSize: '0.8rem',
                             }}
                           >
-                            <span>📁 {fName}/</span>
+                            <span><Icon name="folder" size={14} /> {fName}/</span>
                             <button
                               type="button"
                               onClick={() => setFolderPaths(folderPaths.filter((_, i) => i !== idx))}
                               style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', fontWeight: 700, marginLeft: '4px' }}
                             >
-                              ✕
+                              <Icon name="x" size={12} />
                             </button>
                           </div>
                         ))}
@@ -781,13 +786,13 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               fontSize: '0.8rem',
                             }}
                           >
-                            <span>🔗 {linkPreview.title || linkPreview.url}</span>
+                            <span><Icon name="link" size={14} /> {linkPreview.title || linkPreview.url}</span>
                             <button
                               type="button"
                               onClick={() => setLinkPreview(null)}
                               style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', fontWeight: 700, marginLeft: '4px' }}
                             >
-                              ✕
+                              <Icon name="x" size={12} />
                             </button>
                           </div>
                         )}
@@ -805,13 +810,13 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                               fontSize: '0.8rem',
                             }}
                           >
-                            <span>📊 Poll: {poll.question}</span>
+                            <span><Icon name="barChart2" size={14} /> Poll: {poll.question}</span>
                             <button
                               type="button"
                               onClick={() => setPoll(null)}
                               style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', fontWeight: 700, marginLeft: '4px' }}
                             >
-                              ✕
+                              <Icon name="x" size={12} />
                             </button>
                           </div>
                         )}
@@ -845,14 +850,14 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                     {tags.map((t) => (
                       <span key={t} className="tag-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                         #{t}
-                        <span style={{ cursor: 'pointer' }} onClick={() => handleRemoveTag(t)}>✕</span>
+                        <span style={{ cursor: 'pointer' }} onClick={() => handleRemoveTag(t)}><Icon name="x" size={12} /></span>
                       </span>
                     ))}
                   </div>
                 </div>
 
                 {/* Options */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}>
+                <div className="composer-options" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
                     <input type="checkbox" checked={isAnonymous} onChange={(e) => setIsAnonymous(e.target.checked)} />
                     <span>Post anonymously</span>
@@ -886,7 +891,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {attachments.map((a, i) => (
                         <span key={i} className="file-item-pill" style={{ fontSize: '0.75rem', padding: '4px 8px' }}>
-                          📄 {a.originalName}
+                          <Icon name="fileText" size={13} /> {a.originalName}
                         </span>
                       ))}
                     </div>
@@ -895,7 +900,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
 
                 {poll && (
                   <div style={{ padding: '12px', background: '#ffffff', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-                    <strong>📊 {poll.question}</strong>
+                    <strong><Icon name="barChart2" size={14} /> {poll.question}</strong>
                     <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {poll.options.map((opt, i) => (
                         <div key={i} style={{ padding: '6px 10px', background: '#f1f5f9', borderRadius: '4px', fontSize: '0.8rem' }}>
@@ -910,7 +915,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
           </div>
 
           {/* Footer Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', padding: '16px 24px', borderTop: '1px solid var(--border-color)', background: '#fafafa' }}>
+          <div className="composer-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', padding: '16px 24px', borderTop: '1px solid var(--border-color)', background: '#fafafa' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
             </button>
@@ -924,7 +929,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                     disabled
                     style={{ opacity: 0.6, cursor: 'not-allowed' }}
                   >
-                    🔒 Head/Moderator Only
+                    <><Icon name="lock" size={14} /> Head/Moderator Only</>
                   </button>
                 ) : (
                   currentComm?.permissions?.status === 'rejected' || currentComm?.currentUserMembership?.status === 'rejected' ? (
@@ -938,7 +943,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
                       onClick={handleQuickJoin}
                     >
                       {currentComm?.permissions?.status === 'pending' || currentComm?.currentUserMembership?.status === 'pending'
-                        ? '🔒 Request to Join'
+                        ? 'Request to Join'
                         : '+ Join Community to Post'}
                     </button>
                   )

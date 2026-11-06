@@ -14,13 +14,17 @@ import {
 } from '../constants/index.js';
 
 const MAX_SEARCH_LENGTH = 120;
+const normalizeCommunityTags = (value) => [...new Set((Array.isArray(value) ? value : [])
+  .filter((tag) => typeof tag === 'string')
+  .map((tag) => tag.trim().replace(/^#/, '').slice(0, 24))
+  .filter(Boolean))].slice(0, 12);
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Create Community — authenticated users only.
 // Creator becomes the community owner with an active membership record.
 export const createCommunity = async (req, res, next) => {
   try {
-    const { name, description, category, visibility } = req.body;
+    const { name, description, category, visibility, tags = [] } = req.body;
 
     // Validate required name
     if (!name || !name.trim()) {
@@ -64,6 +68,10 @@ export const createCommunity = async (req, res, next) => {
         : VISIBILITY.PUBLIC;
 
     const categoryValue = category && category.trim() ? category.trim() : 'General';
+    if (!Array.isArray(tags) || tags.some((tag) => typeof tag !== 'string' || tag.length > 64)) {
+      return res.status(400).json({ success: false, message: 'Tags must be a list of short text values.', error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid community tags.' } });
+    }
+    const communityTags = normalizeCommunityTags(tags);
 
     // Create community — owner derived from authenticated user, never from client
     const community = await Community.create({
@@ -71,6 +79,7 @@ export const createCommunity = async (req, res, next) => {
       slug,
       description: description ? description.trim() : '',
       category: categoryValue,
+      tags: communityTags,
       owner: req.user._id,
       moderators: [],
       type: 'general',
@@ -151,6 +160,7 @@ export const getCommunities = async (req, res, next) => {
             { name: regex },
             { description: regex },
             { slug: regex },
+            { tags: regex },
           ],
         });
       }
@@ -349,6 +359,7 @@ export const updateCommunitySettings = async (req, res, next) => {
       avatar,
       category,
       maxPinnedPosts,
+      tags,
     } = req.body;
 
     const auditChanges = {};
@@ -415,6 +426,10 @@ export const updateCommunitySettings = async (req, res, next) => {
       }
     }
 
+    if (tags !== undefined && (!Array.isArray(tags) || tags.some((tag) => typeof tag !== 'string' || tag.length > 64))) {
+      return res.status(400).json({ success: false, message: 'Tags must be a list of short text values.', error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid community tags.' } });
+    }
+
     if (rules !== undefined &&
       (!Array.isArray(rules) || rules.length > 30 ||
         rules.some((rule) => !rule || typeof rule.title !== 'string' ||
@@ -442,6 +457,13 @@ export const updateCommunitySettings = async (req, res, next) => {
     if (category && category !== community.category) {
       auditChanges.category = { from: community.category, to: category };
       community.category = category;
+    }
+    if (tags !== undefined) {
+      const nextTags = normalizeCommunityTags(tags);
+      if (JSON.stringify(nextTags) !== JSON.stringify(community.tags || [])) {
+        auditChanges.tags = { from: community.tags || [], to: nextTags };
+        community.tags = nextTags;
+      }
     }
     if (maxPinnedPosts !== undefined) {
       community.maxPinnedPosts = Math.max(1, Math.min(10, Number(maxPinnedPosts)));

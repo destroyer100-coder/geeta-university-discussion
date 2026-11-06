@@ -109,7 +109,7 @@ export const EventsPage = () => {
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📅</div>
+          <div className="empty-state-icon"><Icon name="calendar" size={24} /></div>
           <h3>No events found</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '6px' }}>
             No upcoming events scheduled in this category right now.
@@ -160,15 +160,15 @@ export const EventsPage = () => {
                   {/* Event Details */}
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📍</span>
-                      <span><strong>Venue:</strong> {ev.venue || 'Geeta University Campus'}</span>
+                      <Icon name="info" size={14} aria-hidden="true" />
+                      <span><strong>Venue:</strong> {ev.venue || 'Venue to be announced'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>⏰</span>
-                      <span><strong>Time:</strong> {ev.time || '10:00 AM'}</span>
+                      <Icon name="calendar" size={14} aria-hidden="true" />
+                      <span><strong>Time:</strong> {ev.time || 'Time to be announced'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>👥</span>
+                      <Icon name="users" size={14} aria-hidden="true" />
                       <span><strong>Attendees:</strong> {attendeesCount} registered {isAttending && <span style={{ color: '#059669', fontWeight: 700 }}>(Including You)</span>}</span>
                     </div>
                   </div>

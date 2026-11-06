@@ -133,11 +133,7 @@ export const Sidebar = ({
       );
       window.removeEventListener('focus', handleCommunitiesChanged);
     };
-  }, [loadCommunities]);
-
-  useEffect(() => {
-    loadCommunities();
-  }, [location.pathname, loadCommunities]);
+  }, [loadCommunities, location.pathname]);
 
   return (
     <>

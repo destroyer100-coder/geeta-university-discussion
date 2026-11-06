@@ -19,6 +19,7 @@ export const MainLayout = () => {
   });
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth <= 768);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,7 +56,8 @@ export const MainLayout = () => {
 
   const hideRightbar =
     location.pathname.startsWith('/profile') ||
-    location.pathname.startsWith('/messages');
+    location.pathname.startsWith('/messages') ||
+    location.pathname.startsWith('/communities');
 
   const layoutClassName = `main-layout${
     isSidebarCollapsed ? ' is-collapsed' : ''
@@ -64,6 +66,12 @@ export const MainLayout = () => {
   useEffect(() => {
     setIsMobileNavOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobileViewport(window.innerWidth <= 768);
+    window.addEventListener('resize', updateViewport);
+    return () => window.removeEventListener('resize', updateViewport);
+  }, []);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -93,11 +101,11 @@ export const MainLayout = () => {
     };
   }, [isMobileNavOpen]);
 
+  // The navbar control is exclusively for the mobile drawer.
+  // Desktop collapse is handled by the single chevron inside the sidebar.
   const handleMenuToggle = () => {
     if (window.innerWidth <= 768) {
       setIsMobileNavOpen((prev) => !prev);
-    } else {
-      handleToggleSidebar();
     }
   };
 
@@ -107,6 +115,7 @@ export const MainLayout = () => {
         onOpenCreatePost={() => handleOpenCreatePost()}
         onOpenMobileNav={handleMenuToggle}
         isMobileNavOpen={isMobileNavOpen}
+        isNavigationExpanded={isMobileViewport ? isMobileNavOpen : !isSidebarCollapsed}
       />
 
       <div className={layoutClassName}>
