@@ -1,4 +1,4 @@
-const BASE_URL = '/api';
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
 export const getAuthToken = () => localStorage.getItem('gu_auth_token');
 export const setAuthToken = (token) => localStorage.setItem('gu_auth_token', token);
