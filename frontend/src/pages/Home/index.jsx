@@ -30,56 +30,33 @@ export const Home = ({ onOpenCreatePost }) => {
   }, [activeFilter, selectedTag]);
 
   return (
-    <div>
-      {/* Banner / Header (Visual Reference 1) */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '24px 28px',
-          color: '#ffffff',
-          marginBottom: '20px',
-          boxShadow: 'var(--shadow-md)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
-            A Community by Students, for Students
-          </div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '6px', letterSpacing: '-0.5px' }}>
-            GEETA UNIVERSITY DISCUSSION
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: '#cbd5e1', marginBottom: '18px', maxWidth: '640px' }}>
-            Discuss, Learn, Share, Grow. Connect with peers, seniors and faculty across departments.
+    <div className="home-feed-page">
+      {/* Brand hero — descriptive copy only; no fabricated platform metrics. */}
+      <section className="home-hero-banner" aria-labelledby="home-hero-title">
+        <div className="home-hero-copy">
+          <span className="home-hero-eyebrow">
+            <span className="home-hero-eyebrow-dot" aria-hidden="true" />
+            GEETA UNIVERSITY · STUDENT COMMUNITY
+          </span>
+          <h1 id="home-hero-title">One campus.<br />Many perspectives.</h1>
+          <p>
+            Find your people, exchange ideas, get help with coursework and build
+            something meaningful with the Geeta University community.
           </p>
-
-          {/* Quick Metrics */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="users" size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>12K+</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Students</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="compass" size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>350+</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Communities</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="messageSquare" size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>50K+</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Discussions</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="bookmark" size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>100K+</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Resources Shared</span>
-            </div>
+          <div className="home-hero-points" aria-label="What you can do here">
+            <span><Icon name="users" size={16} /> Join communities</span>
+            <span><Icon name="messageSquare" size={16} /> Start discussions</span>
+            <span><Icon name="bookmark" size={16} /> Share useful resources</span>
           </div>
         </div>
-      </div>
+        <div className="home-hero-visual" aria-hidden="true">
+          <div className="home-hero-orbit home-hero-orbit-one" />
+          <div className="home-hero-orbit home-hero-orbit-two" />
+          <div className="home-hero-monogram">G</div>
+          <span className="home-hero-spark home-hero-spark-one" />
+          <span className="home-hero-spark home-hero-spark-two" />
+        </div>
+      </section>
 
       {/* CRITICAL RULE (Section 1 & Section 5):
           "Home/Feed shows a Create Post button only. The full composer opens after the user clicks Create Post."
@@ -137,8 +114,9 @@ export const Home = ({ onOpenCreatePost }) => {
         </button>
       </div>
 
-      {/* Feed Filter Bar (Reference 1) */}
+      {/* Feed Filter Bar */}
       <div
+        className="feed-toolbar"
         style={{
           display: 'flex',
           alignItems: 'center',
