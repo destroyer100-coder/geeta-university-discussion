@@ -110,6 +110,7 @@ export const CreateCommunity = () => {
           <input
             id="community-name"
             className="form-control"
+            required
             type="text"
             placeholder="e.g. CSE Study Group"
             aria-invalid={Boolean(errors.name)}
@@ -123,7 +124,7 @@ export const CreateCommunity = () => {
           {errors.name && <span id="community-name-error" role="alert" className="field-error">{errors.name}</span>}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="create-community-field">
           <label htmlFor="community-description" className="form-label">Description</label>
           <textarea
             id="community-description"
@@ -141,7 +142,7 @@ export const CreateCommunity = () => {
           {errors.description && <span id="community-description-error" role="alert" className="field-error">{errors.description}</span>}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="create-community-field">
           <label htmlFor="community-category" className="form-label">Category</label>
           <select
             id="community-category"
@@ -156,7 +157,7 @@ export const CreateCommunity = () => {
           </select>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="create-community-field">
           <span className="form-label" id="community-visibility-label">Who can discover this community?</span>
           <div className="visibility-options" role="group" aria-labelledby="community-visibility-label">
             <button
