@@ -37,7 +37,7 @@ export const CreateCommunity = () => {
 
   if (created) {
     return (
-      <div className="card" style={{ padding: '40px', textAlign: 'center', maxWidth: '480px', margin: '60px auto' }}>
+      <div className="card community-created-card" style={{ padding: '40px', textAlign: 'center', maxWidth: '480px', margin: '60px auto' }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>Community created</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
@@ -94,50 +94,58 @@ export const CreateCommunity = () => {
   };
 
   return (
-    <div style={{ maxWidth: '560px', margin: '40px auto', padding: '0 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+    <div className="create-community-page">
+      <div className="create-community-header">
         <button onClick={() => navigate('/communities')} className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Icon name="arrow-left" size={16} /> Back
         </button>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.5px', flex: 1 }}>Create Community</h1>
+        <div className="create-community-heading"><span className="create-community-kicker">YOUR CAMPUS, YOUR SPACE</span><h1>Create a community</h1><p>Bring students together around a subject, department, club or shared interest.</p></div>
       </div>
 
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>
-        Start a new university community. You&rsquo;ll be its owner and can manage members, settings, and posts.
-      </p>
+      <div className="create-community-intro"><span className="create-community-intro-icon"><Icon name="users" size={20} /></span><p>You’ll become the community owner and can manage its members, settings and discussions after creation.</p></div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)' }}>Community name</label>
+      <form onSubmit={handleSubmit} className="create-community-form" noValidate>
+        <div className="create-community-field">
+          <label htmlFor="community-name" className="form-label">Community name <span aria-hidden="true">*</span></label>
           <input
+            id="community-name"
             className="form-control"
+            required
             type="text"
             placeholder="e.g. CSE Study Group"
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? "community-name-error" : "community-name-hint"}
             value={form.name}
             onChange={handleChange('name')}
             maxLength="60"
             disabled={submitting}
           />
-          {errors.name && <span style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '2px' }}>{errors.name}</span>}
+          <div className="create-community-field-meta"><span id="community-name-hint">Choose a clear name students will recognize.</span><span>{form.name.length}/60</span></div>
+          {errors.name && <span id="community-name-error" role="alert" className="field-error">{errors.name}</span>}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)' }}>Description</label>
+        <div className="create-community-field">
+          <label htmlFor="community-description" className="form-label">Description</label>
           <textarea
+            id="community-description"
             className="form-control"
             placeholder="What is this community about?"
+            aria-invalid={Boolean(errors.description)}
+            aria-describedby={errors.description ? "community-description-error" : "community-description-hint"}
             value={form.description}
             onChange={handleChange('description')}
             rows={4}
             maxLength="500"
             disabled={submitting}
           />
-          {errors.description && <span style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '2px' }}>{errors.description}</span>}
+          <div className="create-community-field-meta"><span id="community-description-hint">Share its purpose, who it is for and what members can expect.</span><span>{form.description.length}/500</span></div>
+          {errors.description && <span id="community-description-error" role="alert" className="field-error">{errors.description}</span>}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)' }}>Category</label>
+        <div className="create-community-field">
+          <label htmlFor="community-category" className="form-label">Category</label>
           <select
+            id="community-category"
             className="form-control"
             value={form.category}
             onChange={handleChange('category')}
@@ -149,13 +157,14 @@ export const CreateCommunity = () => {
           </select>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)' }}>Visibility</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div className="create-community-field">
+          <span className="form-label" id="community-visibility-label">Who can discover this community?</span>
+          <div className="visibility-options" role="group" aria-labelledby="community-visibility-label">
             <button
               type="button"
               onClick={() => setForm({ ...form, visibility: 'PUBLIC' })}
-              className={`btn btn-sm ${form.visibility === 'PUBLIC' ? 'btn-primary' : 'btn-outline'}`}
+              className={`btn btn-sm visibility-option ${form.visibility === 'PUBLIC' ? 'btn-primary' : 'btn-outline'}`}
+              aria-pressed={form.visibility === 'PUBLIC'}
               disabled={submitting}
             >
               Public &mdash; discoverable by everyone
@@ -163,7 +172,8 @@ export const CreateCommunity = () => {
             <button
               type="button"
               onClick={() => setForm({ ...form, visibility: 'MEMBERS_ONLY' })}
-              className={`btn btn-sm ${form.visibility === 'MEMBERS_ONLY' ? 'btn-primary' : 'btn-outline'}`}
+              className={`btn btn-sm visibility-option ${form.visibility === 'MEMBERS_ONLY' ? 'btn-primary' : 'btn-outline'}`}
+              aria-pressed={form.visibility === 'MEMBERS_ONLY'}
               disabled={submitting}
             >
               Private &mdash; join request required
@@ -172,7 +182,7 @@ export const CreateCommunity = () => {
         </div>
 
         {serverError && (
-          <div style={{ background: 'var(--danger-light)', color: 'var(--danger)', padding: '12px 16px', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', border: '1px solid var(--border-color)' }}>
+          <div role="alert" className="create-community-error">
             {serverError}
           </div>
         )}

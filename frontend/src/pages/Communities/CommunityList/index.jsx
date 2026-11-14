@@ -86,8 +86,8 @@ export const CommunityList = () => {
   };
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="community-list-page">
+      <div className="page-header communities-page-header">
         <div
           style={{
             display: 'flex',
@@ -122,6 +122,7 @@ export const CommunityList = () => {
       </div>
 
       <div
+        className="communities-filter-panel"
         style={{
           marginBottom: '24px',
           display: 'flex',

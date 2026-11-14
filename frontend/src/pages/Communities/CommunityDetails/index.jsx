@@ -262,9 +262,10 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const canManageJoinRequests = !!community.canManageJoinRequests;
 
   return (
-    <div>
+    <div className="community-detail-page">
       {/* Banner & Cover */}
       <div
+        className="community-profile-card"
         style={{
           borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
@@ -274,6 +275,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         }}
       >
         <div
+          className="community-detail-cover"
           style={{
             height: '160px',
             background: `url(${
@@ -284,7 +286,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
           }}
         />
 
-        <div style={{ padding: '20px 24px', position: 'relative' }}>
+        <div className="community-profile-content" style={{ padding: '20px 24px', position: 'relative' }}>
           <div
             style={{
               display: 'flex',
@@ -294,7 +296,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               gap: '16px',
             }}
           >
-            <div style={{ display: 'flex', gap: '16px' }}>
+            <div className="community-profile-identity" style={{ display: 'flex', gap: '16px' }}>
               <img
                 src={
                   community.avatar ||
@@ -388,7 +390,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
           </div>
 
           {/* Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', marginTop: '18px', paddingTop: '12px', flexWrap: 'wrap' }}>
+          <div className="community-tabs" style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', marginTop: '18px', paddingTop: '12px', flexWrap: 'wrap' }}>
             <button
               className={`btn btn-sm ${activeTab === 'discussions' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('discussions')}
