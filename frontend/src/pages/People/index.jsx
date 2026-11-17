@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usersApi } from '../../services/api';
 import { Icon } from '../../components/common/Icons';
 import { PageHero } from '../../components/common/PageHero';
+
+const initials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
 
 export const PeoplePage = () => {
   const { user } = useAuth();
@@ -12,41 +14,52 @@ export const PeoplePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [followingMap, setFollowingMap] = useState({});
+  const [followBusyId, setFollowBusyId] = useState('');
+  const [errorNotice, setErrorNotice] = useState('');
 
   const fetchPeople = async () => {
     setLoading(true);
+    setErrorNotice('');
     try {
       const params = {};
       if (searchQuery.trim()) params.search = searchQuery.trim();
       if (roleFilter !== 'All') params.role = roleFilter.toLowerCase();
-
-      const res = await usersApi.getAll(params);
-      setPeople(res.success && Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Failed to load people:', err);
+      const response = await usersApi.getAll(params);
+      const rows = response.success && Array.isArray(response.data) ? response.data : [];
+      setPeople(rows);
+      setFollowingMap((current) => {
+        const next = { ...current };
+        rows.forEach((person) => {
+          if (typeof person.isFollowing === 'boolean' && next[person._id] === undefined) next[person._id] = person.isFollowing;
+        });
+        return next;
+      });
+    } catch (error) {
       setPeople([]);
+      setErrorNotice(error.message || 'University members could not be loaded.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchPeople();
-  }, [searchQuery, roleFilter]);
+  useEffect(() => { fetchPeople(); }, [searchQuery, roleFilter]);
 
   const toggleFollow = async (person) => {
-    const key = person._id || person.email;
-    const isNowFollowing = !followingMap[key];
-    setFollowingMap((prev) => ({ ...prev, [key]: isNowFollowing }));
-
-    if (person._id) {
-      try {
-        const res = await usersApi.toggleFollow('user', person._id);
-        if (!res?.success) throw new Error('Follow action was not confirmed.');
-      } catch (err) {
-        setFollowingMap((prev) => ({ ...prev, [key]: !isNowFollowing }));
-        console.warn('Failed to persist follow:', err.message);
+    if (!user) {
+      alert('Please sign in to follow university members.');
+      return;
+    }
+    if (!person?._id || followBusyId) return;
+    setFollowBusyId(person._id);
+    try {
+      const response = await usersApi.toggleFollow('user', person._id);
+      if (response.success) {
+        setFollowingMap((current) => ({ ...current, [person._id]: Boolean(response.following) }));
       }
+    } catch (error) {
+      alert(error.message || 'Follow action could not be completed.');
+    } finally {
+      setFollowBusyId('');
     }
   };
 
@@ -54,125 +67,59 @@ export const PeoplePage = () => {
     <div className="page-shell page-people">
       <PageHero icon="users" title="People" description="Find and connect with students, seniors, faculty and community members." />
 
-      {/* Search & Filter Bar */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '12px',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          marginBottom: '20px',
-        }}
-      >
-        <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '400px' }}>
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Search by name, department, or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ paddingLeft: '36px' }}
-          />
-          <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-            <Icon name="search" size={16} />
-          </div>
-        </div>
-
-        {/* Role Filters */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {['All', 'Faculty', 'Student', 'Admin'].map((role) => (
-            <button
-              key={role}
-              className={`btn btn-sm ${roleFilter === role ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setRoleFilter(role)}
-            >
-              {role === 'All' ? 'All Roles' : `${role}s`}
+      <div className="people-toolbar">
+        <label className="people-search">
+          <Icon name="search" size={17} />
+          <input className="form-control" type="search" placeholder="Search people by name or department..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+        </label>
+        <div className="people-role-filters">
+          {['All', 'Student', 'Faculty', 'Admin'].map((role) => (
+            <button type="button" key={role} className={roleFilter === role ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'} onClick={() => setRoleFilter(role)}>
+              {role === 'All' ? 'All People' : role + 's'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* People Grid */}
+      {errorNotice ? <div className="notification-error" role="alert">{errorNotice}</div> : null}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
-          Loading university members...
-        </div>
+        <div className="loading-state">Loading university members...</div>
       ) : people.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
-          <h3>No people found</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
-            Try searching with a different name or resetting the role filter.
-          </p>
-        </div>
+        <div className="card people-empty"><Icon name="users" size={30} /><h3>No members found</h3><p>Try a different name or role filter.</p></div>
       ) : (
         <div className="people-list">
           {people.map((person) => {
-            const isMe = user?.email === person.email || (user?._id && person._id && user._id.toString() === person._id.toString());
-            const key = person._id || person.email;
-            const isFollowing = !!followingMap[key];
-            const profileLink = isMe ? '/profile/me' : `/profile/${person._id || person.email}`;
-
+            const isMe = user?._id && person._id && user._id.toString() === person._id.toString();
+            const isFollowing = Boolean(followingMap[person._id]);
+            const profileLink = isMe ? '/profile/me' : '/profile/' + person._id;
             return (
-              <div key={key} className="people-row">
+              <article key={person._id} className="people-row">
                 <div className="people-identity">
                   {person.avatar ? (
-                    <img
-                      src={person.avatar}
-                      alt={person.name || ''}
-                      loading="lazy"
-                      decoding="async"
-                      className="people-avatar"
-                    />
+                    <img src={person.avatar} alt="" className="people-avatar" loading="lazy" decoding="async" />
                   ) : (
-                    <div className="people-avatar-fallback" aria-hidden="true">
-                      {(person.name || 'U').trim().split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
-                    </div>
+                    <span className="people-avatar-fallback" aria-hidden="true">{initials(person.name)}</span>
                   )}
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '2px' }}>
-                    <Link to={profileLink} style={{ textDecoration: 'none', color: 'inherit' }}>
-                      {person.name}
-                    </Link>
-                  </h3>
-                  <div className="people-role-badges" style={{ display: 'flex', justifyContent: 'flex-start', gap: '6px', margin: '4px 0 8px' }}>
-                    <span className={`badge ${person.role === 'faculty' ? 'badge-primary' : person.role === 'admin' ? 'badge-warning' : 'badge-secondary'}`} style={{ fontSize: '0.7rem' }}>
-                      {person.role === 'faculty' ? '🎓 Faculty' : person.role === 'admin' ? '🛡️ Admin' : '🎒 Student'}
-                    </span>
-                    {person.verified && (
-                      <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>✓ Verified</span>
-                    )}
+                  <h3><Link to={profileLink}>{person.name}</Link></h3>
+                  <div className="people-role-badges">
+                    <span className="badge badge-primary">{person.role === 'faculty' ? 'Faculty' : person.role === 'admin' ? 'Admin' : 'Student'}</span>
+                    {person.verified ? <span className="badge badge-success">Verified</span> : null}
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px', minHeight: '36px' }}>
-                    {person.department ? `${person.department}${person.year ? ` · ${person.year}` : ''}` : person.title || person.role || 'Member'}
-                  </p>
+                  <p>{[person.department, person.year].filter(Boolean).join(' · ') || 'University member'}</p>
                 </div>
-
-                <div className="people-actions" style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <div className="people-actions">
                   {isMe ? (
-                    <Link to="/profile/me" className="btn btn-primary btn-sm" style={{ width: '100%' }}>
-                      My Profile
-                    </Link>
+                    <Link to="/profile/me" className="btn btn-outline btn-sm">My Profile</Link>
                   ) : (
                     <>
-                      <button
-                        className={`btn btn-sm ${isFollowing ? 'btn-secondary' : 'btn-primary'}`}
-                        onClick={() => toggleFollow(person)}
-                        style={{ flex: 1 }}
-                      >
-                        {isFollowing ? '✓ Following' : '+ Follow'}
+                      <button type="button" className={isFollowing ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'} disabled={followBusyId === person._id} onClick={() => toggleFollow(person)}>
+                        {followBusyId === person._id ? 'Updating...' : isFollowing ? 'Following' : 'Follow'}
                       </button>
-                      <Link
-                        to={profileLink}
-                        className="btn btn-outline btn-sm"
-                        style={{ flex: 1 }}
-                      >
-                        Profile
-                      </Link>
+                      <Link to={profileLink} className="btn btn-outline btn-sm">View Profile</Link>
                     </>
                   )}
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
@@ -180,3 +127,5 @@ export const PeoplePage = () => {
     </div>
   );
 };
+
+export default PeoplePage;
