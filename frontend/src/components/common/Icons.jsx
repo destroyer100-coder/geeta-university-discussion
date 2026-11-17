@@ -23,6 +23,15 @@ export const Icon = ({ name, size = 18, className = '', color = 'currentColor', 
     trendingUp: (
       <path d="M3 17l6-6 4 4 8-8m-6 0h6v6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),
+    sun: (
+      <path d="M12 3v2m0 14v2M5.636 5.636l1.414 1.414m9.9 9.9l1.414 1.414M3 12h2m14 0h2M5.636 18.364l1.414-1.414m9.9-9.9l1.414-1.414M16 12a4 4 0 11-8 0 4 4 0 018 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    moon: (
+      <path d="M20.5 14.5A8.5 8.5 0 019.5 3.5 8.5 8.5 0 1020.5 14.5z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    monitor: (
+      <path d="M4 5h16v11H4zM8 20h8m-4-4v4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
     search: (
       <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),

@@ -16,7 +16,7 @@ const targetForNotification = (item) => {
 };
 
 export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = false }) => {
-  const { user, logout, switchPersona, DEMO_ACCOUNTS } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const searchRef = useRef(null);
@@ -312,21 +312,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
                     <Link to="/settings" className="persona-item" onClick={() => setShowPersonaMenu(false)}>
                       <Icon name="settings" size={17} /><span>Account Settings</span>
                     </Link>
-                    {import.meta.env.DEV && (
-                      <div className="nav-dev-personas">
-                        <div className="nav-dev-label">Test personas · development only</div>
-                        {DEMO_ACCOUNTS.map((account) => (
-                          <button
-                            type="button"
-                            key={account.email}
-                            className="persona-item"
-                            onClick={() => { switchPersona(account.email); setShowPersonaMenu(false); }}
-                          >
-                            <span>{account.name}</span><small>{account.title}</small>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+
                     <button
                       type="button"
                       className="persona-item nav-logout-item"
