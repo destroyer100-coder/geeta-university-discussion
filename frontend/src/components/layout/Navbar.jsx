@@ -1,282 +1,340 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../common/Icons';
 import { useAuth } from '../../context/AuthContext';
-import { notificationsApi } from '../../services/api';
+import { messagesApi, notificationsApi } from '../../services/api';
 
-// Window event used by the Notifications page to keep the bell badge in sync
-// with the list after marking notifications as read.
 export const NOTIFICATIONS_CHANGED_EVENT = 'notifications:changed';
+
+const initials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
+
+const targetForNotification = (item) => {
+  if (!item?.target?.id) return '/notifications';
+  if (item.target.modelType === 'Post') return `/discussions/${item.target.id}`;
+  if (item.target.modelType === 'Community') return `/communities/${item.target.id}`;
+  return '/notifications';
+};
 
 export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = false }) => {
   const { user, logout, switchPersona, DEMO_ACCOUNTS } = useAuth();
-  const isDevelopment = import.meta.env.DEV;
-  const [showPersonaMenu, setShowPersonaMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
+  const searchRef = useRef(null);
+  const [showPersonaMenu, setShowPersonaMenu] = useState(false);
+  const [openPopover, setOpenPopover] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const [notificationPreview, setNotificationPreview] = useState([]);
+  const [messagePreview, setMessagePreview] = useState([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
-  // Badge count comes from the same endpoint/field the Notifications page uses,
-  // so the badge can never disagree with the rendered list.
-  const loadUnreadCount = useCallback(() => {
+  const loadUnreadCount = useCallback(async () => {
     if (!user) {
       setUnreadCount(0);
       return;
     }
-
-    notificationsApi
-      .getAll()
-      .then((res) => {
-        if (res && res.success) setUnreadCount(res.unreadCount || 0);
-      })
-      .catch(() => setUnreadCount(0));
+    try {
+      const res = await notificationsApi.getAll();
+      if (res?.success) setUnreadCount(res.unreadCount || 0);
+    } catch {
+      setUnreadCount(0);
+    }
   }, [user]);
 
-  // Refresh on mount, on navigation, and whenever the active persona changes
+  const loadMessageCount = useCallback(async () => {
+    if (!user) {
+      setMessageUnreadCount(0);
+      return;
+    }
+    try {
+      const res = await messagesApi.getConversations();
+      if (res?.success && Array.isArray(res.data)) {
+        setMessageUnreadCount(res.data.reduce((sum, item) => sum + (Number(item.unreadCount) || 0), 0));
+      }
+    } catch {
+      setMessageUnreadCount(0);
+    }
+  }, [user]);
+
   useEffect(() => {
     loadUnreadCount();
-  }, [loadUnreadCount, location.pathname]);
+    loadMessageCount();
+  }, [loadUnreadCount, loadMessageCount, location.pathname]);
 
   useEffect(() => {
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, loadUnreadCount);
     return () => window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, loadUnreadCount);
   }, [loadUnreadCount]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+  useEffect(() => {
+    const onShortcut = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (event.key === 'Escape') {
+        setOpenPopover('');
+        setShowPersonaMenu(false);
+      }
+    };
+    window.addEventListener('keydown', onShortcut);
+    return () => window.removeEventListener('keydown', onShortcut);
+  }, []);
+
+  const openPreview = async (type) => {
+    setShowPersonaMenu(false);
+    if (openPopover === type) {
+      setOpenPopover('');
+      return;
     }
+    setOpenPopover(type);
+    setPreviewLoading(true);
+    try {
+      if (type === 'notifications') {
+        const res = await notificationsApi.getAll();
+        if (res?.success) {
+          setNotificationPreview(Array.isArray(res.data) ? res.data.slice(0, 4) : []);
+          setUnreadCount(res.unreadCount || 0);
+        }
+      } else {
+        const res = await messagesApi.getConversations();
+        if (res?.success && Array.isArray(res.data)) {
+          setMessagePreview(res.data.slice(0, 4));
+          setMessageUnreadCount(res.data.reduce((sum, item) => sum + (Number(item.unreadCount) || 0), 0));
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to load ${type} preview:`, error);
+      if (type === 'notifications') setNotificationPreview([]);
+      else setMessagePreview([]);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    if (!searchQuery.trim()) return;
+    setOpenPopover('');
+    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await notificationsApi.markAllRead();
+      setNotificationPreview((items) => items.map((item) => ({ ...item, read: true })));
+      setUnreadCount(0);
+      window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+    }
+  };
+
+  const handleNotificationClick = async (item) => {
+    if (!item.read) {
+      try {
+        await notificationsApi.markRead(item._id);
+        setNotificationPreview((items) => items.map((entry) => entry._id === item._id ? { ...entry, read: true } : entry));
+        loadUnreadCount();
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+      }
+    }
+    setOpenPopover('');
+    navigate(targetForNotification(item));
   };
 
   return (
     <nav className="navbar">
       <div className="navbar-container">
-       
-        
-        {/* Navigation toggle for desktop sidebar and mobile drawer */}
         <button
           type="button"
           className="btn-icon"
           onClick={onOpenMobileNav}
-          aria-label={
-            isMobileNavOpen
-              ? 'Close navigation menu'
-              : 'Open navigation menu'
-          }
+          aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={isMobileNavOpen}
           aria-controls="app-navigation"
-          title="Toggle Navigation Sidebar"
-          style={{ marginRight: '6px', flexShrink: 0 }}
+          title="Toggle navigation sidebar"
+          style={{ flexShrink: 0 }}
         >
-          <Icon name={isMobileNavOpen ? 'x' : 'menu'} size={20} />
+          <Icon name={isMobileNavOpen ? 'x' : 'menu'} size={22} />
         </button>
 
-        
-        {/* Brand */}
-        <Link to="/" className="nav-brand">
-          <div className="brand-logo-badge">G</div>
+        <Link to="/" className="nav-brand" onClick={() => setOpenPopover('')}>
+          <div className="brand-logo-badge" aria-hidden="true">
+            <Icon name="shieldCheck" size={27} />
+          </div>
           <div className="brand-text">
-            <div className="brand-text-main">GEETA UNIVERSITY</div>
-            <div className="brand-text-sub">Discussion</div>
+            <div className="brand-text-main">GEETA <span>UNIVERSITY</span></div>
+            <div className="brand-text-sub">Discussion Forum</div>
           </div>
         </Link>
 
-        {/* Global Search */}
-        <form onSubmit={handleSearch} className="search-bar-wrapper">
-          <Icon name="search" size={16} className="search-icon-pos" />
+        <form onSubmit={handleSearch} className="search-bar-wrapper" role="search">
+          <Icon name="search" size={18} className="search-icon-pos" />
           <input
-            type="text"
+            ref={searchRef}
+            type="search"
             className="search-input"
-            placeholder="Search discussions, topics, people, communities... (e.g. DSA, placements)"
+            placeholder="Search discussions, communities, people, events..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            aria-label="Search discussions, communities, people and events"
           />
-          <span className="search-shortcut">Ctrl K</span>
+          <span className="search-shortcut">Ctrl + K</span>
         </form>
 
-        {/* Navigation & Actions */}
         <div className="nav-links">
-          {/* Create Post Button (Section 1 & 5: Home shows Create Post button only) */}
-          <button
-            id="nav-create-post-btn"
-            className="btn btn-accent"
-            onClick={onOpenCreatePost}
-            style={{ padding: '8px 18px', borderRadius: '20px' }}
-          >
-            <Icon name="plus" size={16} color="#fff" />
-            <span>Create Post</span>
-          </button>
-
-          <Link to="/notifications" className="btn-icon" title="Notifications">
-            <div style={{ position: 'relative' }}>
-              <Icon name="bell" size={20} />
-              {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  background: '#ef4444',
-                  color: '#fff',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  width: 15,
-                  height: 15,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  {unreadCount}
-                </span>
-              )}
-            </div>
-          </Link>
-
-          <Link to="/messages" className="btn-icon" title="Messages">
-            <Icon name="messageSquare" size={20} />
-          </Link>
-
-          {/* Persona Switcher / User Profile */}
-          <div style={{ position: 'relative' }}>
+          <div className="persona-dropdown-container nav-preview-container">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn-icon nav-action-button"
+              title="Notifications"
+              aria-label="Open notifications preview"
+              aria-expanded={openPopover === 'notifications'}
+              onClick={() => openPreview('notifications')}
+            >
+              <Icon name="bell" size={22} />
+              {unreadCount > 0 && <span className="nav-count-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            </button>
+            {openPopover === 'notifications' && (
+              <div className="nav-popover" role="dialog" aria-label="Recent notifications">
+                <div className="nav-popover-header">
+                  <span>Notifications</span>
+                  <button type="button" onClick={handleMarkAllNotificationsRead} disabled={unreadCount === 0}>Mark all as read</button>
+                </div>
+                {previewLoading ? (
+                  <div className="nav-popover-empty">Loading notifications...</div>
+                ) : notificationPreview.length ? (
+                  notificationPreview.map((item) => (
+                    <button
+                      type="button"
+                      key={item._id}
+                      className={`nav-popover-item nav-popover-button${item.read ? '' : ' is-unread'}`}
+                      onClick={() => handleNotificationClick(item)}
+                    >
+                      <span className="nav-popover-icon"><Icon name="bell" size={18} /></span>
+                      <span className="nav-popover-copy">
+                        <strong>{item.message}</strong>
+                        <span>{item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</span>
+                      </span>
+                      {!item.read && <span className="nav-popover-unread-dot" />}
+                    </button>
+                  ))
+                ) : (
+                  <div className="nav-popover-empty">No notifications yet.</div>
+                )}
+                <Link to="/notifications" className="nav-popover-footer" onClick={() => setOpenPopover('')}>View all notifications <span>→</span></Link>
+              </div>
+            )}
+          </div>
+
+          <div className="persona-dropdown-container nav-preview-container">
+            <button
+              type="button"
+              className="btn-icon nav-action-button"
+              title="Messages"
+              aria-label="Open messages preview"
+              aria-expanded={openPopover === 'messages'}
+              onClick={() => openPreview('messages')}
+            >
+              <Icon name="messageSquare" size={22} />
+              {messageUnreadCount > 0 && <span className="nav-count-badge nav-message-count">{messageUnreadCount > 99 ? '99+' : messageUnreadCount}</span>}
+            </button>
+            {openPopover === 'messages' && (
+              <div className="nav-popover" role="dialog" aria-label="Recent messages">
+                <div className="nav-popover-header"><span>Messages</span><span className="nav-popover-subtitle">Recent conversations</span></div>
+                {previewLoading ? (
+                  <div className="nav-popover-empty">Loading conversations...</div>
+                ) : messagePreview.length ? (
+                  messagePreview.map((item) => {
+                    const person = item.user || {};
+                    return (
+                      <Link
+                        key={item._id || person._id}
+                        to={person._id ? `/messages?user=${person._id}` : '/messages'}
+                        className="nav-popover-item"
+                        onClick={() => setOpenPopover('')}
+                      >
+                        {person.avatar ? (
+                          <img src={person.avatar} alt="" className="nav-popover-avatar" loading="lazy" />
+                        ) : (
+                          <span className="nav-popover-avatar nav-avatar-initials">{initials(person.name)}</span>
+                        )}
+                        <span className="nav-popover-copy">
+                          <strong>{person.name || 'Conversation'}</strong>
+                          <span>{item.lastMessage || ''}</span>
+                        </span>
+                        {item.unreadCount > 0 && <span className="nav-popover-count">{item.unreadCount}</span>}
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <div className="nav-popover-empty">No conversations yet.</div>
+                )}
+                <Link to="/messages" className="nav-popover-footer" onClick={() => setOpenPopover('')}>View all messages <span>→</span></Link>
+              </div>
+            )}
+          </div>
+
+          <div className="persona-dropdown-container">
+            <button
+              type="button"
+              className="btn btn-secondary nav-account-trigger"
               aria-haspopup="true"
               aria-expanded={showPersonaMenu}
               aria-label={user ? `Account menu for ${user.name}` : 'Open sign-in menu'}
-              onClick={() => setShowPersonaMenu(!showPersonaMenu)}
-              style={{ padding: '4px 10px', gap: '8px', borderRadius: '20px' }}
+              onClick={() => {
+                setOpenPopover('');
+                setShowPersonaMenu((value) => !value);
+              }}
             >
-              {user ? (
-                <>
-                  <img
-                    src={user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
-                    alt={user.name}
-                    style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }}
-                  />
-                  <span className="nav-user-name" style={{ fontSize: '0.825rem', fontWeight: 600 }}>{user.name}</span>
-                </>
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" />
               ) : (
-                <span>Log In</span>
+                <span className="nav-user-initials">{initials(user?.name)}</span>
               )}
               <Icon name="chevronDown" size={14} />
             </button>
 
-            {/* Account menu; test personas exist only in development builds. */}
             {showPersonaMenu && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '115%',
-                  background: '#ffffff',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  boxShadow: 'var(--shadow-lg)',
-                  width: '260px',
-                  padding: '8px',
-                  zIndex: 200,
-                }}
-              >
-                {isDevelopment && (
-                  <>
-                    <div style={{ padding: '6px 10px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase' }}>
-                      Switch Test Persona (Development Only)
-                    </div>
-                    {DEMO_ACCOUNTS.map((account) => (
-                      <button
-                        type="button"
-                        key={account.email}
-                        onClick={() => {
-                          switchPersona(account.email);
-                          setShowPersonaMenu(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '8px 10px',
-                          background: user?.email === account.email ? 'var(--primary-light)' : 'transparent',
-                          border: 'none',
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          marginBottom: '2px',
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: user?.email === account.email ? 'var(--primary)' : 'var(--text-main)' }}>
-                          {account.name} {user?.email === account.email && '✓'}
-                        </div>
-                        <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                          {account.title}
-                        </div>
-                      </button>
-                    ))}
-                    <div style={{ borderTop: '1px solid var(--border-color)', margin: '6px 0' }} />
-                  </>
-                )}
-
+              <div className="persona-menu-card">
                 {user ? (
                   <>
-                    <Link
-                      to="/profile/me"
-                      onClick={() => setShowPersonaMenu(false)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '8px 10px',
-                        fontSize: '0.825rem',
-                        color: 'var(--text-main)',
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                    >
-                      <Icon name="users" size={14} />
-                      <span>My Profile</span>
+                    <div className="nav-account-summary">
+                      {user.avatar ? <img src={user.avatar} alt="" /> : <span className="nav-account-summary-avatar">{initials(user.name)}</span>}
+                      <div><strong>{user.name}</strong><span>{[user.department, user.year].filter(Boolean).join(' · ')}</span></div>
+                    </div>
+                    <Link to="/profile/me" className="persona-item" onClick={() => setShowPersonaMenu(false)}>
+                      <Icon name="user" size={17} /><span>My Profile</span>
                     </Link>
-
+                    {import.meta.env.DEV && (
+                      <div className="nav-dev-personas">
+                        <div className="nav-dev-label">Test personas · development only</div>
+                        {DEMO_ACCOUNTS.map((account) => (
+                          <button
+                            type="button"
+                            key={account.email}
+                            className="persona-item"
+                            onClick={() => { switchPersona(account.email); setShowPersonaMenu(false); }}
+                          >
+                            <span>{account.name}</span><small>{account.title}</small>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <button
-                      onClick={() => {
-                        logout();
-                        setShowPersonaMenu(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '8px 10px',
-                        background: 'transparent',
-                        border: 'none',
-                        fontSize: '0.825rem',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
+                      type="button"
+                      className="persona-item nav-logout-item"
+                      onClick={() => { logout(); setShowPersonaMenu(false); }}
                     >
-                      <Icon name="x" size={14} color="#ef4444" />
-                      <span>Logout</span>
+                      <Icon name="logOut" size={17} /><span>Log out</span>
                     </button>
                   </>
                 ) : (
-                  <Link
-                    to="/login"
-                    onClick={() => setShowPersonaMenu(false)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 10px',
-                      fontSize: '0.825rem',
-                      color: 'var(--primary)',
-                      fontWeight: 600,
-                      borderRadius: 'var(--radius-sm)',
-                    }}
-                  >
-                    <Icon name="lock" size={14} />
-                    <span>Sign In with Password</span>
+                  <Link to="/login" className="persona-item" onClick={() => setShowPersonaMenu(false)}>
+                    <Icon name="lock" size={17} /><span>Sign in</span>
                   </Link>
                 )}
               </div>
