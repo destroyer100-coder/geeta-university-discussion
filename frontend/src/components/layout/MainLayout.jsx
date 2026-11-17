@@ -58,7 +58,11 @@ export const MainLayout = () => {
   const hideRightbar =
     location.pathname.startsWith('/profile') ||
     location.pathname.startsWith('/messages') ||
-    location.pathname.startsWith('/settings');
+    location.pathname.startsWith('/settings') ||
+    location.pathname.startsWith('/notifications') ||
+    location.pathname.startsWith('/communities') ||
+    location.pathname.startsWith('/saved') ||
+    location.pathname.startsWith('/my-discussions');
 
   const layoutClassName = `main-layout${
     isSidebarCollapsed ? ' is-collapsed' : ''
@@ -124,7 +128,7 @@ export const MainLayout = () => {
           <Outlet context={{ openCreatePost: handleOpenCreatePost }} />
         </main>
 
-        {!hideRightbar && <Rightbar />}
+        {!hideRightbar && <Rightbar onOpenCreatePost={() => handleOpenCreatePost()} />}
       </div>
 
       <CreatePostModal

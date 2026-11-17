@@ -4,6 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { usersApi, postsApi } from '../../services/api';
 import { PostCard } from '../../components/post/PostCard';
 import { Icon } from '../../components/common/Icons';
+import { PageHero } from '../../components/common/PageHero';
+
+const getInitials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
 
 export const ProfilePage = () => {
   const { id } = useParams();
@@ -243,17 +246,11 @@ export const ProfilePage = () => {
   }
 
   return (
-    <div>
+    <div className="page-shell page-profile">
       {/* Profile Header Card */}
       <div className="card" style={{ padding: '0', overflow: 'hidden', marginBottom: '20px' }}>
         {/* Cover Banner */}
-        <div
-          style={{
-            height: '130px',
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)',
-            position: 'relative',
-          }}
-        >
+        <div className="profile-cover">
           <div style={{ position: 'absolute', top: 16, right: 20, display: 'flex', gap: '8px' }}>
             <button
               onClick={handleShareProfile}
@@ -277,22 +274,19 @@ export const ProfilePage = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '-50px', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
             {/* Avatar */}
             <div style={{ position: 'relative' }}>
-              <img
-                src={
-                  profileData.avatar ||
-                  'https://api.dicebear.com/7.x/avataaars/svg?seed=' + profileData.name
-                }
-                alt={profileData.name}
-                style={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '4px solid #ffffff',
-                  boxShadow: 'var(--shadow-md)',
-                  backgroundColor: '#f8fafc',
-                }}
-              />
+              {profileData.avatar ? (
+                <img
+                  src={profileData.avatar}
+                  alt={profileData.name || ''}
+                  loading="lazy"
+                  decoding="async"
+                  className="profile-main-avatar"
+                />
+              ) : (
+                <span className="profile-main-avatar profile-avatar-initials" aria-hidden="true">
+                  {getInitials(profileData.name)}
+                </span>
+              )}
             </div>
 
             {/* Action Buttons Bar */}
@@ -376,7 +370,7 @@ export const ProfilePage = () => {
             </div>
 
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '10px', maxWidth: '640px', lineHeight: 1.5 }}>
-              {profileData.bio || 'Geeta University academic community member. Sharing knowledge and participating in university discussions.'}
+              {profileData.bio || 'No biography has been added.'}
             </p>
 
             {/* Counts Bar */}
@@ -523,11 +517,11 @@ export const ProfilePage = () => {
                 return (
                   <div key={comm._id} className="card" style={{ padding: '16px', display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
-                      <img
-                        src={comm.avatar || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=80'}
-                        alt={comm.name}
-                        style={{ width: 44, height: 44, borderRadius: '10px', objectFit: 'cover' }}
-                      />
+                      {comm.avatar ? (
+                        <img src={comm.avatar} alt="" loading="lazy" decoding="async" className="profile-community-avatar" />
+                      ) : (
+                        <span className="profile-community-avatar profile-community-initials" aria-hidden="true">{getInitials(comm.name)}</span>
+                      )}
                       <div style={{ minWidth: 0 }}>
                         <h3 style={{ fontSize: '0.95rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           <Link to={`/communities/${comm.slug || comm._id}`}>{comm.name}</Link>
@@ -586,14 +580,14 @@ export const ProfilePage = () => {
               <div style={{ padding: '14px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-sm)' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>MEMBER SINCE</div>
                 <div style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: '4px' }}>
-                  {new Date(profileData.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  {profileData.createdAt ? new Date(profileData.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Not available'}
                 </div>
               </div>
             </div>
 
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px' }}>About Me</h3>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              {profileData.bio || 'This user has not added a biography yet.'}
+              {profileData.bio || 'No biography has been added.'}
             </p>
           </div>
 

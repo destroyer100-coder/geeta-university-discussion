@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { communitiesApi } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -24,6 +24,8 @@ export const CommunityList = () => {
 
   const [communities, setCommunities] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedScope, setSelectedScope] = useState('all');
+  const [sortBy, setSortBy] = useState('members');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState(null);
@@ -32,7 +34,7 @@ export const CommunityList = () => {
     setLoading(true);
 
     try {
-      const params = {};
+      const params = { sort: sortBy };
 
       if (selectedCategory && selectedCategory !== 'All') {
         params.category = selectedCategory;
@@ -58,12 +60,19 @@ export const CommunityList = () => {
 
   useEffect(() => {
     fetchCommunities();
-  }, [selectedCategory, searchTerm, user]);
+  }, [selectedCategory, searchTerm, sortBy, user?._id]);
+
+  const visibleCommunities = useMemo(() => communities.filter((community) => {
+    const role = community.currentUserRole || (community.owner?._id === user?._id ? 'owner' : '');
+    if (selectedScope === 'joined') return Boolean(community.isCurrentUserMember);
+    if (selectedScope === 'managed') return ['owner', 'moderator'].includes(role);
+    return true;
+  }), [communities, selectedScope, user?._id]);
 
   const handleJoinToggle = async (communityId, isJoined) => {
     if (!user) {
       alert(
-        'Please log in first or select a demo persona from the top right menu.'
+        'Please sign in to join this community.'
       );
       return;
     }
@@ -99,59 +108,66 @@ export const CommunityList = () => {
         )}
       />
 
-      <div
-        className="page-toolbar page-communities-toolbar"
-        style={{
-          marginBottom: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        <div className="page-toolbar-search" style={{ maxWidth: '400px' }}>
+      <div className="page-tabs community-scope-tabs" role="tablist" aria-label="Community views">
+        {[
+          { key: 'all', label: 'All Communities' },
+          { key: 'joined', label: 'Joined' },
+          { key: 'managed', label: 'Managed' },
+        ].map((tab) => (
+          <button
+            type="button"
+            key={tab.key}
+            role="tab"
+            aria-selected={selectedScope === tab.key}
+            className={selectedScope === tab.key ? 'btn btn-primary' : 'btn btn-secondary'}
+            onClick={() => setSelectedScope(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="page-toolbar page-communities-toolbar">
+        <label className="page-toolbar-search community-search">
+          <Icon name="search" size={17} />
           <input
-            type="text"
+            type="search"
             className="form-control"
             placeholder="Search communities by name or topic..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(event) => setSearchTerm(event.target.value)}
           />
-        </div>
-
-        <div
-          className="page-tabs community-category-tabs"
-          style={{
-            display: 'flex',
-            gap: '8px',
-            overflowX: 'auto',
-            paddingBottom: '6px',
-          }}
-        >
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              className={`btn btn-sm ${
-                selectedCategory === cat ? 'btn-primary' : 'btn-outline'
-              }`}
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {cat}
-            </button>
-          ))}
+        </label>
+        <div className="community-toolbar-controls">
+          <select className="form-control" value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} aria-label="Filter by category">
+            {CATEGORIES.map((category) => <option key={category} value={category}>{category === 'All' ? 'All Categories' : category}</option>)}
+          </select>
+          <select className="form-control" value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="Sort communities">
+            <option value="members">Most Members</option>
+            <option value="activity">Most Active</option>
+            <option value="newest">Newest</option>
+          </select>
         </div>
       </div>
+      {selectedScope !== 'all' ? (
+        <p className="community-scope-note">
+          {selectedScope === 'joined'
+            ? 'Showing joined communities available in public community discovery.'
+            : 'Showing communities you own or moderate that are available in public community discovery.'}
+          {' '}Private communities are not included in the public discovery API.
+        </p>
+      ) : null}
 
       {loading ? (
         <div className="loading-state">
           <div className="spinner" />
           <p>Loading communities...</p>
         </div>
-      ) : communities.length === 0 ? (
+      ) : visibleCommunities.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">🏫</div>
-          <h3>No communities found</h3>
-          <p>Try adjusting your search or category filter.</p>
+          <h3>{selectedScope === 'joined' ? 'No joined communities in this view' : selectedScope === 'managed' ? 'No managed communities in this view' : 'No communities found'}</h3>
+          <p>Try adjusting your search, category or community view.</p>
         </div>
       ) : (
         <div
@@ -163,13 +179,13 @@ export const CommunityList = () => {
             gap: '16px',
           }}
         >
-          {communities.map((c) => {
+          {visibleCommunities.map((c) => {
             const isMember = c.isCurrentUserMember;
             const membershipStatus = c.currentUserMembershipStatus;
             const isPending = membershipStatus === 'pending';
             const isPrivate =
               c.permissions?.visibility === 'MEMBERS_ONLY';
-            const isOwner = user && c.owner?._id === user._id;
+            const isOwner = user && (c.owner?._id || c.owner) === user._id;
 
             return (
               <div
@@ -184,11 +200,19 @@ export const CommunityList = () => {
                     marginBottom: '12px',
                   }}
                 >
-                  <img
-                    className="community-card-avatar"
-                    src={c.avatar}
-                    alt={c.name || 'Community'}
-                  />
+                  {c.avatar ? (
+                    <img
+                      className="community-card-avatar"
+                      src={c.avatar}
+                      alt={c.name || ''}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="community-card-avatar community-avatar-initials" aria-hidden="true">
+                      {(c.name || 'C').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+                    </span>
+                  )}
 
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <h3

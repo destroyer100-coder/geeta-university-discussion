@@ -6,6 +6,8 @@ import { RequestToPostModal } from '../../../components/community/RequestToPostM
 import { useAuth } from '../../../context/AuthContext';
 import { Icon } from '../../../components/common/Icons';
 
+const getCommunityInitials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'C';
+
 export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -123,7 +125,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
 
   const handleJoinToggle = async () => {
     if (!user) {
-      alert('Please log in to join this community.');
+      alert('Please sign in to join this community.');
       return;
     }
     if (actionLoading) return;
@@ -262,7 +264,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const canManageJoinRequests = !!community.canManageJoinRequests;
 
   return (
-    <div>
+    <div className="page-shell page-community-detail">
       {/* Banner & Cover */}
       <div
         style={{
@@ -278,7 +280,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             height: '160px',
             background: `url(${
               community.banner ||
-              'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200'
+              '/assets/campus-banner.webp'
             }) center/cover no-repeat`,
             position: 'relative',
           }}
@@ -295,22 +297,19 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             }}
           >
             <div style={{ display: 'flex', gap: '16px' }}>
-              <img
-                src={
-                  community.avatar ||
-                  'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=120'
-                }
-                alt={community.name}
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: '16px',
-                  objectFit: 'cover',
-                  border: '4px solid #ffffff',
-                  boxShadow: 'var(--shadow-md)',
-                  marginTop: '-44px',
-                }}
-              />
+              {community.avatar ? (
+                <img
+                  src={community.avatar}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="community-detail-avatar"
+                />
+              ) : (
+                <span className="community-detail-avatar community-detail-initials" aria-hidden="true">
+                  {getCommunityInitials(community.name)}
+                </span>
+              )}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{community.name}</h1>
@@ -332,7 +331,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                     💬 <strong>{community.postCount || 0}</strong> Discussions
                   </span>
                   <span>
-                    🛡️ Head: <strong>{community.owner?.name || 'Faculty Head'}</strong>
+                    🛡️ Head: <strong>{community.owner?.name || 'Head not listed'}</strong>
                   </span>
                 </div>
               </div>
@@ -649,14 +648,10 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <img
-                        src={post.author?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
-                        alt={post.author?.name || 'Author'}
-                        style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-                      />
+                      <span className="community-request-avatar" aria-hidden="true">{getCommunityInitials(post.author?.name)}</span>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
-                          {post.author?.name || 'Community Member'}
+                          {post.author?.name || 'Member'}
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '6px' }}>
                             ({post.author?.department || 'Student'})
                           </span>
@@ -768,14 +763,10 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <img
-                        src={req.user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
-                        alt={req.user?.name || 'Requester'}
-                        style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-                      />
+                      <span className="community-request-avatar" aria-hidden="true">{getCommunityInitials(req.user?.name)}</span>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
-                          {req.user?.name || 'Applicant'}
+                          {req.user?.name || 'Member'}
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '6px' }}>
                             ({req.user?.department || 'Student'})
                           </span>

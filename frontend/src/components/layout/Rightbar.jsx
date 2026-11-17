@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../common/Icons';
 import { eventsApi, postsApi } from '../../services/api';
 
-export const Rightbar = () => {
+export const Rightbar = ({ onOpenCreatePost }) => {
   const [events, setEvents] = useState([]);
   const [trendingPosts, setTrendingPosts] = useState([]);
 
@@ -127,6 +127,14 @@ export const Rightbar = () => {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="card rightbar-quick-actions">
+        <div className="rightbar-card-heading"><Icon name="zap" size={17} /><strong>Quick Actions</strong></div>
+        <button type="button" onClick={() => onOpenCreatePost?.()}><span className="rightbar-action-icon"><Icon name="plus" size={17} /></span><span><strong>Start a Discussion</strong><small>Share a question or resource</small></span><Icon name="chevronRight" size={16} /></button>
+        <Link to="/communities/create"><span className="rightbar-action-icon"><Icon name="users" size={17} /></span><span><strong>Create a Community</strong><small>Start a group for your peers</small></span><Icon name="chevronRight" size={16} /></Link>
+        <Link to="/people"><span className="rightbar-action-icon"><Icon name="userCheck" size={17} /></span><span><strong>Find People</strong><small>Connect with campus members</small></span><Icon name="chevronRight" size={16} /></Link>
+        <Link to="/saved"><span className="rightbar-action-icon"><Icon name="bookmark" size={17} /></span><span><strong>Saved Discussions</strong><small>Open your bookmarked posts</small></span><Icon name="chevronRight" size={16} /></Link>
       </div>
 
     </aside>
