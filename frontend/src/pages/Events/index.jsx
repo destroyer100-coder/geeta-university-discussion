@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { eventsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/common/Icons';
+import { PageHero } from '../../components/common/PageHero';
 
 const EVENT_CATEGORIES = ['All', 'Workshop', 'Hackathon', 'Seminar', 'Tech Talk', 'Meetup'];
 
@@ -77,20 +78,11 @@ export const EventsPage = () => {
   });
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <Icon name="calendar" size={24} color="var(--primary)" />
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Campus Events & Workshops</h1>
-        </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Upcoming tech talks, hackathons, academic seminars and university workshops.
-        </p>
-      </div>
+    <div className="page-shell page-events">
+      <PageHero icon="calendar" title="Events" description="Discover and participate in campus events, workshops, talks and more." />
 
       {/* Category Pills */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '20px' }}>
+      <div className="page-tabs event-category-tabs" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '20px' }}>
         {EVENT_CATEGORIES.map((cat) => (
           <button
             key={cat}
@@ -116,7 +108,7 @@ export const EventsPage = () => {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: '20px' }}>
+        <div className="event-list">
           {filteredEvents.map((ev) => {
             const d = new Date(ev.date);
             const isAttending = Boolean(
@@ -128,54 +120,46 @@ export const EventsPage = () => {
             const attendeesCount = ev.attendees?.length || 0;
 
             return (
-              <div
+              <article
                 key={ev._id}
-                className="card"
+                className="event-card"
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  padding: '20px',
-                  border: isAttending ? '1.5px solid #93c5fd' : '1px solid var(--border-color)',
+                  padding: '13px',
+                  border: '0',
                   position: 'relative',
                 }}
               >
                 <div>
                   {/* Category & Date Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <span className="badge badge-accent">{ev.category || 'Event'}</span>
-                    <span style={{ fontSize: '0.775rem', fontWeight: 700, color: 'var(--primary)' }}>
-                      {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
+                  <div className="event-date-block">
+                    <span>{d.toLocaleDateString('en-US', { month: 'short' })}</span>
+                    <strong>{d.toLocaleDateString('en-US', { day: '2-digit' })}</strong>
+                    <small>{d.toLocaleDateString('en-US', { year: 'numeric' })}</small>
                   </div>
 
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)' }}>
                     {ev.title}
                   </h3>
 
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
-                    {ev.description || 'Join fellow Geeta University students and faculty for this session.'}
-                  </p>
+                  {ev.description ? (
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.5 }}>
+                      {ev.description}
+                    </p>
+                  ) : null}
 
                   {/* Event Details */}
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📍</span>
-                      <span><strong>Venue:</strong> {ev.venue || 'Geeta University Campus'}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>⏰</span>
-                      <span><strong>Time:</strong> {ev.time || '10:00 AM'}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>👥</span>
-                      <span><strong>Attendees:</strong> {attendeesCount} registered {isAttending && <span style={{ color: '#059669', fontWeight: 700 }}>(Including You)</span>}</span>
-                    </div>
+                  <div className="event-meta">
+                    {ev.time ? <span><Icon name="clock" size={15} /> {ev.time}</span> : null}
+                    {ev.venue ? <span><Icon name="mapPin" size={15} /> {ev.venue}</span> : null}
+                    <span><Icon name="users" size={15} /> {attendeesCount} registered</span>
                   </div>
                 </div>
 
                 {/* RSVP Action */}
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '14px', marginTop: '8px' }}>
+                <div className="event-register" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '14px', marginTop: '8px' }}>
                   <button
                     className={`btn btn-sm ${isAttending ? 'btn-secondary' : 'btn-primary'}`}
                     style={{
@@ -197,7 +181,7 @@ export const EventsPage = () => {
                       : '+ RSVP / Attend Event'}
                   </button>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>

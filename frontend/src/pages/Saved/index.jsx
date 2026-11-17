@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usersApi } from '../../services/api';
 import { PostCard } from '../../components/post/PostCard';
+import { PageHero } from '../../components/common/PageHero';
 
 export const SavedPage = () => {
   const [posts, setPosts] = useState([]);
@@ -13,13 +14,8 @@ export const SavedPage = () => {
   }, []);
 
   return (
-    <div>
-      <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Saved Discussions & Resources</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          Quickly access reference guides, notes and posts you bookmarked.
-        </p>
-      </div>
+    <div className="page-shell page-saved">
+      <PageHero icon="bookmark" title="Saved" description="Your bookmarked posts, resources, events and important discussions." />
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px' }}>Loading saved posts...</div>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { notificationsApi } from '../../services/api';
 import { Icon } from '../../components/common/Icons';
 import { NOTIFICATIONS_CHANGED_EVENT } from '../../components/layout/Navbar';
+import { PageHero } from '../../components/common/PageHero';
 
 export const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
@@ -49,18 +50,17 @@ export const NotificationsPage = () => {
   };
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Notifications</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Updates on your posts, comments, moderation decisions, and requests
-          </p>
-        </div>
-        <button className="btn btn-secondary btn-sm" onClick={handleMarkAll}>
-          Mark All as Read
-        </button>
-      </div>
+    <div className="page-shell page-notifications">
+      <PageHero
+        icon="bell"
+        title="Notifications"
+        description="Stay updated with the latest activities, mentions and updates from your campus."
+        action={(
+          <button className="btn btn-outline btn-sm" onClick={handleMarkAll}>
+            <Icon name="check" size={16} /> Mark all as read
+          </button>
+        )}
+      />
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
@@ -73,7 +73,7 @@ export const NotificationsPage = () => {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>You're all caught up!</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div className="notification-list">
           {notifications.map((n) => {
             const url = getTargetUrl(n);
             return (
@@ -81,7 +81,7 @@ export const NotificationsPage = () => {
                 key={n._id}
                 to={url}
                 onClick={() => handleNotificationClick(n)}
-                className="card"
+                className={`card notification-row${n.read ? '' : ' is-unread'}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

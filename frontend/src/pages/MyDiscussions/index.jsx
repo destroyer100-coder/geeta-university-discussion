@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { postsApi } from '../../services/api';
 import { PostCard } from '../../components/post/PostCard';
+import { Link } from 'react-router-dom';
+import { PageHero } from '../../components/common/PageHero';
+import { Icon } from '../../components/common/Icons';
 
 export const MyDiscussionsPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -34,13 +37,17 @@ export const MyDiscussionsPage = () => {
   }, [user?._id, authLoading]);
 
   return (
-    <div>
-      <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>My Discussions & Questions</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          All topics, questions, and resources published by you.
-        </p>
-      </div>
+    <div className="page-shell page-my-discussions">
+      <PageHero
+        icon="messageSquare"
+        title="My Discussions"
+        description="Manage, create and track all your discussions on the forum."
+        action={user ? (
+          <Link to="/create" className="btn btn-primary">
+            <Icon name="plus" size={17} /> Create New Post
+          </Link>
+        ) : null}
+      />
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px' }}>Loading your discussions...</div>
