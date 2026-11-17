@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PostCard } from '../../components/post/PostCard';
 import { postsApi } from '../../services/api';
 import { Icon } from '../../components/common/Icons';
+import { PageHero } from '../../components/common/PageHero';
 
 const EXPLORE_TAGS = [
   'All',
@@ -46,17 +47,8 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
   }, [selectedTag, selectedType, searchQuery]);
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <Icon name="compass" size={24} color="var(--primary)" />
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Explore Geeta University Discussions</h1>
-        </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Discover trending academic roadmaps, study resources, campus questions and active conversations.
-        </p>
-      </div>
+    <div className="page-shell page-explore">
+      <PageHero icon="compass" title="Explore" description="Discover trending discussions, communities, people and university activities." />
 
       {/* Filter Controls */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
@@ -72,7 +64,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
         </div>
 
         {/* Post Type Selector */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="page-tabs explore-type-tabs" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
             { key: 'all', label: 'All Content' },
             { key: 'resource', label: '📚 Resources' },

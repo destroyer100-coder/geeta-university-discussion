@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { communitiesApi } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { Icon } from '../../../components/common/Icons';
+import { PageHero } from '../../../components/common/PageHero';
 
 const CATEGORIES = [
   'All',
@@ -86,42 +87,20 @@ export const CommunityList = () => {
   };
 
   return (
-    <div>
-      <div className="page-header">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-          }}
-        >
-          <div>
-            <h1>Explore University Communities</h1>
-            <p>
-              Discover department hubs, student clubs, placement circles and
-              academic channels.
-            </p>
-          </div>
-
-          {user && (
-            <Link
-              to="/communities/create"
-              className="btn btn-primary"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <Icon name="plus" size={16} />
-              Create Community
-            </Link>
-          )}
-        </div>
-      </div>
+    <div className="page-shell page-communities">
+      <PageHero
+        icon="users"
+        title="Communities"
+        description="Join interest-based groups, department communities and campus circles."
+        action={user && (
+          <Link to="/communities/create" className="btn btn-primary">
+            <Icon name="plus" size={18} /> Create a Community
+          </Link>
+        )}
+      />
 
       <div
+        className="page-toolbar page-communities-toolbar"
         style={{
           marginBottom: '24px',
           display: 'flex',
@@ -129,7 +108,7 @@ export const CommunityList = () => {
           gap: '12px',
         }}
       >
-        <div style={{ maxWidth: '400px' }}>
+        <div className="page-toolbar-search" style={{ maxWidth: '400px' }}>
           <input
             type="text"
             className="form-control"
@@ -140,6 +119,7 @@ export const CommunityList = () => {
         </div>
 
         <div
+          className="page-tabs community-category-tabs"
           style={{
             display: 'flex',
             gap: '8px',
@@ -175,6 +155,7 @@ export const CommunityList = () => {
         </div>
       ) : (
         <div
+          className="community-grid"
           style={{
             display: 'grid',
             gridTemplateColumns:

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DEMO_ACCOUNTS, useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { usersApi } from '../../services/api';
 import { Icon } from '../../components/common/Icons';
+import { PageHero } from '../../components/common/PageHero';
 
 export const PeoplePage = () => {
-  const { user, switchPersona } = useAuth();
+  const { user } = useAuth();
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,18 +21,10 @@ export const PeoplePage = () => {
       if (roleFilter !== 'All') params.role = roleFilter.toLowerCase();
 
       const res = await usersApi.getAll(params);
-      if (res.success && res.data && res.data.length > 0) {
-        setPeople(res.data);
-      } else if (!searchQuery.trim() && roleFilter === 'All') {
-        // Fallback to DEMO_ACCOUNTS if database has empty list
-        setPeople(DEMO_ACCOUNTS);
-      } else {
-        setPeople([]);
-      }
+      setPeople(res.success && Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to load people:', err);
-      // Graceful fallback to DEMO_ACCOUNTS
-      setPeople(DEMO_ACCOUNTS);
+      setPeople([]);
     } finally {
       setLoading(false);
     }
@@ -56,17 +49,8 @@ export const PeoplePage = () => {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-          <Icon name="users" size={24} color="var(--primary)" />
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Geeta University Students & Faculty</h1>
-        </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Connect with peers, faculty heads, placement coordinators, and academic mentors across campus.
-        </p>
-      </div>
+    <div className="page-shell page-people">
+      <PageHero icon="users" title="People" description="Find and connect with students, seniors, faculty and community members." />
 
       {/* Search & Filter Bar */}
       <div
@@ -127,27 +111,23 @@ export const PeoplePage = () => {
             const key = person._id || person.email;
             const isFollowing = !!followingMap[key];
             const profileLink = isMe ? '/profile/me' : `/profile/${person._id || person.email}`;
-            const isDemoUser = DEMO_ACCOUNTS.some((d) => d.email === person.email);
 
             return (
               <div key={key} className="card" style={{ textAlign: 'center', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
-                  <img
-                    src={
-                      person.avatar ||
-                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.name || 'User')}`
-                    }
-                    alt={person.name}
-                    style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '50%',
-                      margin: '0 auto 12px',
-                      display: 'block',
-                      objectFit: 'cover',
-                      border: '2px solid var(--primary-light)',
-                    }}
-                  />
+                  {person.avatar ? (
+                    <img
+                      src={person.avatar}
+                      alt={person.name || ''}
+                      loading="lazy"
+                      decoding="async"
+                      style={{ width: 64, height: 64, borderRadius: '50%', margin: '0 auto 12px', display: 'block', objectFit: 'cover', border: '2px solid var(--primary-light)' }}
+                    />
+                  ) : (
+                    <div className="people-avatar-fallback" aria-hidden="true">
+                      {(person.name || 'U').trim().split(/\\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+                    </div>
+                  )}
                   <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '2px' }}>
                     <Link to={profileLink} style={{ textDecoration: 'none', color: 'inherit' }}>
                       {person.name}
@@ -187,15 +167,6 @@ export const PeoplePage = () => {
                       >
                         Profile
                       </Link>
-                      {isDemoUser && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => switchPersona(person.email)}
-                          title="Switch active user to test roles and permissions"
-                        >
-                          Login As
-                        </button>
-                      )}
                     </>
                   )}
                 </div>
