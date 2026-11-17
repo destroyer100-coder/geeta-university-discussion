@@ -57,7 +57,8 @@ export const MainLayout = () => {
 
   const hideRightbar =
     location.pathname.startsWith('/profile') ||
-    location.pathname.startsWith('/messages');
+    location.pathname.startsWith('/messages') ||
+    location.pathname.startsWith('/settings');
 
   const layoutClassName = `main-layout${
     isSidebarCollapsed ? ' is-collapsed' : ''

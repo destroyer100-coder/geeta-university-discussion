@@ -16,6 +16,7 @@ import { MyDiscussionsPage } from '../pages/MyDiscussions';
 import { NotificationsPage } from '../pages/Notifications';
 import { MessagesPage } from '../pages/Messages';
 import { SearchPage } from '../pages/Search';
+import { SettingsPage } from '../pages/Settings';
 import { LoginPage } from '../pages/Auth/Login';
 import { RegisterPage } from '../pages/Auth/Register';
 import { VerifyEmailPage } from '../pages/Auth/VerifyEmail';
@@ -66,6 +67,7 @@ export const AppRoutes = () => {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>
   );
