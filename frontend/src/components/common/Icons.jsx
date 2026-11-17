@@ -2,6 +2,27 @@ import React from 'react';
 
 export const Icon = ({ name, size = 18, className = '', color = 'currentColor', ...props }) => {
   const icons = {
+    clock: (
+      <path d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    archive: (
+      <path d="M3 4h18v4H3zM5 8v12h14V8m-9 4h4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    mapPin: (
+      <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1116 0zm-5 0a3 3 0 11-6 0 3 3 0 016 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    filter: (
+      <path d="M4 6h16M7 12h10m-7 6h4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    refreshCw: (
+      <path d="M20 7v5h-5M4 17v-5h5m-3.5-3A7 7 0 0118.5 7L20 12M4 12l1.5 5A7 7 0 0018.5 15" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    logOut: (
+      <path d="M10 17l5-5-5-5m5 5H3m9-9h6a2 2 0 012 2v14a2 2 0 01-2 2h-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    trendingUp: (
+      <path d="M3 17l6-6 4 4 8-8m-6 0h6v6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
     search: (
       <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { PostCard } from '../../components/post/PostCard';
 import { postsApi } from '../../services/api';
 import { Icon } from '../../components/common/Icons';
+import { useAuth } from '../../context/AuthContext';
 
 export const Home = ({ onOpenCreatePost }) => {
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('latest');
@@ -56,29 +58,22 @@ export const Home = ({ onOpenCreatePost }) => {
           boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              background: 'var(--primary-light)',
-              color: 'var(--primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-            }}
-          >
-            <Icon name="messageSquare" size={18} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-              What’s on your mind?
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Share a question, discussion or resource with the university community.
-            </div>
+        <div className="home-composer-launch">
+          {user?.avatar ? (
+            <img className="home-composer-avatar" src={user.avatar} alt="" loading="lazy" decoding="async" />
+          ) : (
+            <span className="home-composer-avatar home-composer-initials">
+              {(user?.name || 'G').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+            </span>
+          )}
+          <button type="button" className="home-cta-prompt" onClick={() => onOpenCreatePost?.()}>
+            What’s on your mind{user?.name ? `, ${user.name.split(/\s+/)[0]}` : ''}?
+          </button>
+          <div className="home-cta-tools" aria-label="Create post attachments">
+            <button type="button" title="Add image" aria-label="Add image" onClick={() => onOpenCreatePost?.(null, 'image')}><Icon name="image" size={19} /></button>
+            <button type="button" title="Add video" aria-label="Add video" onClick={() => onOpenCreatePost?.(null, 'video')}><Icon name="video" size={19} /></button>
+            <button type="button" title="Attach file" aria-label="Attach file" onClick={() => onOpenCreatePost?.(null, 'file')}><Icon name="fileText" size={19} /></button>
+            <button type="button" title="Create poll" aria-label="Create poll" onClick={() => onOpenCreatePost?.(null, 'poll')}><Icon name="barChart2" size={19} /></button>
           </div>
         </div>
 

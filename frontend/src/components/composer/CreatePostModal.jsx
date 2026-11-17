@@ -24,7 +24,7 @@ const GLOBAL_PERMISSION_INFO = {
   permission: { allowed: true, requireApproval: false, reason: 'Campus-wide discussion: Open to all members' },
 };
 
-export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, onPostCreated }) => {
+export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, initialAction = null, onPostCreated }) => {
   const { user } = useAuth();
   const [communities, setCommunities] = useState([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState(() => sanitizeCommunityId(initialCommunityId));
@@ -68,6 +68,15 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, on
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen || !initialAction) return;
+    if (initialAction === 'image') imageInputRef.current?.click();
+    if (initialAction === 'video') videoInputRef.current?.click();
+    if (initialAction === 'file') fileInputRef.current?.click();
+    if (initialAction === 'poll') setShowPollBuilder(true);
+    if (initialAction === 'link') setShowLinkInput(true);
+  }, [isOpen, initialAction]);
 
   // Modals & submission state
   const [showRequestModal, setShowRequestModal] = useState(false);

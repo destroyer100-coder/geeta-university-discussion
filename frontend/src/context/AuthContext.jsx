@@ -81,13 +81,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = (updates) => setUser((current) => current ? { ...current, ...updates } : current);
+
   const logout = () => {
     removeAuthToken();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, switchPersona, DEMO_ACCOUNTS }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, switchPersona, updateUser, DEMO_ACCOUNTS }}>
       {children}
     </AuthContext.Provider>
   );

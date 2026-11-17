@@ -9,6 +9,7 @@ import { CreatePostModal } from '../composer/CreatePostModal';
 export const MainLayout = () => {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [modalCommunityId, setModalCommunityId] = useState(null);
+  const [modalAction, setModalAction] = useState(null);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
@@ -35,13 +36,14 @@ export const MainLayout = () => {
     });
   };
 
-  const handleOpenCreatePost = (communityId = null) => {
+  const handleOpenCreatePost = (communityId = null, action = null) => {
     setModalCommunityId(
       typeof communityId === 'string' && communityId
         ? communityId
         : null
     );
 
+    setModalAction(typeof action === 'string' ? action : null);
     setIsCreatePostOpen(true);
   };
 
@@ -129,8 +131,10 @@ export const MainLayout = () => {
         onClose={() => {
           setIsCreatePostOpen(false);
           setModalCommunityId(null);
+          setModalAction(null);
         }}
         initialCommunityId={modalCommunityId}
+        initialAction={modalAction}
         onPostCreated={handlePostCreated}
       />
     </div>

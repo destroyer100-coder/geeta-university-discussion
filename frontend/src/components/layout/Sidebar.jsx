@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icon } from '../common/Icons';
-import { communitiesApi } from '../../services/api';
+import { communitiesApi, messagesApi, notificationsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 export const COMMUNITIES_CHANGED_EVENT = 'communities:changed';
@@ -76,8 +76,8 @@ const navItems = [
   { to: '/communities', label: 'Communities', icon: 'users' },
   { to: '/events', label: 'Events', icon: 'calendar' },
   { to: '/people', label: 'People', icon: 'userCheck' },
-  { to: '/messages', label: 'Messages', icon: 'messageSquare' },
-  { to: '/notifications', label: 'Notifications', icon: 'bell' },
+  { to: '/messages', label: 'Messages', icon: 'messageSquare', badgeKey: 'messages' },
+  { to: '/notifications', label: 'Notifications', icon: 'bell', badgeKey: 'notifications' },
   { to: '/my-discussions', label: 'My Discussions', icon: 'messageSquare' },
   { to: '/saved', label: 'Saved', icon: 'bookmark' },
 ];
@@ -91,6 +91,7 @@ export const Sidebar = ({
   const [communities, setCommunities] = useState([]);
   const [communitiesLoading, setCommunitiesLoading] = useState(true);
   const [communitiesError, setCommunitiesError] = useState(false);
+  const [navCounts, setNavCounts] = useState({ messages: 0, notifications: 0 });
   const { user } = useAuth();
 
   const location = useLocation();
@@ -136,6 +137,38 @@ export const Sidebar = ({
   useEffect(() => {
     loadCommunities();
   }, [location.pathname, loadCommunities]);
+
+  const loadNavCounts = useCallback(async () => {
+    if (!user) {
+      setNavCounts({ messages: 0, notifications: 0 });
+      return;
+    }
+    const [notificationResult, messageResult] = await Promise.allSettled([
+      notificationsApi.getAll(),
+      messagesApi.getConversations(),
+    ]);
+    const next = { messages: 0, notifications: 0 };
+    if (notificationResult.status === 'fulfilled' && notificationResult.value?.success) {
+      next.notifications = Number(notificationResult.value.unreadCount) || 0;
+    }
+    if (messageResult.status === 'fulfilled' && messageResult.value?.success && Array.isArray(messageResult.value.data)) {
+      next.messages = messageResult.value.data.reduce((sum, conversation) => sum + (Number(conversation.unreadCount) || 0), 0);
+    }
+    setNavCounts(next);
+  }, [user]);
+
+  useEffect(() => {
+    loadNavCounts();
+    const onRefresh = () => loadNavCounts();
+    window.addEventListener('notifications:changed', onRefresh);
+    window.addEventListener('messages:changed', onRefresh);
+    window.addEventListener('focus', onRefresh);
+    return () => {
+      window.removeEventListener('notifications:changed', onRefresh);
+      window.removeEventListener('messages:changed', onRefresh);
+      window.removeEventListener('focus', onRefresh);
+    };
+  }, [loadNavCounts, location.pathname]);
 
   return (
     <>
@@ -190,6 +223,11 @@ export const Sidebar = ({
               {!isCompact && (
                 <span className="sidebar-link-label">{item.label}</span>
               )}
+              {item.badgeKey && navCounts[item.badgeKey] > 0 ? (
+                <span className={`sidebar-count-badge sidebar-count-${item.badgeKey}`}>
+                  {navCounts[item.badgeKey] > 99 ? '99+' : navCounts[item.badgeKey]}
+                </span>
+              ) : null}
             </NavLink>
           ))}
         </div>
