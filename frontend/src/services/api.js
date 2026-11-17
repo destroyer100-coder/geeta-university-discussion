@@ -145,7 +145,7 @@ export const uploadsApi = {
 };
 
 export const eventsApi = {
-  getAll: () => request('/events'),
+  getAll: (params = {}) => request('/events' + buildQueryString(params)),
   create: (payload) => request('/events', { method: 'POST', body: JSON.stringify(payload) }),
   rsvp: (id) => request(`/events/${id}/rsvp`, { method: 'POST' }),
 };
