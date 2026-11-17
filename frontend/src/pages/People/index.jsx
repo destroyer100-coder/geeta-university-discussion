@@ -41,8 +41,10 @@ export const PeoplePage = () => {
 
     if (person._id) {
       try {
-        await usersApi.toggleFollow('user', person._id);
+        const res = await usersApi.toggleFollow('user', person._id);
+        if (!res?.success) throw new Error('Follow action was not confirmed.');
       } catch (err) {
+        setFollowingMap((prev) => ({ ...prev, [key]: !isNowFollowing }));
         console.warn('Failed to persist follow:', err.message);
       }
     }
@@ -105,7 +107,7 @@ export const PeoplePage = () => {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '16px' }}>
+        <div className="people-list">
           {people.map((person) => {
             const isMe = user?.email === person.email || (user?._id && person._id && user._id.toString() === person._id.toString());
             const key = person._id || person.email;
@@ -113,19 +115,19 @@ export const PeoplePage = () => {
             const profileLink = isMe ? '/profile/me' : `/profile/${person._id || person.email}`;
 
             return (
-              <div key={key} className="card" style={{ textAlign: 'center', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
+              <div key={key} className="people-row">
+                <div className="people-identity">
                   {person.avatar ? (
                     <img
                       src={person.avatar}
                       alt={person.name || ''}
                       loading="lazy"
                       decoding="async"
-                      style={{ width: 64, height: 64, borderRadius: '50%', margin: '0 auto 12px', display: 'block', objectFit: 'cover', border: '2px solid var(--primary-light)' }}
+                      className="people-avatar"
                     />
                   ) : (
                     <div className="people-avatar-fallback" aria-hidden="true">
-                      {(person.name || 'U').trim().split(/\\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+                      {(person.name || 'U').trim().split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
                     </div>
                   )}
                   <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '2px' }}>
@@ -133,7 +135,7 @@ export const PeoplePage = () => {
                       {person.name}
                     </Link>
                   </h3>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', margin: '4px 0 8px' }}>
+                  <div className="people-role-badges" style={{ display: 'flex', justifyContent: 'flex-start', gap: '6px', margin: '4px 0 8px' }}>
                     <span className={`badge ${person.role === 'faculty' ? 'badge-primary' : person.role === 'admin' ? 'badge-warning' : 'badge-secondary'}`} style={{ fontSize: '0.7rem' }}>
                       {person.role === 'faculty' ? '🎓 Faculty' : person.role === 'admin' ? '🛡️ Admin' : '🎒 Student'}
                     </span>
@@ -142,11 +144,11 @@ export const PeoplePage = () => {
                     )}
                   </div>
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px', minHeight: '36px' }}>
-                    {person.department ? `${person.department}${person.year ? ` · Year ${person.year}` : ''}` : person.title || 'Geeta University Member'}
+                    {person.department ? `${person.department}${person.year ? ` · ${person.year}` : ''}` : person.title || person.role || 'Member'}
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                <div className="people-actions" style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                   {isMe ? (
                     <Link to="/profile/me" className="btn btn-primary btn-sm" style={{ width: '100%' }}>
                       My Profile
