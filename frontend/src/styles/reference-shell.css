@@ -504,3 +504,43 @@ body {
   .page-hero-copy p { font-size: .72rem; }
   .page-hero-art { display: none; }
 }
+
+/* Live header previews */
+.navbar .nav-preview-container{position:relative}
+.navbar .nav-action-button{position:relative}
+.navbar .nav-count-badge{position:absolute;top:0;right:-1px;min-width:16px;height:16px;padding:0 4px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#e8a72d;color:#1c2d20;font-size:.62rem;line-height:1;font-weight:900;border:1px solid #00442e}
+.navbar .nav-message-count{background:#11d69b}
+.navbar .nav-popover-button{width:100%;text-align:left;border:0;background:transparent;cursor:pointer;font:inherit}
+.navbar .nav-popover-item.is-unread{background:#f0f9e9;border-radius:9px}
+.navbar .nav-popover-unread-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#07813e}
+.navbar .nav-popover-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:50%;background:#e3f8dc;color:#07582f;font-size:.68rem;font-weight:800}
+.navbar .nav-popover-subtitle{color:var(--text-muted);font-size:.7rem;font-weight:600}
+.navbar .nav-popover-empty{padding:22px 8px;text-align:center;color:var(--text-muted);font-size:.8rem}
+.navbar .nav-account-trigger{padding:3px!important;gap:5px!important}
+.navbar .nav-account-trigger>img{width:40px!important;height:40px!important;border:2px solid rgba(255,255,255,.8)}
+.navbar .nav-user-initials{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.8);background:#e5f5df;color:#06442b;font-size:.8rem;font-weight:850}
+.navbar .nav-account-summary{display:flex;align-items:center;gap:10px;padding:9px 10px 12px;margin-bottom:5px;border-bottom:1px solid var(--border-color)}
+.navbar .nav-account-summary>img,.navbar .nav-account-summary-avatar{width:44px;height:44px;object-fit:cover;border-radius:50%;display:grid;place-items:center;background:#e7f3df;color:#065b35;font-weight:850}
+.navbar .nav-account-summary>div{min-width:0}
+.navbar .nav-account-summary strong,.navbar .nav-account-summary span:not(.nav-account-summary-avatar){display:block}
+.navbar .nav-account-summary strong{font-size:.85rem}
+.navbar .nav-account-summary span:not(.nav-account-summary-avatar){color:var(--text-muted);font-size:.72rem;margin-top:2px}
+.navbar .persona-menu-card{width:290px}
+.navbar .persona-menu-card .persona-item{width:100%;border:0;background:transparent;color:var(--text-main);text-decoration:none;text-align:left;font:inherit;cursor:pointer}
+.navbar .persona-menu-card .persona-item:hover{background:#f0f8ec}
+.navbar .persona-menu-card .nav-logout-item{color:#b42318}
+.navbar .nav-dev-personas{border-top:1px solid var(--border-color);margin-top:5px;padding-top:8px}
+.navbar .nav-dev-label{padding:4px 10px;color:var(--text-muted);font-size:.68rem;font-weight:800}
+/* Sidebar account chip */
+.sidebar-header{display:none}
+.sidebar-section:first-of-type{margin-top:2px}
+.sidebar-user-card{display:flex;align-items:center;gap:10px;min-height:70px;margin-top:20px;padding:9px 10px;border:1px solid rgba(255,255,255,.12);border-radius:15px;background:linear-gradient(110deg,rgba(11,115,75,.96),rgba(0,74,51,.96));box-shadow:0 4px 12px rgba(0,0,0,.17);color:#fff}
+.sidebar-user-card>img,.sidebar-user-initials{width:42px;height:42px;flex:0 0 42px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.65)}
+.sidebar-user-initials{display:grid;place-items:center;background:#e5f5df;color:#06442b;font-weight:850}
+.sidebar-user-copy{min-width:0;flex:1}
+.sidebar-user-copy strong,.sidebar-user-copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user-copy strong{font-size:.82rem}
+.sidebar-user-copy small{font-size:.68rem;color:rgba(255,255,255,.82);margin-top:3px}
+.sidebar-user-card.is-compact{justify-content:center;padding-inline:5px}
+.sidebar-user-card.is-compact>img,.sidebar-user-card.is-compact .sidebar-user-initials{width:42px;height:42px}
+@media(max-width:768px){.sidebar-header{display:none}.sidebar-user-card{margin-top:16px}}
