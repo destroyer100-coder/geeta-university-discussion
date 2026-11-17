@@ -307,7 +307,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
                       <div><strong>{user.name}</strong><span>{[user.department, user.year].filter(Boolean).join(' · ')}</span></div>
                     </div>
                     <Link to="/profile/me" className="persona-item" onClick={() => setShowPersonaMenu(false)}>
-                      <Icon name="user" size={17} /><span>My Profile</span>
+                      <Icon name="userCheck" size={17} /><span>My Profile</span>
                     </Link>
                     {import.meta.env.DEV && (
                       <div className="nav-dev-personas">
@@ -329,7 +329,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
                       className="persona-item nav-logout-item"
                       onClick={() => { logout(); setShowPersonaMenu(false); }}
                     >
-                      <Icon name="logOut" size={17} /><span>Log out</span>
+                      <Icon name="x" size={17} /><span>Log out</span>
                     </button>
                   </>
                 ) : (

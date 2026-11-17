@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icon } from '../common/Icons';
 import { communitiesApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export const COMMUNITIES_CHANGED_EVENT = 'communities:changed';
 
@@ -75,12 +76,10 @@ const navItems = [
   { to: '/communities', label: 'Communities', icon: 'users' },
   { to: '/events', label: 'Events', icon: 'calendar' },
   { to: '/people', label: 'People', icon: 'userCheck' },
+  { to: '/messages', label: 'Messages', icon: 'messageSquare' },
+  { to: '/notifications', label: 'Notifications', icon: 'bell' },
+  { to: '/my-discussions', label: 'My Discussions', icon: 'messageSquare' },
   { to: '/saved', label: 'Saved', icon: 'bookmark' },
-  {
-    to: '/my-discussions',
-    label: 'My Discussions',
-    icon: 'messageSquare',
-  },
 ];
 
 export const Sidebar = ({
@@ -92,6 +91,7 @@ export const Sidebar = ({
   const [communities, setCommunities] = useState([]);
   const [communitiesLoading, setCommunitiesLoading] = useState(true);
   const [communitiesError, setCommunitiesError] = useState(false);
+  const { user } = useAuth();
 
   const location = useLocation();
   const closeMobileNav = onCloseMobileNav || (() => {});
@@ -195,7 +195,7 @@ export const Sidebar = ({
         </div>
 
         <div className="sidebar-section">
-          {!isCompact && <div className="sidebar-title">COMMUNITIES</div>}
+          {!isCompact && <div className="sidebar-title">My Communities</div>}
 
           {communitiesLoading && communities.length === 0 && (
             <div className="sidebar-community-status">
@@ -287,6 +287,23 @@ export const Sidebar = ({
             )}
           </NavLink>
         </div>
+
+        {user && (
+          <div className={`sidebar-user-card${isCompact ? ' is-compact' : ''}`}>
+            {user.avatar ? (
+              <img src={user.avatar} alt="" loading="lazy" />
+            ) : (
+              <span className="sidebar-user-initials">{getInitials(user.name)}</span>
+            )}
+            {!isCompact && (
+              <span className="sidebar-user-copy">
+                <strong>{user.name}</strong>
+                <small>{[user.department, user.year].filter(Boolean).join(' · ')}</small>
+              </span>
+            )}
+            {!isCompact && <Icon name="chevronRight" size={18} />}
+          </div>
+        )}
 
         {!isCompact && (
           <div className="sidebar-promo-card">
