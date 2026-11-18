@@ -67,10 +67,9 @@ export const Home = ({ onOpenCreatePost }) => {
 
   return (
     <div className="page-shell page-home">
-      <section className="home-campus-hero">
-        <div className="home-campus-eyebrow">GEETA UNIVERSITY</div>
-        <h1 className="home-campus-title">Campus Discussion <em>Forum</em></h1>
-        <p className="home-campus-subtitle">Ask · Discuss · Learn · Collaborate · Grow Together</p>
+      <section className="home-welcome-heading">
+        <h1>Welcome back, {user?.name?.trim().split(/\\s+/)[0] || 'there'}!</h1>
+        <p>Discover discussions, share your thoughts, and be part of the Geeta University community.</p>
       </section>
 
       {/* CRITICAL RULE (Section 1 & Section 5):
