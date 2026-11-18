@@ -46,16 +46,28 @@ export const CommunityList = () => {
 
       const res = await communitiesApi.getAll(params);
 
-      if (res.success && res.data) {
+      if (res.success && Array.isArray(res.data)) {
+        if (!searchTerm.trim()) {
+          try { localStorage.setItem('guf-community-cache', JSON.stringify(res.data)); } catch { /* Cache is optional. */ }
+        }
         const overrides = readMembershipPreview();
         setCommunities(res.data.map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id))
           ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]), currentUserMembershipStatus: overrides[String(item._id)] ? 'joined' : '' }
           : item));
       } else {
-        setCommunities([]);
+        const cached = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
+        const overrides = readMembershipPreview();
+        setCommunities(cached.map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id))
+          ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]), currentUserMembershipStatus: overrides[String(item._id)] ? 'joined' : '' }
+          : item));
       }
     } catch (err) {
       console.error('Failed to load communities:', err);
+      const cached = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
+      const overrides = readMembershipPreview();
+      setCommunities(cached.map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id))
+        ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]), currentUserMembershipStatus: overrides[String(item._id)] ? 'joined' : '' }
+        : item));
     } finally {
       setLoading(false);
     }
@@ -108,7 +120,6 @@ export const CommunityList = () => {
       ? { ...item, isCurrentUserMember: nextJoined, currentUserMembershipStatus: nextJoined ? 'joined' : '' }
       : item));
     setJoiningId(null);
-  };
   };
 
   return (
