@@ -44,9 +44,27 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
     setLoading(true);
     try {
       const res = await communitiesApi.getById(id);
-      if (res.success && res.data) {
-        const comm = res.data;
+      let comm = res?.success && res.data
+        ? res.data
+        : readLocalList('guf-community-cache').find((item) => String(item._id) === String(id) || String(item.slug || '') === String(id));
+      if (comm) {
+        const settingPreview = readLocalMap('guf-community-settings-preview')[String(comm._id)] || {};
+        const membershipPreview = readLocalMap('guf-community-membership-preview');
+        const hasMembershipPreview = Object.prototype.hasOwnProperty.call(membershipPreview, String(comm._id));
+        comm = {
+          ...comm,
+          ...settingPreview,
+          ...(hasMembershipPreview ? {
+            isCurrentUserMember: Boolean(membershipPreview[String(comm._id)]),
+            currentUserMembership: { ...(comm.currentUserMembership || {}), status: membershipPreview[String(comm._id)] ? 'active' : 'none' },
+            currentUserPermission: { ...(comm.currentUserPermission || {}), allowed: true },
+          } : {}),
+        };
         setCommunity(comm);
+        if (res?.success && res.data) {
+          const cachedCommunities = readLocalList('guf-community-cache').filter((item) => String(item._id) !== String(comm._id));
+          try { localStorage.setItem('guf-community-cache', JSON.stringify([comm, ...cachedCommunities].slice(0, 100))); } catch { /* Community cache is optional. */ }
+        }
         if (comm.permissions) {
           setSettingsPolicy({
             name: comm.name || '',
@@ -135,6 +153,23 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
       }
     } catch (err) {
       console.error('Failed to load community:', err);
+      const cachedCommunity = readLocalList('guf-community-cache').find((item) => String(item._id) === String(id) || String(item.slug || '') === String(id));
+      if (cachedCommunity) {
+        const settingPreview = readLocalMap('guf-community-settings-preview')[String(cachedCommunity._id)] || {};
+        const membershipPreview = readLocalMap('guf-community-membership-preview');
+        const hasMembershipPreview = Object.prototype.hasOwnProperty.call(membershipPreview, String(cachedCommunity._id));
+        setCommunity({
+          ...cachedCommunity,
+          ...settingPreview,
+          ...(hasMembershipPreview ? {
+            isCurrentUserMember: Boolean(membershipPreview[String(cachedCommunity._id)]),
+            currentUserMembership: { ...(cachedCommunity.currentUserMembership || {}), status: membershipPreview[String(cachedCommunity._id)] ? 'active' : 'none' },
+            currentUserPermission: { ...(cachedCommunity.currentUserPermission || {}), allowed: true },
+          } : {}),
+        });
+        setPosts(readLocalList('guf-local-post-preview').filter((item) => String(item.community?._id || item.community || '') === String(cachedCommunity._id)));
+        setCommunityEvents(readLocalList('guf-local-event-preview').filter((item) => String(item.community?._id || item.community || '') === String(cachedCommunity._id)));
+      }
     } finally {
       setLoading(false);
     }
