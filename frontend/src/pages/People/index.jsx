@@ -157,7 +157,7 @@ export const PeoplePage = () => {
                     </div>
                     <div className="people-role-badges"><span className="badge badge-primary">{person.role === 'faculty' ? 'Faculty' : person.role === 'admin' ? 'Admin' : 'Student'}</span></div>
                     <div className="people-actions">
-                      {isMe ? <Link to="/profile/me" className="btn btn-outline btn-sm">My Profile</Link> : <button type="button" className={following ? 'btn btn-secondary btn-sm' : 'btn btn-outline btn-sm'} aria-pressed={following} onClick={() => toggleFollow(person._id)}><Icon name={following ? 'check' : 'plus'} size={14} /> {following ? 'Following' : 'Follow'}</button>}
+                      {isMe ? <Link to="/profile/me" className="btn btn-outline btn-sm">My Profile</Link> : <button type="button" className={following ? 'btn btn-secondary btn-sm' : 'btn btn-outline btn-sm'} aria-pressed={following} disabled={followBusyId === String(person._id)} onClick={() => toggleFollow(person._id)}>{followBusyId === String(person._id) ? 'Updating…' : <><Icon name={following ? 'check' : 'plus'} size={14} /> {following ? 'Following' : 'Follow'}</>}</button>}
                       <Link to={profileLink} className="people-more-link" aria-label={'View ' + person.name + ' profile'} title="View Profile"><Icon name="moreHorizontal" size={18} /></Link>
                     </div>
                   </article>
