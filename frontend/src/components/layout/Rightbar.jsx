@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../common/Icons';
-import { eventsApi, postsApi, notificationsApi } from '../../services/api';
+import { eventsApi, notificationsApi } from '../../services/api';
 
 export const Rightbar = ({ onOpenCreatePost }) => {
   const [events, setEvents] = useState([]);
-  const [trendingPosts, setTrendingPosts] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     eventsApi.getAll().then((res) => {
       if (res.success && res.data) setEvents(res.data.slice(0, 3));
-    }).catch(() => {});
-
-    postsApi.getAll({ sort: 'trending', limit: 4 }).then((res) => {
-      if (res.success && res.data) setTrendingPosts(res.data.slice(0, 4));
     }).catch(() => {});
 
     notificationsApi.getAll().then((res) => {
@@ -81,53 +76,6 @@ export const Rightbar = ({ onOpenCreatePost }) => {
             })
           ) : (
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No upcoming events scheduled.</div>
-          )}
-        </div>
-      </div>
-
-      {/* Trending Discussions (Visual Reference 1) */}
-      <div className="card" style={{ marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Icon name="trendingUp" size={16} color="#f59e0b" />
-            <span>Trending Discussions</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Week</span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {trendingPosts && trendingPosts.length > 0 ? (
-            trendingPosts.map((item, i) => (
-              <Link
-                key={item._id}
-                to={`/discussions/${item._id}`}
-                style={{
-                  display: 'flex',
-                  gap: '10px',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  padding: '4px 6px',
-                  borderRadius: 'var(--radius-sm)',
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-muted)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.95rem' }}>{i + 1}</span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.3 }}>
-                    {item.title}
-                  </div>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {item.commentsCount || 0} comments • {item.viewsCount || 0} views
-                  </div>
-                </div>
-              </Link>
-            ))
-          ) : (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              No trending discussions are available yet.
-            </div>
           )}
         </div>
       </div>
