@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../common/Icons';
-import { postsApi, commentsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 // Helper for relative / clean timestamps
+const readCommentStore = () => {
+  try { return JSON.parse(localStorage.getItem('guf-comment-preview') || '{}'); } catch { return {}; }
+};
+const persistComments = (postId, comments) => {
+  const store = readCommentStore();
+  store[String(postId)] = comments;
+  try { localStorage.setItem('guf-comment-preview', JSON.stringify(store)); } catch { /* Current component state remains usable. */ }
+};
 const formatTimeAgo = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -30,7 +37,7 @@ export const CommentsSection = ({
   canDeleteComments = false,
 }) => {
   const { user } = useAuth();
-  const [comments, setComments] = useState(initialComments);
+  const [comments, setComments] = useState(() => [...initialComments, ...(readCommentStore()[String(postId)] || [])]);
 
   // Top composer state
   const [isComposerExpanded, setIsComposerExpanded] = useState(false);
@@ -52,182 +59,104 @@ export const CommentsSection = ({
 
   // Synchronize when initialComments change
   React.useEffect(() => {
-    setComments(initialComments);
-  }, [initialComments]);
+    setComments((current) => {
+      const local = readCommentStore()[String(postId)] || [];
+      const localIds = new Set(local.map((item) => String(item._id)));
+      return [...initialComments, ...local.filter((item) => !initialComments.some((entry) => String(entry._id) === String(item._id)))];
+    });
+  }, [initialComments, postId]);
 
-  // Handle Root Comment Submit
-  const handlePostComment = async (e) => {
-    e?.preventDefault();
+  const saveComments = (nextComments) => {
+    setComments(nextComments);
+    persistComments(postId, nextComments.filter((item) => item.isLocalPreview));
+  };
+
+  const localComment = (body, parentComment = null) => ({
+    _id: 'local-comment-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    body,
+    parentComment,
+    createdAt: new Date().toISOString(),
+    isEdited: false,
+    isAccepted: false,
+    isLiked: false,
+    likesCount: 0,
+    replies: [],
+    author: user ? {
+      _id: user._id,
+      name: user.name,
+      avatar: user.avatar,
+      department: user.department,
+      year: user.year,
+    } : { name: 'Guest', _id: 'local-guest' },
+    isLocalPreview: true,
+  });
+
+  const handlePostComment = (event) => {
+    event?.preventDefault();
     if (!newCommentText.trim() || submittingComment) return;
-
     setSubmittingComment(true);
-    try {
-      const res = await postsApi.addComment(postId, { body: newCommentText.trim() });
-      if (res.success && res.data) {
-        setComments((prev) => [...prev, res.data]);
-        setNewCommentText('');
-        setIsComposerExpanded(false);
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to post comment');
-    } finally {
-      setSubmittingComment(false);
-    }
+    const next = [...comments, localComment(newCommentText.trim())];
+    saveComments(next);
+    setNewCommentText('');
+    setIsComposerExpanded(false);
+    setSubmittingComment(false);
   };
 
-  // Handle Nested Reply Submit
-  const handlePostReply = async (parentCommentId) => {
+  const handlePostReply = (parentCommentId) => {
     if (!replyText.trim() || submittingReply) return;
-
     setSubmittingReply(true);
-    try {
-      const res = await postsApi.addComment(postId, {
-        body: replyText.trim(),
-        parentComment: parentCommentId,
-      });
-
-      if (res.success && res.data) {
-        setComments((prev) =>
-          prev.map((c) => {
-            if (c._id === parentCommentId) {
-              return {
-                ...c,
-                replies: [...(c.replies || []), res.data],
-              };
-            }
-            return c;
-          })
-        );
-        setReplyText('');
-        setReplyingToId(null);
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to post reply');
-    } finally {
-      setSubmittingReply(false);
-    }
-  };
-
-  // Handle Like on Comment
-  const handleLike = async (commentId) => {
-    if (!user) {
-      alert('Please log in to like comments');
-      return;
-    }
-
-    // Optimistic update
-    setComments((prev) =>
-      prev.map((c) => {
-        if (c._id === commentId) {
-          const isLiked = !c.isLiked;
-          return {
-            ...c,
-            isLiked,
-            likesCount: isLiked ? (c.likesCount || 0) + 1 : Math.max(0, (c.likesCount || 0) - 1),
-          };
-        }
-        if (c.replies) {
-          return {
-            ...c,
-            replies: c.replies.map((r) => {
-              if (r._id === commentId) {
-                const isLiked = !r.isLiked;
-                return {
-                  ...r,
-                  isLiked,
-                  likesCount: isLiked ? (r.likesCount || 0) + 1 : Math.max(0, (r.likesCount || 0) - 1),
-                };
-              }
-              return r;
-            }),
-          };
-        }
-        return c;
-      })
+    const reply = localComment(replyText.trim(), parentCommentId);
+    const next = comments.map((comment) => comment._id === parentCommentId
+      ? { ...comment, replies: [...(comment.replies || []), reply] }
+      : comment
     );
-
-    try {
-      await commentsApi.like(commentId);
-    } catch (err) {
-      console.error('Like comment failed:', err);
-    }
+    saveComments(next);
+    setReplyText('');
+    setReplyingToId(null);
+    setSubmittingReply(false);
   };
 
-  // Handle Edit Submit
-  const handleSaveEdit = async (commentId) => {
+  const updateComment = (commentId, updater) => {
+    const next = comments.map((comment) => {
+      if (comment._id === commentId) return updater(comment);
+      if (comment.replies?.some((reply) => reply._id === commentId)) {
+        return { ...comment, replies: comment.replies.map((reply) => reply._id === commentId ? updater(reply) : reply) };
+      }
+      return comment;
+    });
+    saveComments(next);
+  };
+
+  const handleLike = (commentId) => {
+    updateComment(commentId, (comment) => {
+      const liked = !comment.isLiked;
+      return { ...comment, isLiked: liked, likesCount: Math.max(0, Number(comment.likesCount || 0) + (liked ? 1 : -1)) };
+    });
+  };
+
+  const handleSaveEdit = (commentId) => {
     if (!editText.trim() || savingEdit) return;
-
     setSavingEdit(true);
-    try {
-      const res = await commentsApi.update(commentId, { body: editText.trim() });
-      if (res.success) {
-        setComments((prev) =>
-          prev.map((c) => {
-            if (c._id === commentId) {
-              return { ...c, body: editText.trim(), isEdited: true };
-            }
-            if (c.replies) {
-              return {
-                ...c,
-                replies: c.replies.map((r) =>
-                  r._id === commentId ? { ...r, body: editText.trim(), isEdited: true } : r
-                ),
-              };
-            }
-            return c;
-          })
-        );
-        setEditingCommentId(null);
-        setEditText('');
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to update comment');
-    } finally {
-      setSavingEdit(false);
-    }
+    updateComment(commentId, (comment) => ({ ...comment, body: editText.trim(), isEdited: true }));
+    setEditingCommentId(null);
+    setEditText('');
+    setSavingEdit(false);
   };
 
-  // Handle Delete Comment
-  const handleDelete = async (commentId) => {
-    if (!window.confirm('Are you sure you want to delete this comment?')) return;
-
-    try {
-      const res = await commentsApi.delete(commentId);
-      if (res.success) {
-        setComments((prev) =>
-          prev
-            .filter((c) => c._id !== commentId)
-            .map((c) => ({
-              ...c,
-              replies: (c.replies || []).filter((r) => r._id !== commentId),
-            }))
-        );
-        setActiveMenuId(null);
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to delete comment');
-    }
+  const handleDelete = (commentId) => {
+    if (!window.confirm('Hide this comment from your local preview?')) return;
+    const next = comments
+      .filter((comment) => comment._id !== commentId)
+      .map((comment) => ({ ...comment, replies: (comment.replies || []).filter((reply) => reply._id !== commentId) }));
+    saveComments(next);
+    setActiveMenuId(null);
   };
 
-  // Handle Accept Answer toggle
-  const handleAcceptAnswer = async (commentId) => {
-    try {
-      const res = await commentsApi.acceptAnswer(commentId);
-      if (res.success) {
-        setComments((prev) =>
-          prev.map((c) => ({
-            ...c,
-            isAccepted: c._id === commentId ? res.isAccepted : false,
-          }))
-        );
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to accept answer');
-    }
+  const handleAcceptAnswer = (commentId) => {
+    saveComments(comments.map((comment) => ({ ...comment, isAccepted: comment._id === commentId ? !comment.isAccepted : false })));
   };
 
-  const currentUserAvatar =
-    user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user';
+  const currentUserAvatar = user?.avatar || '';
 
   // Render single comment item (used for both root comments & replies)
   const renderCommentItem = (comment, isReply = false, parentId = null) => {
@@ -250,20 +179,11 @@ export const CommentsSection = ({
       >
         {/* Left Avatar */}
         <Link to={`/profile/${comment.author?._id || 'user'}`}>
-          <img
-            src={
-              comment.author?.avatar ||
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-            }
-            alt={comment.author?.name || 'User'}
-            style={{
-              width: isReply ? 32 : 40,
-              height: isReply ? 32 : 40,
-              borderRadius: '50%',
-              objectFit: 'cover',
-              border: '1px solid var(--border-color)',
-            }}
-          />
+          {comment.author?.avatar ? (
+            <img src={comment.author.avatar} alt={comment.author?.name || ''} style={{ width: isReply ? 32 : 40, height: isReply ? 32 : 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} />
+          ) : (
+            <span className="comment-avatar-fallback" style={{ width: isReply ? 32 : 40, height: isReply ? 32 : 40 }}>{(comment.author?.name || 'U').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>
+          )}
         </Link>
 
         {/* Right Content */}
@@ -520,11 +440,7 @@ export const CommentsSection = ({
                 borderLeft: '2px solid var(--border-color)',
               }}
             >
-              <img
-                src={currentUserAvatar}
-                alt="Me"
-                style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', marginTop: '4px' }}
-              />
+              {currentUserAvatar ? <img src={currentUserAvatar} alt="Me" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', marginTop: '4px' }} /> : <span className="comment-avatar-fallback" style={{ width: 28, height: 28 }}>{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>}
               <div style={{ flex: 1 }}>
                 <textarea
                   className="form-control"
@@ -592,18 +508,11 @@ export const CommentsSection = ({
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
             {/* User Avatar */}
-            <img
-              src={currentUserAvatar}
-              alt="Me"
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '1px solid var(--border-color)',
-                marginTop: isComposerExpanded ? '4px' : '0',
-              }}
-            />
+            {currentUserAvatar ? (
+              <img src={currentUserAvatar} alt="Me" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)', marginTop: isComposerExpanded ? '4px' : '0' }} />
+            ) : (
+              <span className="comment-avatar-fallback" style={{ width: 40, height: 40 }}>{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>
+            )}
 
             {/* Composer Input Box */}
             <div style={{ flex: 1 }}>
