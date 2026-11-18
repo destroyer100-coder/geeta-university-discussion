@@ -118,16 +118,18 @@ export const Home = ({ onOpenCreatePost }) => {
       >
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
-            { key: 'latest', label: 'Latest' },
-            { key: 'trending', label: 'Trending' },
-            { key: 'helpful', label: 'Most Helpful' },
+            { key: 'latest', label: 'Latest', icon: 'layers' },
+            { key: 'trending', label: 'Trending', icon: 'trendingUp' },
+            { key: 'following', label: 'Following', icon: 'users' },
+            { key: 'helpful', label: 'Most Helpful', icon: 'star' },
           ].map((tab) => (
             <button
               key={tab.key}
               className={`btn btn-sm ${activeFilter === tab.key ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveFilter(tab.key)}
             >
-              {tab.label}
+              <Icon name={tab.icon} size={17} />
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
