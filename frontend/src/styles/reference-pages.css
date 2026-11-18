@@ -1206,3 +1206,19 @@
 @media(max-width:460px){.events-pagination{gap:4px}.events-page-arrow,.events-page-number{min-width:31px;height:32px;padding:0 6px}}
 :root[data-theme="dark"] .events-page-arrow,:root[data-theme="dark"] .events-page-number{border-color:var(--border-color);background:var(--bg-card);color:var(--text-main)}
 :root[data-theme="dark"] .events-page-number.active{border-color:#087143;background:#087143;color:#fff}
+
+
+/* Theme, density and accessibility preferences selected in Settings */
+:root[data-accent="blue"]{--primary:#2563eb;--primary-hover:#1d4ed8;--primary-light:#dbeafe;--primary-border:#93c5fd;--secondary:#123d75;--border-focus:#2563eb}
+:root[data-accent="purple"]{--primary:#7436b8;--primary-hover:#5b2798;--primary-light:#eee2fa;--primary-border:#c6a4e9;--secondary:#3c205d;--border-focus:#7436b8}
+:root[data-accent="teal"]{--primary:#0d9488;--primary-hover:#0f766e;--primary-light:#ccfbf1;--primary-border:#7dd3c7;--secondary:#134e4a;--border-focus:#0d9488}
+:root[data-accent="amber"]{--primary:#d97706;--primary-hover:#b45309;--primary-light:#fef3c7;--primary-border:#fcd34d;--secondary:#78350f;--border-focus:#d97706}
+:root[data-accent="crimson"]{--primary:#dc2626;--primary-hover:#b91c1c;--primary-light:#fee2e2;--primary-border:#fca5a5;--secondary:#7f1d1d;--border-focus:#dc2626}
+:root[data-font-size="small"] body{font-size:14px}
+:root[data-font-size="medium"] body{font-size:16px}
+:root[data-font-size="large"] body{font-size:18px}
+:root[data-compact="true"] .card{padding-top:12px;padding-bottom:12px}
+:root[data-compact="true"] .post-card,:root[data-compact="true"] .community-card,:root[data-compact="true"] .people-row{padding-top:10px;padding-bottom:10px}
+:root[data-reduced-motion="true"] *, :root[data-reduced-motion="true"] *:before, :root[data-reduced-motion="true"] *:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+:root[data-high-contrast="true"]{--text-main:#000;--text-secondary:#111;--text-muted:#333;--border-color:#777}
+:root[data-theme="dark"][data-high-contrast="true"]{--text-main:#fff;--text-secondary:#f5f5f5;--text-muted:#ddd;--border-color:#999}

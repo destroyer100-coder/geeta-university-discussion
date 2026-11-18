@@ -161,6 +161,25 @@ export const Icon = ({ name, size = 18, className = '', color = 'currentColor', 
     menu: (
       <path d="M4 6h16M4 12h16M4 18h16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),
+
+    globe: (
+      <path d="M12 22a10 10 0 110-20 10 10 0 010 20zm-8-10h16M12 2a15 15 0 010 20m0-20a15 15 0 000 20" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    mail: (
+      <path d="M4 5h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2zm0 2l8 6 8-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    phone: (
+      <path d="M5 3h4l2 5-3 2a16 16 0 006 6l2-3 5 2v4c0 1.1-.9 2-2 2C10 21 3 14 3 5c0-1.1.9-2 2-2z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    upload: (
+      <path d="M12 16V4m-5 5l5-5 5 5M4 17v3h16v-3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    activity: (
+      <path d="M3 12h4l3-8 4 16 3-8h4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    repeat: (
+      <path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 01-3 3H3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
   };
 
   return (
