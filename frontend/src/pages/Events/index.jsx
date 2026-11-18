@@ -69,6 +69,7 @@ export const EventsPage = () => {
   useEffect(() => { loadEvents(); }, [user?._id]);
 
   const now = Date.now();
+  const todayKey = localDateValue(new Date());
   const filteredEvents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return events.filter((event) => {
@@ -160,7 +161,6 @@ export const EventsPage = () => {
     return cells;
   }, [calendarMonth, events]);
 
-  const todayKey = localDateValue(new Date());
   const highlightedEvents = events
     .filter((event) => localDateValue(event.date) >= todayKey)
     .sort((a, b) => new Date(a.date) - new Date(b.date))
