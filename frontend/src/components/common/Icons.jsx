@@ -44,6 +44,9 @@ export const Icon = ({ name, size = 18, className = '', color = 'currentColor', 
     'arrow-left': (
       <path d="M19 12H5m7 7l-7-7 7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),
+    grid: (
+      <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
     search: (
       <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),

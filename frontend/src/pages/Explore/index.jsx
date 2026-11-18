@@ -329,7 +329,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
               <div className="explore-popular-row" key={community._id}>
                 {community.avatar ? <img src={community.avatar} alt="" loading="lazy" decoding="async" /> : <span>{initials(community.name)}</span>}
                 <div><strong>{community.name}</strong><small>{community.memberCount || 0} members</small></div>
-                {community.isCurrentUserMember ? <span className="badge badge-success">Joined</span> : <button type="button" disabled={busyId === community._id} onClick={() => handleJoinCommunity(community)}>{busyId === community._id ? '...' : 'Join'}</button>}
+                {community.isCurrentUserMember ? <span className="badge badge-success">Joined</span> : community.currentUserMembershipStatus === 'pending' ? <span className="badge badge-warning">Requested</span> : <button type="button" disabled={busyId === community._id} onClick={() => handleJoinCommunity(community)}>{busyId === community._id ? '...' : 'Join'}</button>}
               </div>
             )) : <p className="explore-side-empty">No communities are available.</p>}
           </section>
