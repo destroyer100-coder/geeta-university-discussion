@@ -33,6 +33,7 @@ export const CommunityList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState(null);
+  const [actionError, setActionError] = useState('');
 
   const fetchCommunities = async () => {
     setLoading(true);
@@ -120,17 +121,34 @@ export const CommunityList = () => {
     .sort((a, b) => (Number(b.memberCount) || 0) - (Number(a.memberCount) || 0))
     .slice(0, 3), [communities, user?._id]);
 
-  const handleJoinToggle = (communityId, isJoined) => {
+  const handleJoinToggle = async (communityId, isJoined) => {
     if (!communityId || joiningId) return;
     setJoiningId(communityId);
-    const nextJoined = !isJoined;
-    const overrides = readMembershipPreview();
-    overrides[String(communityId)] = nextJoined;
-    try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(overrides)); } catch { /* session state still updates */ }
-    setCommunities((items) => items.map((item) => String(item._id) === String(communityId)
-      ? { ...item, isCurrentUserMember: nextJoined, currentUserMembershipStatus: nextJoined ? 'joined' : '' }
-      : item));
-    setJoiningId(null);
+    setActionError('');
+    try {
+      if (user?.isGuestPreview) {
+        const nextJoined = !isJoined;
+        const overrides = readMembershipPreview();
+        overrides[String(communityId)] = nextJoined;
+        try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(overrides)); } catch { /* Guest preview state remains in memory. */ }
+        setCommunities((items) => items.map((item) => String(item._id) === String(communityId)
+          ? { ...item, isCurrentUserMember: nextJoined, currentUserMembershipStatus: nextJoined ? 'joined' : '' }
+          : item));
+      } else if (!user?._id) {
+        setActionError('Sign in to join or leave a community.');
+      } else {
+        const response = isJoined
+          ? await communitiesApi.leave(communityId)
+          : await communitiesApi.join(communityId);
+        if (!response?.success) throw new Error(response?.message || 'Your community membership could not be updated.');
+        await fetchCommunities();
+        window.dispatchEvent(new Event('communities:changed'));
+      }
+    } catch (error) {
+      setActionError(error.message || 'Your community membership could not be updated.');
+    } finally {
+      setJoiningId(null);
+    }
   };
 
   return (
@@ -140,6 +158,8 @@ export const CommunityList = () => {
         title="Communities"
         description="Join interest-based groups, department communities and campus circles."
       />
+
+      {actionError ? <div className="notification-error" role="alert">{actionError}</div> : null}
 
       <div className="communities-workspace">
       <main className="communities-main">
