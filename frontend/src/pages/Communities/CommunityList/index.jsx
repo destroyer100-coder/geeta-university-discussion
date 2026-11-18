@@ -61,7 +61,7 @@ export const CommunityList = () => {
           ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]), currentUserMembershipStatus: overrides[String(item._id)] ? 'joined' : '' }
           : item));
       } else {
-        const cached = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
+        const cached = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]').filter((community) => user?.isGuestPreview || !community.isLocalPreview); } catch { return []; } })();
         const overrides = user?.isGuestPreview ? readMembershipPreview() : {};
         setCommunities(cached.map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id))
           ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]), currentUserMembershipStatus: overrides[String(item._id)] ? 'joined' : '' }
@@ -69,7 +69,7 @@ export const CommunityList = () => {
       }
     } catch (err) {
       console.error('Failed to load communities:', err);
-      const cached = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
+      const cached = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]').filter((community) => user?.isGuestPreview || !community.isLocalPreview); } catch { return []; } })();
       const overrides = user?.isGuestPreview ? readMembershipPreview() : {};
       setCommunities(cached.map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id))
         ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]), currentUserMembershipStatus: overrides[String(item._id)] ? 'joined' : '' }
