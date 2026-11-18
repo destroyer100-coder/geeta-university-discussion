@@ -835,6 +835,8 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         </div>
       )}
 
+      </div>
+
       {showRequestModal ? (
         <div className="modal-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setShowRequestModal(false); }}>
           <section className="modal-content create-post-request-preview" role="dialog" aria-modal="true" aria-label="Request to post">
@@ -843,7 +845,6 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             <button type="button" className="btn btn-primary" onClick={() => { setShowRequestModal(false); setLocalActionNotice('Post request recorded in this browser preview only.'); }}>Confirm Preview</button>
           </section>
         </div>
-      </div>
       ) : null}    </div>
   );
 };
