@@ -34,6 +34,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
   const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [busyId, setBusyId] = useState('');
+  const [actionNotice, setActionNotice] = useState('');
 
   const fetchExplorePosts = useCallback(async () => {
     setLoadingPosts(true);
@@ -46,7 +47,9 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
       });
       const serverPosts = response.success && Array.isArray(response.data) ? response.data : [];
       let localPosts = [];
-      try { localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]'); } catch { localPosts = []; }
+      if (user?.isGuestPreview) {
+        try { localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]').filter((post) => post.isLocalPreview); } catch { localPosts = []; }
+      }
       const visibleLocalPosts = localPosts.filter((post) => {
         const matchesTag = selectedTag === 'All' || (post.tags || []).includes(selectedTag);
         const matchesType = selectedType === 'all' || post.type === selectedType;
@@ -58,14 +61,16 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
       setPosts([...visibleLocalPosts.filter((post) => !serverIds.has(String(post._id))), ...serverPosts]);
     } catch (error) {
       console.error('Failed to load explore discussions:', error);
-      try {
-        const localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]');
-        setPosts(localPosts.filter((post) => (selectedTag === 'All' || (post.tags || []).includes(selectedTag)) && (selectedType === 'all' || post.type === selectedType)));
-      } catch { setPosts([]); }
+      if (user?.isGuestPreview) {
+        try {
+          const localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]').filter((post) => post.isLocalPreview);
+          setPosts(localPosts.filter((post) => (selectedTag === 'All' || (post.tags || []).includes(selectedTag)) && (selectedType === 'all' || post.type === selectedType)));
+        } catch { setPosts([]); }
+      } else setPosts([]);
     } finally {
       setLoadingPosts(false);
     }
-  }, [selectedTag, selectedType, searchQuery]);
+  }, [selectedTag, selectedType, searchQuery, user?.isGuestPreview]);
 
   const fetchDirectoryData = useCallback(async () => {
     setLoadingDirectory(true);
@@ -80,8 +85,9 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     }
     const cachedCommunities = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
     const serverCommunityIds = new Set(apiCommunityRows.map((item) => String(item._id)));
-    const communityRows = [...cachedCommunities.filter((item) => item.isLocalPreview && !serverCommunityIds.has(String(item._id))), ...apiCommunityRows];
-    const membershipOverrides = readMembershipPreview();
+    const localCommunityRows = user?.isGuestPreview ? cachedCommunities.filter((item) => item.isLocalPreview && !serverCommunityIds.has(String(item._id))) : [];
+    const communityRows = [...localCommunityRows, ...apiCommunityRows];
+    const membershipOverrides = user?.isGuestPreview ? readMembershipPreview() : {};
     setCommunities(communityRows.map((item) => Object.prototype.hasOwnProperty.call(membershipOverrides, String(item._id))
       ? { ...item, isCurrentUserMember: Boolean(membershipOverrides[String(item._id)]), currentUserMembershipStatus: membershipOverrides[String(item._id)] ? 'joined' : '' }
       : item));
@@ -92,29 +98,32 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     );
     const eventRows = eventResult.status === 'fulfilled' && eventResult.value?.success && Array.isArray(eventResult.value.data) ? eventResult.value.data : [];
     let localEvents = [];
-    try { localEvents = JSON.parse(localStorage.getItem('guf-local-event-preview') || '[]'); } catch { localEvents = []; }
+    if (user?.isGuestPreview) {
+      try { localEvents = JSON.parse(localStorage.getItem('guf-local-event-preview') || '[]').filter((event) => event.isLocalPreview); } catch { localEvents = []; }
+    }
     const serverEventIds = new Set(eventRows.map((item) => String(item._id)));
     const combinedEvents = [...localEvents.filter((item) => !serverEventIds.has(String(item._id))), ...eventRows];
-    const rsvpOverrides = readRsvpPreview();
+    const rsvpOverrides = user?.isGuestPreview ? readRsvpPreview() : [];
     setEvents(combinedEvents.map((item) => {
       if (!user?._id || !rsvpOverrides.includes(String(item._id))) return item;
       const attendees = Array.isArray(item.attendees) ? item.attendees : [];
       return { ...item, attendees: attendees.some((person) => idOf(person) === idOf(user)) ? attendees : [...attendees, user._id] };
     }));
     setLoadingDirectory(false);
-  }, []);
+  }, [user?._id, user?.isGuestPreview]);
 
   useEffect(() => {
     fetchExplorePosts();
     const refreshLocalPosts = () => {
+      if (!user?.isGuestPreview) return;
       try {
-        const localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]');
+        const localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]').filter((post) => post.isLocalPreview);
         setPosts((current) => [...localPosts, ...current.filter((post) => !post.isLocalPreview)]);
       } catch { /* keep current feed */ }
     };
     window.addEventListener('local-posts:changed', refreshLocalPosts);
     return () => window.removeEventListener('local-posts:changed', refreshLocalPosts);
-  }, [fetchExplorePosts]);
+  }, [fetchExplorePosts, user?.isGuestPreview]);
   useEffect(() => { fetchDirectoryData(); }, [fetchDirectoryData, user?._id]);
 
   useEffect(() => {
@@ -153,34 +162,60 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     .filter((person) => !user?._id || idOf(person) !== idOf(user))
     .slice(0, 3);
 
-  const handleJoinCommunity = (community) => {
+  const handleJoinCommunity = async (community) => {
     if (!community?._id || busyId) return;
     setBusyId(community._id);
-    const nextJoined = !community.isCurrentUserMember;
-    const overrides = readMembershipPreview();
-    overrides[String(community._id)] = nextJoined;
-    try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(overrides)); } catch { /* local page state remains usable */ }
-    setCommunities((items) => items.map((item) => String(item._id) === String(community._id)
-      ? { ...item, isCurrentUserMember: nextJoined, currentUserMembershipStatus: nextJoined ? 'joined' : '' }
-      : item));
-    setBusyId('');
+    try {
+      if (user?.isGuestPreview) {
+        const overrides = readMembershipPreview();
+        overrides[String(community._id)] = true;
+        try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(overrides)); } catch { /* Guest preview state remains in memory. */ }
+        setCommunities((items) => items.map((item) => String(item._id) === String(community._id)
+          ? { ...item, isCurrentUserMember: true, currentUserMembershipStatus: 'joined' }
+          : item));
+      } else if (!user?._id) {
+        setActionNotice('Sign in to join a community.');
+      } else {
+        const response = await communitiesApi.join(community._id);
+        if (!response?.success) throw new Error(response?.message || 'Could not join this community.');
+        await fetchDirectoryData();
+        window.dispatchEvent(new Event('communities:changed'));
+      }
+    } catch (error) {
+      setActionNotice(error.message || 'Could not join this community.');
+    } finally {
+      setBusyId('');
+    }
   };
 
-  const handleRSVP = (eventItem) => {
+  const handleRSVP = async (eventItem) => {
     if (!eventItem?._id || busyId) return;
     setBusyId(eventItem._id);
-    const rsvp = readRsvpPreview();
-    const nextAttending = !rsvp.includes(String(eventItem._id));
-    const next = nextAttending ? [...rsvp, String(eventItem._id)] : rsvp.filter((id) => id !== String(eventItem._id));
-    try { localStorage.setItem('guf-event-rsvp-preview', JSON.stringify(next)); } catch { /* local page state remains usable */ }
-    setEvents((items) => items.map((item) => {
-      if (String(item._id) !== String(eventItem._id)) return item;
-      const attendees = Array.isArray(item.attendees) ? item.attendees : [];
-      const currentId = idOf(user) || 'local-preview-user';
-      const withoutCurrent = attendees.filter((person) => idOf(person) !== currentId);
-      return { ...item, attendees: nextAttending ? [...withoutCurrent, currentId] : withoutCurrent };
-    }));
-    setBusyId('');
+    try {
+      if (user?.isGuestPreview) {
+        const rsvp = readRsvpPreview();
+        const nextAttending = !rsvp.includes(String(eventItem._id));
+        const next = nextAttending ? [...rsvp, String(eventItem._id)] : rsvp.filter((id) => id !== String(eventItem._id));
+        try { localStorage.setItem('guf-event-rsvp-preview', JSON.stringify(next)); } catch { /* Guest preview state remains in memory. */ }
+        setEvents((items) => items.map((item) => {
+          if (String(item._id) !== String(eventItem._id)) return item;
+          const attendees = Array.isArray(item.attendees) ? item.attendees : [];
+          const currentId = idOf(user) || 'local-preview-user';
+          const withoutCurrent = attendees.filter((person) => idOf(person) !== currentId);
+          return { ...item, attendees: nextAttending ? [...withoutCurrent, currentId] : withoutCurrent };
+        }));
+      } else if (!user?._id) {
+        setActionNotice('Sign in to RSVP to an event.');
+      } else {
+        const response = await eventsApi.rsvp(eventItem._id);
+        if (!response?.success) throw new Error(response?.message || 'Could not update your RSVP.');
+        if (response.data) setEvents((items) => items.map((item) => String(item._id) === String(eventItem._id) ? response.data : item));
+      }
+    } catch (error) {
+      setActionNotice(error.message || 'Could not update your RSVP.');
+    } finally {
+      setBusyId('');
+    }
   };
 
   const tabs = [
@@ -216,6 +251,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
             ))}
           </div>
 
+          {actionNotice ? <div className="notification-error" role="status">{actionNotice}</div> : null}
           <label className="explore-search">
             <Icon name="search" size={18} />
             <input
