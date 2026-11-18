@@ -435,6 +435,9 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         </>
       )}
 
+      </div>
+      </div>
+
       <div className="community-hub-secondary-content">
       {/* TAB: EVENTS */}
       {activeTab === 'events' && (
