@@ -139,12 +139,6 @@ export const Sidebar = ({
     loadCommunities();
   }, [location.pathname, loadCommunities]);
 
-  return () => {
-      window.removeEventListener('notifications:changed', onRefresh);
-      window.removeEventListener('messages:changed', onRefresh);
-      window.removeEventListener('focus', onRefresh);
-    };
-  }, [loadNavCounts, location.pathname]);
 
   return (
     <>
