@@ -1249,3 +1249,15 @@
 :root[data-theme="dark"] .page-messages .message-group-tags span,:root[data-theme="dark"] .page-messages .message-attachment-pending{background:#203d2d;color:#d8f0df}
 :root[data-theme="dark"] .page-messages .message-group-leave{background:#321f1c;color:#ffb8ad;border-color:#70443c}
 @media(max-width:700px){.page-messages .message-conversation-filters{grid-template-columns:repeat(3,minmax(0,1fr))}.page-messages .message-thread{min-height:430px}}
+
+
+/* Local-first composer and avatar fallbacks */
+.create-post-local-preview-note{display:flex;align-items:flex-start;gap:8px;margin:0 0 14px;padding:9px 11px;border:1px solid #d8e9d3;border-radius:9px;background:#f1f8ed;color:#355d40;font-size:.7rem;line-height:1.45}
+.create-post-local-preview-note svg{flex:0 0 auto}
+.create-post-request-preview{width:min(420px,calc(100vw - 32px));padding:22px}
+.create-post-request-preview h3{margin:0 0 8px;font-size:1rem}
+.create-post-request-preview p{font-size:.78rem;line-height:1.5;color:var(--text-muted);margin:0 0 15px}
+.post-avatar-fallback{display:grid;place-items:center;border-radius:50%;background:#e7f1df;color:#125b35;font-size:.78rem;font-weight:850;letter-spacing:.02em}
+.comment-avatar-fallback{display:inline-grid;place-items:center;flex:0 0 auto;border-radius:50%;border:1px solid var(--border-color);background:#e7f1df;color:#125b35;font-size:.7rem;font-weight:850}
+:root[data-theme="dark"] .create-post-local-preview-note{background:#203d2d;border-color:#355d43;color:#d8f0df}
+:root[data-theme="dark"] .post-avatar-fallback,:root[data-theme="dark"] .comment-avatar-fallback{background:#234733;color:#d8f0df}
