@@ -64,8 +64,26 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         }
 
         // Load posts for this community
-        const postRes = await postsApi.getAll({ community: comm._id });
-        if (postRes.success) setPosts(postRes.data);
+        let serverPosts = [];
+        try {
+          const postRes = await postsApi.getAll({ community: comm._id });
+          if (postRes.success && Array.isArray(postRes.data)) serverPosts = postRes.data;
+        } catch { /* Continue with locally created discussions where available. */ }
+        const localPosts = readLocalList('guf-local-post-preview').filter((item) => String(item.community?._id || item.community || '') === String(comm._id));
+        const knownPostIds = new Set(serverPosts.map((item) => String(item._id)));
+        setPosts([...localPosts.filter((item) => !knownPostIds.has(String(item._id))), ...serverPosts]);
+
+        try {
+          const eventRes = await eventsApi.getAll();
+          const serverEvents = eventRes?.success && Array.isArray(eventRes.data)
+            ? eventRes.data.filter((item) => String(item.community?._id || item.community || '') === String(comm._id))
+            : [];
+          const localEvents = readLocalList('guf-local-event-preview').filter((item) => String(item.community?._id || item.community || '') === String(comm._id));
+          const knownEventIds = new Set(serverEvents.map((item) => String(item._id)));
+          setCommunityEvents([...localEvents.filter((item) => !knownEventIds.has(String(item._id))), ...serverEvents]);
+        } catch {
+          setCommunityEvents(readLocalList('guf-local-event-preview').filter((item) => String(item.community?._id || item.community || '') === String(comm._id)));
+        }
 
         // Moderation surfaces are fetched only when the SERVER says this user holds
         // the corresponding delegation for this exact community (rules §8).
@@ -157,6 +175,20 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const handleReviewJoinRequest = (userId, status) => {
     setJoinRequests((items) => items.filter((item) => String(item.user?._id || item.user) !== String(userId)));
     setLocalActionNotice('Join request ' + (status === 'active' ? 'approved' : 'rejected') + ' in this browser preview only.');
+  };
+
+  const handleToggleEventRsvp = (eventItem) => {
+    const id = String(eventItem._id);
+    const rsvps = readLocalList('guf-event-rsvp-preview');
+    const next = rsvps.includes(id) ? rsvps.filter((value) => value !== id) : [...rsvps, id];
+    try { localStorage.setItem('guf-event-rsvp-preview', JSON.stringify(next)); } catch { /* current view still updates */ }
+    setCommunityEvents((items) => items.map((item) => {
+      if (String(item._id) !== id) return item;
+      const attendeeIds = (item.attendees || []).map((person) => String(person?._id || person));
+      const currentId = String(user?._id || 'local-preview-user');
+      const withoutCurrent = (item.attendees || []).filter((person) => String(person?._id || person) !== currentId);
+      return { ...item, attendees: next.includes(id) ? (attendeeIds.includes(currentId) ? item.attendees : [...withoutCurrent, currentId]) : withoutCurrent };
+    }));
   };
 
   const handleSaveSettings = (event) => {
@@ -352,16 +384,28 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               Discussions
             </button>
             <button
-              className={`btn btn-sm ${activeTab === 'rules' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('rules')}
-            >
-              Rules & Policy
-            </button>
-            <button
               className={`btn btn-sm ${activeTab === 'members' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('members')}
             >
               Members ({community.memberCount || 0})
+            </button>
+            <button
+              className={`btn btn-sm ${activeTab === 'events' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('events')}
+            >
+              Events ({communityEvents.length})
+            </button>
+            <button
+              className={`btn btn-sm ${activeTab === 'resources' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('resources')}
+            >
+              Resources ({posts.filter((item) => item.type === 'resource').length})
+            </button>
+            <button
+              className={`btn btn-sm ${activeTab === 'permissions' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('permissions')}
+            >
+              Permissions
             </button>
 
             {canManageJoinRequests && (
@@ -503,7 +547,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 <button
                   className="btn btn-outline btn-sm"
                   style={{ width: '100%' }}
-                  onClick={() => setActiveTab('rules')}
+                  onClick={() => setActiveTab('permissions')}
                 >
                   View Guidelines & Rules →
                 </button>
@@ -536,13 +580,47 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         </div>
       )}
 
-      {/* TAB 2: RULES */}
-      {activeTab === 'rules' && (
+      {/* TAB: EVENTS */}
+      {activeTab === 'events' && (
+        <div className="card community-tab-panel">
+          <h3>Community Events</h3>
+          {communityEvents.length ? communityEvents.map((eventItem) => {
+            const attending = readLocalList('guf-event-rsvp-preview').includes(String(eventItem._id));
+            return (
+              <article className="community-event-row" key={eventItem._id}>
+                <div className="community-event-date"><strong>{new Date(eventItem.date).toLocaleDateString([], { day: '2-digit' })}</strong><span>{new Date(eventItem.date).toLocaleDateString([], { month: 'short' })}</span></div>
+                <div className="community-event-copy"><strong>{eventItem.title}</strong><span>{[eventItem.time, eventItem.venue].filter(Boolean).join(' · ')}</span><p>{eventItem.description}</p></div>
+                <button type="button" className={attending ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'} onClick={() => handleToggleEventRsvp(eventItem)}>{attending ? 'Registered' : 'Register'}</button>
+              </article>
+            );
+          }) : <p className="community-tab-empty">No events have been added to this community yet.</p>}
+        </div>
+      )}
+
+      {/* TAB: RESOURCES */}
+      {activeTab === 'resources' && (
+        <div className="card community-tab-panel">
+          <h3>Community Resources</h3>
+          {posts.filter((item) => item.type === 'resource').length ? posts.filter((item) => item.type === 'resource').map((item) => (
+            <PostCard key={item._id} post={item} modPermissions={modPerms} onPostUpdated={loadCommunityData} />
+          )) : <p className="community-tab-empty">No resources have been shared in this community yet.</p>}
+        </div>
+      )}
+
+      {/* TAB: PERMISSIONS */}
+      {activeTab === 'permissions' && (
         <div className="card" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '16px' }}>
-            Official Community Guidelines
+            Permissions & Community Rules
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="community-policy-grid">
+            <div><span>Visibility</span><strong>{community.permissions?.visibility || 'PUBLIC'}</strong></div>
+            <div><span>Posting Policy</span><strong>{community.permissions?.postPolicy || 'MEMBERS'}</strong></div>
+            <div><span>Comment Policy</span><strong>{community.permissions?.commentPolicy || 'EVERYONE'}</strong></div>
+            <div><span>Share Policy</span><strong>{community.permissions?.sharePolicy || 'EVERYONE'}</strong></div>
+            <div><span>Moderator Approval</span><strong>{community.permissions?.requirePostApproval ? 'Required' : 'Not required'}</strong></div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '20px' }}>
             {community.rules?.map((rule, idx) => (
               <div key={idx} style={{ padding: '12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)' }}>
                 <strong style={{ fontSize: '0.9rem', color: 'var(--primary)' }}>
