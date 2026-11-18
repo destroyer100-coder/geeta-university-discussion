@@ -9,6 +9,17 @@ const getInitials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slic
 const readProfilePreview = () => {
   try { return JSON.parse(localStorage.getItem('guf-profile-action-preview') || '{}'); } catch { return {}; }
 };
+const readLocalPosts = (id) => {
+  try {
+    return JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]')
+      .filter((post) => String(post.author?._id || post.author || '') === String(id || ''));
+  } catch {
+    return [];
+  }
+};
+const readPostActionPreview = () => {
+  try { return JSON.parse(localStorage.getItem('guf-post-action-preview') || '{}'); } catch { return {}; }
+};
 const writeProfilePreview = (id, patch) => {
   const store = readProfilePreview();
   store[String(id)] = { ...(store[String(id)] || {}), ...patch };
@@ -48,13 +59,27 @@ export const ProfilePage = () => {
     }
     setLoading(true);
     setErrorNotice(null);
+    if (currentUser?.isGuestPreview && String(currentUser._id) === String(targetUserId)) {
+      const localPreview = readProfilePreview()[String(targetUserId)] || {};
+      const guestProfile = { ...currentUser, ...localPreview };
+      setProfileData(guestProfile);
+      setUserPosts(readLocalPosts(targetUserId));
+      setUserComments([]);
+      setEditName(guestProfile.name || 'Guest');
+      setEditBio(guestProfile.bio || '');
+      setEditDepartment(guestProfile.department || '');
+      setEditYear(guestProfile.year || '');
+      setEditAvatar(guestProfile.avatar || '');
+      setLoading(false);
+      return;
+    }
     try {
       const res = await usersApi.getProfile(targetUserId);
       if (res.success && res.data) {
         const followingIds = (() => { try { return JSON.parse(localStorage.getItem('guf-following-preview') || '[]'); } catch { return []; } })();
         const localPreview = readProfilePreview()[String(targetUserId)] || {};
         setProfileData({ ...res.data, ...localPreview, ...(followingIds.includes(String(targetUserId)) ? { isFollowing: true } : (localPreview.isFollowing === false ? { isFollowing: false } : {})) });
-        setUserPosts(res.data.posts || []);
+        const localPosts = readLocalPosts(targetUserId);\n        const serverPosts = res.data.posts || [];\n        const serverIds = new Set(serverPosts.map((post) => String(post._id)));\n        setUserPosts([...localPosts.filter((post) => !serverIds.has(String(post._id))), ...serverPosts]);
         setUserComments(res.data.comments || []);
         setEditName(res.data.name || '');
         setEditBio(res.data.bio || '');
@@ -64,21 +89,37 @@ export const ProfilePage = () => {
       }
     } catch (err) {
       console.error('Failed to load profile:', err);
-      setErrorNotice(err.message || 'Profile could not be loaded.');
+      const localPosts = readLocalPosts(targetUserId);
+      if (currentUser && String(currentUser._id) === String(targetUserId)) {
+        const localPreview = readProfilePreview()[String(targetUserId)] || {};
+        const fallbackProfile = { ...currentUser, ...localPreview };
+        setProfileData(fallbackProfile);
+        setUserPosts(localPosts);
+        setEditName(fallbackProfile.name || '');
+        setEditBio(fallbackProfile.bio || '');
+        setEditDepartment(fallbackProfile.department || '');
+        setEditYear(fallbackProfile.year || '');
+        setEditAvatar(fallbackProfile.avatar || '');
+      }
+      setErrorNotice(err.message || 'Profile service unavailable; showing local profile previews where available.');
     } finally {
       setLoading(false);
     }
   };
 
   const loadSavedPosts = async () => {
+    let serverPosts = [];
     try {
-      const res = await usersApi.getSaved();
-      if (res.success && res.data) {
-        setSavedPosts(res.data);
-      }
-    } catch (err) {
-      console.error('Failed to load saved posts:', err);
+      const response = await usersApi.getSaved();
+      if (response.success && Array.isArray(response.data)) serverPosts = response.data;
+    } catch (error) {
+      console.error('Failed to load server saved posts:', error);
     }
+    const localPosts = readLocalPosts(targetUserId);
+    const actionMap = readPostActionPreview();
+    const locallySaved = localPosts.map((post) => ({ ...post, ...(actionMap[String(post._id)] || {}) })).filter((post) => post.isSaved);
+    const serverIds = new Set(serverPosts.map((post) => String(post._id)));
+    setSavedPosts([...locallySaved.filter((post) => !serverIds.has(String(post._id))), ...serverPosts]);
   };
 
   useEffect(() => {

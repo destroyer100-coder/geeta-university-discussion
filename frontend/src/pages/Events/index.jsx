@@ -78,7 +78,16 @@ export const EventsPage = () => {
       setCommunities(communityResponse.success && Array.isArray(communityResponse.data) ? communityResponse.data : []);
     } catch (error) {
       console.error('Failed to load events:', error);
-      setEvents([]);
+      const localEvents = readLocalEvents();
+      const localCommunities = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
+      const rsvpOverrides = readRsvpPreview();
+      setEvents(localEvents.map((item) => {
+        if (!rsvpOverrides.includes(String(item._id))) return item;
+        const attendees = Array.isArray(item.attendees) ? item.attendees : [];
+        const currentId = user?._id || 'local-preview-user';
+        return { ...item, attendees: attendees.some((person) => (person?._id || person).toString() === currentId.toString()) ? attendees : [...attendees, currentId] };
+      }));
+      setCommunities(localCommunities);
     } finally {
       setLoading(false);
     }

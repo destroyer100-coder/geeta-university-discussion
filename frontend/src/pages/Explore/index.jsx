@@ -74,7 +74,11 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
       usersApi.getAll({ page: 1, limit: 12 }),
       eventsApi.getAll(),
     ]);
-    const communityRows = communityResult.status === 'fulfilled' && communityResult.value?.success && Array.isArray(communityResult.value.data) ? communityResult.value.data : [];
+    const apiCommunityRows = communityResult.status === 'fulfilled' && communityResult.value?.success && Array.isArray(communityResult.value.data) ? communityResult.value.data : [];
+    if (apiCommunityRows.length) {
+      try { localStorage.setItem('guf-community-cache', JSON.stringify(apiCommunityRows)); } catch { /* Optional cache only. */ }
+    }
+    const communityRows = apiCommunityRows.length ? apiCommunityRows : (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
     const membershipOverrides = readMembershipPreview();
     setCommunities(communityRows.map((item) => Object.prototype.hasOwnProperty.call(membershipOverrides, String(item._id))
       ? { ...item, isCurrentUserMember: Boolean(membershipOverrides[String(item._id)]), currentUserMembershipStatus: membershipOverrides[String(item._id)] ? 'joined' : '' }

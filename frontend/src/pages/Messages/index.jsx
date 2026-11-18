@@ -95,7 +95,11 @@ export const MessagesPage = () => {
         ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]) }
         : item).filter((item) => item.isCurrentUserMember || ['owner', 'moderator'].includes(item.currentUserRole) || item.currentUserMembershipStatus === 'joined'));
     } catch {
-      setGroups([]);
+      const cached = readList('guf-community-cache');
+      const overrides = readMap('guf-community-membership-preview');
+      setGroups(cached
+        .map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id)) ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]) } : item)
+        .filter((item) => item.isCurrentUserMember || ['owner', 'moderator'].includes(item.currentUserRole) || item.currentUserMembershipStatus === 'joined'));
     }
   };
 
