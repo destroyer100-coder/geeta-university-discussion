@@ -35,6 +35,7 @@ export const EventsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 3;
   const [rsvpLoadingId, setRsvpLoadingId] = useState(null);
+  const [rsvpError, setRsvpError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
@@ -150,49 +151,82 @@ export const EventsPage = () => {
   }, [currentPage, pageCount]);
 
 
-  const handleRSVP = (eventItem) => {
+  const handleRSVP = async (eventItem) => {
     if (!eventItem?._id || rsvpLoadingId) return;
     setRsvpLoadingId(eventItem._id);
-    const rsvp = readRsvpPreview();
-    const nextAttending = !rsvp.includes(String(eventItem._id));
-    const next = nextAttending ? [...rsvp, String(eventItem._id)] : rsvp.filter((id) => id !== String(eventItem._id));
-    try { localStorage.setItem('guf-event-rsvp-preview', JSON.stringify(next)); } catch { /* page state remains interactive */ }
-    setEvents((items) => items.map((item) => {
-      if (String(item._id) !== String(eventItem._id)) return item;
-      const attendees = Array.isArray(item.attendees) ? item.attendees : [];
-      const currentId = user?._id || 'local-preview-user';
-      const withoutCurrent = attendees.filter((person) => (person?._id || person).toString() !== currentId.toString());
-      return { ...item, attendees: nextAttending ? [...withoutCurrent, currentId] : withoutCurrent };
-    }));
-    setRsvpLoadingId(null);
+    setRsvpError('');
+    try {
+      if (user?.isGuestPreview) {
+        const rsvp = readRsvpPreview();
+        const nextAttending = !rsvp.includes(String(eventItem._id));
+        const next = nextAttending ? [...rsvp, String(eventItem._id)] : rsvp.filter((id) => id !== String(eventItem._id));
+        try { localStorage.setItem('guf-event-rsvp-preview', JSON.stringify(next)); } catch { /* Guest preview state remains in memory. */ }
+        setEvents((items) => items.map((item) => {
+          if (String(item._id) !== String(eventItem._id)) return item;
+          const attendees = Array.isArray(item.attendees) ? item.attendees : [];
+          const currentId = user?._id || 'local-preview-user';
+          const withoutCurrent = attendees.filter((person) => (person?._id || person).toString() !== currentId.toString());
+          return { ...item, attendees: nextAttending ? [...withoutCurrent, currentId] : withoutCurrent };
+        }));
+      } else if (!user?._id) {
+        setRsvpError('Sign in to register for an event.');
+      } else {
+        const response = await eventsApi.rsvp(eventItem._id);
+        if (!response?.success) throw new Error(response?.message || 'Your event registration could not be updated.');
+        if (response.data) setEvents((items) => items.map((item) => String(item._id) === String(eventItem._id) ? response.data : item));
+      }
+    } catch (error) {
+      setRsvpError(error.message || 'Your event registration could not be updated.');
+    } finally {
+      setRsvpLoadingId(null);
+    }
   };
 
-  const handleCreateEvent = (event) => {
+  const handleCreateEvent = async (event) => {
     event.preventDefault();
     if (!createForm.title.trim() || !createForm.date) {
       setCreateError('Enter an event title and date.');
       return;
     }
+    if (!user?.isGuestPreview && !user?._id) {
+      setCreateError('Sign in to create a university event.');
+      return;
+    }
     setCreating(true);
     setCreateError('');
-    const newEvent = {
-      _id: 'local-event-' + Date.now(),
-      ...createForm,
-      community: communities.find((item) => String(item._id) === String(createForm.community)) || null,
-      date: new Date(createForm.date + 'T12:00:00').toISOString(),
-      organizer: user || null,
-      attendees: [],
-      isLocalPreview: true,
-    };
-    const localEvents = readLocalEvents();
-    const nextLocalEvents = [newEvent, ...localEvents.filter((item) => String(item._id) !== String(newEvent._id))].slice(0, 30);
-    try { localStorage.setItem('guf-local-event-preview', JSON.stringify(nextLocalEvents)); } catch { /* current screen still updates */ }
-    setEvents((items) => [...items, newEvent].sort((a, b) => new Date(a.date) - new Date(b.date)));
-    setShowCreate(false);
-    setCurrentPage(1);
-    setCreateForm({ community: '', title: '', date: '', time: '', venue: '', category: '', description: '' });
-    setCreating(false);
-    setCreateError('');
+    try {
+      const eventPayload = {
+        ...createForm,
+        date: new Date(createForm.date + 'T12:00:00').toISOString(),
+      };
+
+      if (user?.isGuestPreview) {
+        const newEvent = {
+          _id: 'local-event-' + Date.now(),
+          ...eventPayload,
+          community: communities.find((item) => String(item._id) === String(createForm.community)) || null,
+          organizer: user || null,
+          attendees: [],
+          isLocalPreview: true,
+        };
+        const localEvents = readLocalEvents();
+        const nextLocalEvents = [newEvent, ...localEvents.filter((item) => String(item._id) !== String(newEvent._id))].slice(0, 30);
+        try { localStorage.setItem('guf-local-event-preview', JSON.stringify(nextLocalEvents)); } catch { /* Guest preview state remains in memory. */ }
+        setEvents((items) => [...items, newEvent].sort((a, b) => new Date(a.date) - new Date(b.date)));
+      } else {
+        const response = await eventsApi.create(eventPayload);
+        if (!response?.success || !response.data) throw new Error(response?.message || 'The event could not be created.');
+        setEvents((items) => [...items, response.data].sort((a, b) => new Date(a.date) - new Date(b.date)));
+      }
+
+      setShowCreate(false);
+      setCurrentPage(1);
+      setCreateForm({ community: '', title: '', date: '', time: '', venue: '', category: '', description: '' });
+    } catch (error) {
+      setCreateError(error.message || 'The event could not be created.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const scopeOptions = [
