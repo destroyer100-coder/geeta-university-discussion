@@ -19,7 +19,7 @@ export const Home = ({ onOpenCreatePost }) => {
   };
 
   const mergeLocalPosts = (serverPosts = []) => {
-    const localPosts = readLocalPosts().filter((post) => !selectedTag || (post.tags || []).includes(selectedTag));
+    const localPosts = user?.isGuestPreview ? readLocalPosts().filter((post) => post.isLocalPreview && (!selectedTag || (post.tags || []).includes(selectedTag))) : [];
     const knownIds = new Set(serverPosts.map((post) => String(post._id)));
     return [...localPosts.filter((post) => !knownIds.has(String(post._id))), ...serverPosts];
   };
@@ -63,7 +63,7 @@ export const Home = ({ onOpenCreatePost }) => {
     const refreshLocalPosts = () => setPosts((current) => mergeLocalPosts(current));
     window.addEventListener('local-posts:changed', refreshLocalPosts);
     return () => window.removeEventListener('local-posts:changed', refreshLocalPosts);
-  }, [activeFilter, selectedTag]);
+  }, [activeFilter, selectedTag, user?.isGuestPreview]);
 
   return (
     <div className="page-shell page-home">
