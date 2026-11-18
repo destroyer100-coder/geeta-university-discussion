@@ -222,7 +222,11 @@ export const SettingsPage = () => {
         year: response.data.year || '',
       }));
       setEditingAccount(false);
-      setNotice('Your profile changes have been saved to your account.');
+      const photoWasPreviewOnly = Boolean(avatarPreview);
+      setAvatarPreview('');
+      setNotice(photoWasPreviewOnly
+        ? 'Your profile fields were saved. Profile photo upload is not supported by the current backend API, so the photo was not changed.'
+        : 'Your profile changes have been saved to your account.');
     } catch (error) {
       setNotice(error.message || 'Your profile could not be updated. Please try again.');
     }
