@@ -289,193 +289,47 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   return (
     <div className="page-shell page-community-detail">
       {localActionNotice ? <div className="settings-notice" role="status">{localActionNotice}</div> : null}
-      {/* Banner & Cover */}
-      <div
-        style={{
-          borderRadius: 'var(--radius-lg)',
-          overflow: 'hidden',
-          border: '1px solid var(--border-color)',
-          background: '#ffffff',
-          marginBottom: '20px',
-        }}
-      >
-        <div
-          className="community-detail-cover"
-          style={{
-            backgroundImage: `linear-gradient(90deg, rgba(0,42,28,.9), rgba(0,42,28,.18)), url(${
-              community.banner || '/assets/campus-banner.webp'
-            })`,
-          }}
-        >
-          <div className="community-detail-cover-copy">
-            <span>{community.category || community.type || 'UNIVERSITY COMMUNITY'}</span>
+      {/* Community identity and primary navigation — aligned to the visual build specification */}
+      <section className="community-reference-header">
+        <div className="community-reference-heading">
+          <div className="community-reference-title">
+            <span className="community-reference-kicker">{community.category || community.type || 'University'} Community</span>
             <h1>{community.name}</h1>
             <p>{community.description}</p>
           </div>
-        </div>
-
-        <div style={{ padding: '20px 24px', position: 'relative' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', gap: '16px' }}>
-              {community.avatar ? (
-                <img
-                  src={community.avatar}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="community-detail-avatar"
-                />
-              ) : (
-                <span className="community-detail-avatar community-detail-initials" aria-hidden="true">
-                  {getCommunityInitials(community.name)}
-                </span>
-              )}
-              <div>
-                {community.permissions?.visibility === 'MEMBERS_ONLY' && (
-                    <span className="badge" style={{ background: '#fef3c7', color: '#92400e' }}>
-                      🔒 Members Only
-                    </span>
-                  )}
-                <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  <span>
-                    👥 <strong>{community.memberCount || 0}</strong> Members
-                  </span>
-                  <span>
-                    💬 <strong>{community.postCount || 0}</strong> Discussions
-                  </span>
-                  <span>
-                    🛡️ Head: <strong>{community.owner?.name || 'Head not listed'}</strong>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              {isOwner ? (
-                <span className="badge badge-primary" style={{ padding: '8px 14px' }}>
-                  👑 Community Head
-                </span>
-              ) : isMember ? (
-                <button
-                  className="btn btn-secondary"
-                  onClick={handleJoinToggle}
-                  disabled={actionLoading}
-                >
-                  ✓ Joined (Leave)
-                </button>
-              ) : isPendingJoinRequest ? (
-                <button
-                  className="btn btn-secondary"
-                  disabled
-                  title="Your request is awaiting moderator approval"
-                >
-                  ⏳ Pending Approval
-                </button>
-              ) : (
-                <button
-                  className="btn btn-primary"
-                  onClick={handleJoinToggle}
-                  disabled={actionLoading}
-                >
-                  {isPrivateCommunity ? '🔒 Request to Join' : '+ Join Community'}
-                </button>
-              )}
-
-              {isRejectedJoinRequest && !isOwner && (
-                <span className="badge" style={{ background: '#fee2e2', color: '#991b1b', padding: '8px 12px' }}>
-                  Join request rejected — you may request again
-                </span>
-              )}
-
-              {canPost && onOpenCreatePostWithCommunity && (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => onOpenCreatePostWithCommunity(community._id)}
-                >
-                  + Create Post
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', marginTop: '18px', paddingTop: '12px', flexWrap: 'wrap' }}>
-            <button
-              className={`btn btn-sm ${activeTab === 'discussions' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('discussions')}
-            >
-              Discussions
-            </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'members' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('members')}
-            >
-              Members ({community.memberCount || 0})
-            </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'events' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('events')}
-            >
-              Events ({communityEvents.length})
-            </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'resources' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('resources')}
-            >
-              Resources ({posts.filter((item) => item.type === 'resource').length})
-            </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'permissions' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('permissions')}
-            >
-              Permissions
-            </button>
-
-            {canManageJoinRequests && (
-              <button
-                className={`btn btn-sm ${activeTab === 'join-requests' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('join-requests')}
-              >
-                Join Requests ({joinRequests.length})
+          <div className="community-reference-actions">
+            {isOwner ? (
+              <span className="community-role-pill">Community Head</span>
+            ) : isMember ? (
+              <button type="button" className="btn btn-secondary" onClick={handleJoinToggle} disabled={actionLoading}>✓ Joined</button>
+            ) : isPendingJoinRequest ? (
+              <button type="button" className="btn btn-secondary" disabled>Request Pending</button>
+            ) : (
+              <button type="button" className="btn btn-primary" onClick={handleJoinToggle} disabled={actionLoading}>
+                {isPrivateCommunity ? 'Request to Join' : 'Join Community'}
               </button>
             )}
-
-            {canManagePostRequests && (
-              <button
-                className={`btn btn-sm ${activeTab === 'requests' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('requests')}
-              >
-                Post Requests ({pendingPosts.length + postRequests.filter((r) => r.status === 'pending').length})
-              </button>
-            )}
-            {canManageSettings && (
-              <button
-                className={`btn btn-sm ${activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('settings')}
-              >
-                Settings & Permissions
-              </button>
-            )}
-            {isMod && (
-              <button
-                className={`btn btn-sm ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('audit')}
-              >
-                Audit Logs
-              </button>
-            )}
+            {isRejectedJoinRequest && !isOwner ? <span className="community-rejected-note">Previous request rejected</span> : null}
+            {canPost && onOpenCreatePostWithCommunity ? (
+              <button type="button" className="btn btn-primary" onClick={() => onOpenCreatePostWithCommunity(community._id)}>Create Discussion</button>
+            ) : null}
           </div>
         </div>
-      </div>
+        <div className="community-reference-meta">
+          <span><strong>{community.memberCount || 0}</strong> Members</span>
+          <span><strong>{community.postCount || posts.length}</strong> Discussions</span>
+          <span><strong>{community.owner?.name || 'Not listed'}</strong> Community Head</span>
+          <span className={isPrivateCommunity ? 'community-privacy-private' : 'community-privacy-public'}>
+            {isPrivateCommunity ? 'Members only' : 'Public community'}
+          </span>
+        </div>
+        <nav className="community-reference-tabs" aria-label="Community sections">
+          <button type="button" className={activeTab === 'discussions' ? 'active' : ''} onClick={() => setActiveTab('discussions')}>Discussions</button>
+          <button type="button" className={activeTab === 'permissions' ? 'active' : ''} onClick={() => setActiveTab('permissions')}>Rules &amp; Permissions</button>
+          <button type="button" className={activeTab === 'members' ? 'active' : ''} onClick={() => setActiveTab('members')}>Members &amp; Mods ({community.memberCount || 0})</button>
+          {canManageSettings ? <button type="button" className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>Settings</button> : null}
+        </nav>
+      </section>
 
       {/* TAB 1: DISCUSSIONS */}
       {activeTab === 'discussions' && (
@@ -573,6 +427,10 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   <span style={{ color: 'var(--text-muted)', display: 'block' }}>Discussions</span>
                   <strong>{community.postCount || posts.length}</strong>
                 </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Moderators</span>
+                  <strong>{community.moderators?.length || 0}</strong>
+                </div>
               </div>
 
               <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '12px', paddingTop: '10px' }}>
@@ -586,28 +444,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               </div>
             </div>
 
-            {/* Moderators Box */}
-            <div className="card">
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '10px' }}>
-                Community Moderators
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <div>
-                    <strong>{community.owner?.name}</strong>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Community Head</div>
-                  </div>
-                </div>
-                {community.moderators?.map((m) => (
-                  <div key={m._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                    <div>
-                      <strong>{m.name}</strong>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Moderator</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+
           </div>
         </div>
       )}
