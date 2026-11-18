@@ -1195,3 +1195,14 @@
 @media(max-width:640px){.my-discussions-side{grid-template-columns:minmax(0,1fr)}}
 :root[data-theme="dark"] .my-discussions-side-card{background:var(--bg-card);border-color:var(--border-color)}
 :root[data-theme="dark"] .my-discussions-stat-row,:root[data-theme="dark"] .my-discussions-action,:root[data-theme="dark"] .my-discussions-recent{border-color:var(--border-color);color:var(--text-main)}
+
+/* Compact client pagination over the event list returned by the events API */
+.events-pagination{display:flex;align-items:center;justify-content:center;gap:7px;padding:16px 0 4px}
+.events-page-arrow,.events-page-number{display:grid;place-items:center;min-width:36px;height:36px;padding:0 9px;border:1px solid #eee8df;border-radius:10px;background:#fffdfa;color:var(--text-main);font-size:.78rem;font-weight:750;cursor:pointer;box-shadow:var(--shadow-xs)}
+.events-page-arrow:disabled{opacity:.4;cursor:not-allowed}
+.events-page-number.active{border-color:#075b37;background:#075b37;color:#fff}
+.events-page-number:not(.active):hover,.events-page-arrow:not(:disabled):hover{border-color:#b7d0b4;background:#f1f7ec}
+.events-page-ellipsis{padding:0 3px;color:var(--text-muted);font-size:.8rem}
+@media(max-width:460px){.events-pagination{gap:4px}.events-page-arrow,.events-page-number{min-width:31px;height:32px;padding:0 6px}}
+:root[data-theme="dark"] .events-page-arrow,:root[data-theme="dark"] .events-page-number{border-color:var(--border-color);background:var(--bg-card);color:var(--text-main)}
+:root[data-theme="dark"] .events-page-number.active{border-color:#087143;background:#087143;color:#fff}

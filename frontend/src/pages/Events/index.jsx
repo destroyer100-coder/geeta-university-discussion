@@ -26,6 +26,8 @@ export const EventsPage = () => {
   const [sortOrder, setSortOrder] = useState('soonest');
   const [selectedDate, setSelectedDate] = useState('');
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+  const [currentPage, setCurrentPage] = useState(1);
+  const eventsPerPage = 3;
   const [rsvpLoadingId, setRsvpLoadingId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -93,6 +95,35 @@ export const EventsPage = () => {
       return diff * direction;
     });
   }, [events, activeScope, selectedCategory, selectedCommunity, searchQuery, selectedDate, sortOrder, user?._id]);
+  const pageCount = Math.max(1, Math.ceil(filteredEvents.length / eventsPerPage));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeScope, selectedCategory, selectedCommunity, searchQuery, selectedDate, sortOrder]);
+
+  useEffect(() => {
+    if (currentPage > pageCount) setCurrentPage(pageCount);
+  }, [currentPage, pageCount]);
+
+  const pageEvents = useMemo(
+    () => filteredEvents.slice((currentPage - 1) * eventsPerPage, currentPage * eventsPerPage),
+    [filteredEvents, currentPage, eventsPerPage]
+  );
+
+  const pageItems = useMemo(() => {
+    if (pageCount <= 5) return Array.from({ length: pageCount }, (_, index) => index + 1);
+    const values = new Set([1, 2, pageCount, currentPage]);
+    if (currentPage > 2) values.add(currentPage - 1);
+    if (currentPage < pageCount - 1) values.add(currentPage + 1);
+    const ordered = [...values].sort((a, b) => a - b);
+    const items = [];
+    ordered.forEach((value, index) => {
+      if (index > 0 && value - ordered[index - 1] > 1) items.push('ellipsis-' + value);
+      items.push(value);
+    });
+    return items;
+  }, [currentPage, pageCount]);
+
 
   const handleRSVP = async (eventItem) => {
     if (!user) {
@@ -227,7 +258,7 @@ export const EventsPage = () => {
         </div>
       ) : (
         <div className="event-list">
-          {filteredEvents.map((item) => {
+          {pageEvents.map((item) => {
             const date = new Date(item.date);
             const attending = isUserAttending(item, user?._id);
             const past = date.getTime() < Date.now();
@@ -263,6 +294,34 @@ export const EventsPage = () => {
           })}
         </div>
       )}
+
+      {!loading && pageCount > 1 ? (
+        <nav className="events-pagination" aria-label="Event pages">
+          <button
+            type="button"
+            className="events-page-arrow"
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            disabled={currentPage === 1}
+            aria-label="Previous page"
+          ><Icon name="chevronLeft" size={17} /></button>
+          {pageItems.map((item) => typeof item === 'number' ? (
+            <button
+              type="button"
+              key={item}
+              className={currentPage === item ? 'events-page-number active' : 'events-page-number'}
+              onClick={() => setCurrentPage(item)}
+              aria-current={currentPage === item ? 'page' : undefined}
+            >{item}</button>
+          ) : <span className="events-page-ellipsis" key={item}>…</span>)}
+          <button
+            type="button"
+            className="events-page-arrow"
+            onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+            disabled={currentPage === pageCount}
+            aria-label="Next page"
+          ><Icon name="chevronRight" size={17} /></button>
+        </nav>
+      ) : null}
       </main>
 
       <aside className="events-side">
