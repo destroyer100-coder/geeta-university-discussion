@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { usersApi } from '../../services/api';
 import { Icon } from '../../components/common/Icons';
 import { PageHero } from '../../components/common/PageHero';
 
@@ -180,15 +181,50 @@ export const SettingsPage = () => {
     setAvatarPreview(URL.createObjectURL(file));
   };
 
-  const saveProfilePreview = (event) => {
+  const saveProfilePreview = async (event) => {
     event.preventDefault();
+    setNotice('');
+    const profilePayload = {
+      name: profileForm.name.trim(),
+      bio: profileForm.bio,
+      department: profileForm.department,
+      year: profileForm.year,
+    };
+
+    if (user?.isGuestPreview) {
+      try {
+        localStorage.setItem('guf-profile-preview', JSON.stringify(profilePayload));
+        if (updateUser) updateUser({ ...user, ...profilePayload });
+        setEditingAccount(false);
+        setNotice('Guest preview profile updated in this browser only.');
+      } catch {
+        setNotice('The profile preview could not be stored in this browser.');
+      }
+      return;
+    }
+
+    if (!user?._id) {
+      setNotice('Sign in to update your account profile.');
+      return;
+    }
+
     try {
-      localStorage.setItem('guf-profile-preview', JSON.stringify(profileForm));
-      if (user && updateUser) updateUser({ ...user, ...profileForm, ...(avatarPreview ? { avatar: avatarPreview } : {}) });
+      const response = await usersApi.updateProfile(profilePayload);
+      if (!response?.success || !response?.data) {
+        throw new Error(response?.message || 'Your profile could not be updated.');
+      }
+      if (updateUser) updateUser(response.data);
+      setProfileForm((current) => ({
+        ...current,
+        name: response.data.name || current.name,
+        bio: response.data.bio || '',
+        department: response.data.department || '',
+        year: response.data.year || '',
+      }));
       setEditingAccount(false);
-      setNotice('Profile preview updated in this browser only. No account or server data was changed.');
-    } catch {
-      setNotice('The profile preview could not be stored in this browser.');
+      setNotice('Your profile changes have been saved to your account.');
+    } catch (error) {
+      setNotice(error.message || 'Your profile could not be updated. Please try again.');
     }
   };
 
@@ -311,15 +347,12 @@ export const SettingsPage = () => {
                     <h3 className="settings-form-section-title">Basic Information</h3>
                     <div className="settings-form-grid">
                       <label className="form-group"><span className="form-label">Full Name *</span><input className="form-control" required maxLength={100} value={profileForm.name} onChange={(event) => updateProfileField('name', event.target.value)} /></label>
-                      <label className="form-group"><span className="form-label">Username</span><input className="form-control" value={profileForm.username} onChange={(event) => updateProfileField('username', event.target.value)} /></label>
-                      <label className="form-group"><span className="form-label">University</span><input className="form-control" value={profileForm.university} onChange={(event) => updateProfileField('university', event.target.value)} /></label>
-                      <label className="form-group"><span className="form-label">Program / Department</span><input className="form-control" value={profileForm.department} onChange={(event) => updateProfileField('department', event.target.value)} /></label>
+                                            <label className="form-group"><span className="form-label">Program / Department</span><input className="form-control" value={profileForm.department} onChange={(event) => updateProfileField('department', event.target.value)} /></label>
                       <label className="form-group"><span className="form-label">Year</span><input className="form-control" value={profileForm.year} onChange={(event) => updateProfileField('year', event.target.value)} /></label>
-                      <label className="form-group"><span className="form-label">Location</span><input className="form-control" value={profileForm.location} onChange={(event) => updateProfileField('location', event.target.value)} /></label>
-                      <label className="form-group settings-form-span"><span className="form-label">Bio</span><textarea className="form-control" rows={4} maxLength={250} value={profileForm.bio} onChange={(event) => updateProfileField('bio', event.target.value)} /><small className="settings-character-count">{profileForm.bio.length} / 250</small></label>
+                                            <label className="form-group settings-form-span"><span className="form-label">Bio</span><textarea className="form-control" rows={4} maxLength={250} value={profileForm.bio} onChange={(event) => updateProfileField('bio', event.target.value)} /><small className="settings-character-count">{profileForm.bio.length} / 250</small></label>
                     </div>
                     <div className="settings-form-actions"><button type="button" className="btn btn-outline" onClick={() => { setEditingAccount(false); setAvatarPreview(''); }}>Cancel</button><button type="submit" className="btn btn-primary"><Icon name="check" size={15} /> Save Changes</button></div>
-                    <p className="settings-local-note">Profile edits in this phase are a local preview and are not synchronized with your account.</p>
+                    <p className="settings-local-note">Name, bio, department and year are saved to your account. Appearance and other browser preferences are stored locally unless the server provides a corresponding setting.</p>
                   </form>
                 </>
               )}
