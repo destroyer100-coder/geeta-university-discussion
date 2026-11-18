@@ -7,7 +7,7 @@ import { PageHero } from '../../components/common/PageHero';
 
 const EMPTY_RESULTS = { posts: [], communities: [], users: [] };
 const initials = (name = '') =>
-  name.trim().split(/\\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
+  name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
 
 const tabs = [
   { key: 'all', label: 'All' },
