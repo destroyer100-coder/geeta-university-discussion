@@ -45,14 +45,14 @@ body {
 .navbar {
   position: sticky;
   top: 0;
-  height: 54px;
+  height: 62px;
   background: linear-gradient(105deg, #003d28 0%, #004c31 58%, #003923 100%);
   border: 0;
   border-bottom: 1px solid rgba(255,255,255,.13);
   box-shadow: 0 2px 8px rgba(0,0,0,.12);
 }
 .navbar-container {
-  height: 64px;
+  height: 62px;
   max-width: none;
   padding: 0 22px;
   gap: 18px;
@@ -235,12 +235,12 @@ body {
 .main-layout.no-rightbar,
 .main-layout.is-collapsed.no-rightbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 28vw, 462px);
   gap: 18px;
-  width: calc(100% - 220px);
+  width: calc(100% - 254px);
   max-width: none;
-  margin: 0 0 0 220px;
-  padding: 14px 14px 32px;
+  margin: 0 0 0 254px;
+  padding: 24px 22px 36px;
   align-items: start;
   transition: margin-left .18s ease, width .18s ease;
 }
@@ -255,19 +255,19 @@ body {
 }
 .content-area { min-width: 0; padding: 0; }
 .right-sidebar {
-  top: 68px;
+  top: 76px;
   max-height: calc(100vh - 94px);
   padding-bottom: 8px;
   gap: 14px;
 }
 .left-sidebar {
   position: fixed;
-  top: 54px;
+  top: 62px;
   left: 0;
   bottom: 0;
-  width: 220px;
-  height: calc(100vh - 54px);
-  max-height: calc(100vh - 54px);
+  width: 254px;
+  height: calc(100vh - 62px);
+  max-height: calc(100vh - 62px);
   padding: 14px 10px 18px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -442,11 +442,11 @@ body {
   .main-layout.is-collapsed,
   .main-layout.no-rightbar,
   .main-layout.is-collapsed.no-rightbar {
-    width: calc(100% - 232px);
-    margin-left: 232px;
+    width: calc(100% - 254px);
+    margin-left: 254px;
     padding: 14px;
   }
-  .left-sidebar { width: 232px; }
+  .left-sidebar { width: 254px; }
 }
 @media (max-width: 768px) {
   .navbar, .navbar-container { height: 60px; }
