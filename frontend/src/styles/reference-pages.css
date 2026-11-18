@@ -1863,3 +1863,204 @@
   .page-settings .settings-select-row{grid-template-columns:minmax(0,1fr)}
   .page-settings .settings-form-actions{flex-wrap:wrap}
 }
+
+/* About & Help and Connected Accounts — complete card and control layouts */
+.page-settings .settings-about-card{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  gap:5px!important;
+  width:100%;
+  min-height:82px;
+  margin:0 0 12px;
+  padding:18px 20px!important;
+  border:1px solid var(--settings-line)!important;
+  border-radius:13px!important;
+  background:var(--settings-soft)!important;
+  color:var(--settings-ink)!important;
+}
+.page-settings .settings-about-card strong{
+  display:block;
+  margin:0;
+  color:var(--settings-ink);
+  font-size:15px;
+  font-weight:750;
+  line-height:1.4;
+}
+.page-settings .settings-about-card span{
+  display:block;
+  margin:0;
+  color:var(--settings-muted);
+  font-size:13px;
+  font-weight:450;
+  line-height:1.5;
+}
+.page-settings .settings-help-list{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:10px!important;
+  width:100%;
+  padding:14px!important;
+  border:1px solid var(--settings-line)!important;
+  border-radius:13px!important;
+  background:var(--settings-surface)!important;
+}
+.page-settings .settings-help-list>section{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  width:100%;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--settings-line);
+  border-radius:10px;
+  background:var(--bg-card);
+}
+.page-settings .settings-help-list>section>button{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  width:100%!important;
+  min-height:48px!important;
+  margin:0!important;
+  padding:12px 15px!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:var(--settings-soft)!important;
+  color:var(--settings-ink)!important;
+  font-family:inherit!important;
+  font-size:13px!important;
+  font-weight:650!important;
+  line-height:1.45!important;
+  text-align:left!important;
+  white-space:normal!important;
+  cursor:pointer;
+}
+.page-settings .settings-help-list>section>button:hover{
+  background:var(--primary-light)!important;
+  color:var(--primary)!important;
+}
+.page-settings .settings-help-list>section>button strong{
+  display:block;
+  flex:1;
+  min-width:0;
+  color:inherit;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.45;
+}
+.page-settings .settings-help-list>section>button svg{
+  display:block;
+  flex:0 0 17px;
+  width:17px;
+  height:17px;
+}
+.page-settings .settings-help-list>section>p{
+  display:block;
+  margin:0!important;
+  padding:13px 15px 15px!important;
+  border-top:1px solid var(--settings-line);
+  color:var(--settings-muted)!important;
+  font-size:13px!important;
+  font-weight:400!important;
+  line-height:1.65!important;
+}
+.page-settings .settings-connection-row{
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:14px!important;
+  width:100%;
+  min-height:72px;
+  margin:0 0 10px!important;
+  padding:13px 15px!important;
+  border:1px solid var(--settings-line)!important;
+  border-radius:12px!important;
+  background:var(--settings-surface)!important;
+  color:var(--settings-ink)!important;
+}
+.page-settings .settings-provider-mark{
+  display:grid!important;
+  place-items:center!important;
+  width:38px!important;
+  height:38px!important;
+  border-radius:11px!important;
+  background:#f0f4ee!important;
+  color:#24543a!important;
+  font-size:16px!important;
+  font-weight:750!important;
+  line-height:1!important;
+}
+.page-settings .settings-provider-mark.google{background:#f4f5f7!important;color:#4285f4!important}
+.page-settings .settings-provider-mark.microsoft{background:#edf4ff!important;color:#2563eb!important}
+.page-settings .settings-connection-row>div:nth-child(2){
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  gap:4px!important;
+  min-width:0;
+}
+.page-settings .settings-connection-row>div:nth-child(2) strong{
+  display:block;
+  margin:0;
+  color:var(--settings-ink);
+  font-size:14px;
+  font-weight:700;
+  line-height:1.4;
+}
+.page-settings .settings-connection-row>div:nth-child(2) small{
+  display:block;
+  margin:0;
+  color:var(--settings-muted);
+  font-size:12px;
+  font-weight:450;
+  line-height:1.45;
+}
+.page-settings .settings-connection-row>.btn{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:86px;
+  min-height:36px!important;
+  margin:0!important;
+  padding:8px 14px!important;
+  border-radius:8px!important;
+  font-family:inherit!important;
+  font-size:12px!important;
+  font-weight:650!important;
+  line-height:1.35!important;
+  white-space:nowrap;
+}
+.page-settings .settings-connection-row>.btn-outline{
+  border:1px solid var(--primary)!important;
+  background:transparent!important;
+  color:var(--primary)!important;
+}
+.page-settings .settings-connection-row>.btn-outline:hover{
+  background:var(--primary-light)!important;
+}
+.page-settings .settings-connection-row+.settings-local-note{
+  margin:8px 0 0!important;
+  padding:0 2px;
+  color:var(--settings-muted)!important;
+  font-size:12px!important;
+  line-height:1.55!important;
+}
+@media(max-width:540px){
+  .page-settings .settings-connection-row{grid-template-columns:38px minmax(0,1fr) auto!important;gap:10px!important;padding:11px!important}
+  .page-settings .settings-help-list{padding:10px!important}
+  .page-settings .settings-about-card{padding:15px!important}
+}
+:root[data-theme="dark"] .page-settings .settings-about-card,
+:root[data-theme="dark"] .page-settings .settings-help-list,
+:root[data-theme="dark"] .page-settings .settings-help-list>section,
+:root[data-theme="dark"] .page-settings .settings-connection-row{
+  background:var(--bg-card)!important;
+  border-color:var(--border-color)!important;
+  color:var(--text-main)!important;
+}
+:root[data-theme="dark"] .page-settings .settings-help-list>section>button{background:var(--bg-muted)!important;color:var(--text-main)!important}
+:root[data-theme="dark"] .page-settings .settings-provider-mark{background:var(--bg-muted)!important;color:var(--text-main)!important}
