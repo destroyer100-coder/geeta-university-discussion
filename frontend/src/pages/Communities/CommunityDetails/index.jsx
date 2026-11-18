@@ -292,7 +292,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const canManagePostRequests = Boolean(modPerms.manageRequests);
   const canManageSettings = Boolean(isOwner || isMod || modPerms.manageRules || user?.role === 'admin');
   const canPost = true;
-  const membershipStatus = community.currentUserMembership?.status || 'none';
+  const membershipStatus = community.currentUserMembership?.status || (community.isCurrentUserMember || (user && String(community.owner?._id) === String(user._id)) ? 'active' : 'none');
   const isMember = membershipStatus === 'active';
   const isPendingJoinRequest = membershipStatus === 'pending';
   const isRejectedJoinRequest = membershipStatus === 'rejected';
