@@ -1158,3 +1158,40 @@
 @media(max-width:640px){.saved-side{grid-template-columns:minmax(0,1fr)}}
 :root[data-theme="dark"] .saved-side-card{background:var(--bg-card);border-color:var(--border-color)}
 :root[data-theme="dark"] .saved-type-row,:root[data-theme="dark"] .saved-quick-action{border-color:var(--border-color);color:var(--text-main)}
+
+/* My Discussions workspace */
+.my-discussions-workspace{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:16px;align-items:start}
+.my-discussions-main{min-width:0}
+.my-discussions-side{display:flex;flex-direction:column;gap:14px}
+.my-discussions-side-card{padding:14px!important}
+.my-discussions-side-heading{display:flex;align-items:center;gap:8px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #eee7de}
+.my-discussions-side-heading h2{display:flex;align-items:center;gap:8px;font-size:.91rem;font-weight:850}
+.my-discussions-side-heading h2 svg{color:var(--primary)}
+.my-discussions-total{display:flex;align-items:baseline;justify-content:space-between;padding:7px 2px 12px}
+.my-discussions-total strong{font-size:1.8rem;color:var(--primary);font-weight:900}
+.my-discussions-total span{font-size:.72rem;color:var(--text-muted)}
+.my-discussions-stat-row{display:flex;align-items:center;justify-content:space-between;padding:9px 2px;border-top:1px solid #eee7de;font-size:.75rem}
+.my-discussions-stat-row>span{display:flex;align-items:center;gap:8px;color:var(--text-secondary)}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.status-dot.published{background:#15935b}
+.status-dot.pending{background:#d89c2e}
+.status-dot.rejected{background:#dc5b50}
+.my-discussions-action{display:flex;align-items:center;gap:9px;padding:10px 3px;border-bottom:1px solid #eee7de;color:var(--text-main);font-size:.74rem;text-decoration:none}
+.my-discussions-action:last-child{border-bottom:0}
+.my-discussions-action>svg:first-child{color:var(--primary)}
+.my-discussions-action span{min-width:0;flex:1}
+.my-discussions-action>svg:last-child{color:var(--text-muted)}
+.my-discussions-recent{display:block;padding:9px 0;border-bottom:1px solid #eee7de;text-decoration:none;color:var(--text-main)}
+.my-discussions-recent:last-child{border-bottom:0}
+.my-discussions-recent strong,.my-discussions-recent small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.my-discussions-recent strong{font-size:.74rem}
+.my-discussions-recent small{margin-top:3px;color:var(--text-muted);font-size:.65rem}
+.my-discussions-side-empty{color:var(--text-muted);font-size:.73rem}
+.my-discussions-pagination{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 0}
+.my-discussions-pagination span{font-size:.75rem;color:var(--text-muted)}
+.my-discussions-pagination .btn:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:1100px){.my-discussions-workspace{grid-template-columns:minmax(0,1fr) 260px}}
+@media(max-width:900px){.my-discussions-workspace{grid-template-columns:minmax(0,1fr)}.my-discussions-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.my-discussions-side{grid-template-columns:minmax(0,1fr)}}
+:root[data-theme="dark"] .my-discussions-side-card{background:var(--bg-card);border-color:var(--border-color)}
+:root[data-theme="dark"] .my-discussions-stat-row,:root[data-theme="dark"] .my-discussions-action,:root[data-theme="dark"] .my-discussions-recent{border-color:var(--border-color);color:var(--text-main)}
