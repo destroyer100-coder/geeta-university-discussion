@@ -334,7 +334,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               ['discussions', 'messageSquare', 'Discussions'],
               ['members', 'users', 'Members'],
               ['events', 'calendar', 'Events'],
-              ['resources', 'bookOpen', 'Resources'],
+              ['resources', 'fileText', 'Resources'],
               ['permissions', 'shieldCheck', 'Permissions'],
               ...(isMod ? [['audit', 'fileText', 'Audit Logs']] : []),
               ...(canManageSettings ? [['settings', 'settings', 'Settings']] : []),
