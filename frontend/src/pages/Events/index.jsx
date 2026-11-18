@@ -13,7 +13,8 @@ const isUserAttending = (event, userId) =>
   Boolean(userId && (event.attendees || []).some((person) => (person?._id || person).toString() === userId.toString()));
 const readLocalEvents = () => {
   try { return JSON.parse(localStorage.getItem('guf-local-event-preview') || '[]'); } catch { return []; }
-};\nconst readRsvpPreview = () => {
+};
+const readRsvpPreview = () => {
   try { return JSON.parse(localStorage.getItem('guf-event-rsvp-preview') || '[]'); } catch { return []; }
 };
 const isEventOrganizer = (event, userId) =>
