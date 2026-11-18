@@ -44,10 +44,24 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
         search: searchQuery.trim() || undefined,
         sort: 'trending',
       });
-      setPosts(response.success && Array.isArray(response.data) ? response.data : []);
+      const serverPosts = response.success && Array.isArray(response.data) ? response.data : [];
+      let localPosts = [];
+      try { localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]'); } catch { localPosts = []; }
+      const visibleLocalPosts = localPosts.filter((post) => {
+        const matchesTag = selectedTag === 'All' || (post.tags || []).includes(selectedTag);
+        const matchesType = selectedType === 'all' || post.type === selectedType;
+        const query = searchQuery.trim().toLowerCase();
+        const matchesSearch = !query || [post.title, post.body, ...(post.tags || [])].some((value) => String(value || '').toLowerCase().includes(query));
+        return matchesTag && matchesType && matchesSearch;
+      });
+      const serverIds = new Set(serverPosts.map((post) => String(post._id)));
+      setPosts([...visibleLocalPosts.filter((post) => !serverIds.has(String(post._id))), ...serverPosts]);
     } catch (error) {
       console.error('Failed to load explore discussions:', error);
-      setPosts([]);
+      try {
+        const localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]');
+        setPosts(localPosts.filter((post) => (selectedTag === 'All' || (post.tags || []).includes(selectedTag)) && (selectedType === 'all' || post.type === selectedType)));
+      } catch { setPosts([]); }
     } finally {
       setLoadingPosts(false);
     }
@@ -80,7 +94,17 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     setLoadingDirectory(false);
   }, []);
 
-  useEffect(() => { fetchExplorePosts(); }, [fetchExplorePosts]);
+  useEffect(() => {
+    fetchExplorePosts();
+    const refreshLocalPosts = () => {
+      try {
+        const localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]');
+        setPosts((current) => [...localPosts, ...current.filter((post) => !post.isLocalPreview)]);
+      } catch { /* keep current feed */ }
+    };
+    window.addEventListener('local-posts:changed', refreshLocalPosts);
+    return () => window.removeEventListener('local-posts:changed', refreshLocalPosts);
+  }, [fetchExplorePosts]);
   useEffect(() => { fetchDirectoryData(); }, [fetchDirectoryData, user?._id]);
 
   const filteredCommunities = useMemo(() => {

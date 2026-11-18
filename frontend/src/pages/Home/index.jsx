@@ -11,6 +11,16 @@ export const Home = ({ onOpenCreatePost }) => {
   const [activeFilter, setActiveFilter] = useState('latest');
   const [selectedTag, setSelectedTag] = useState('');
 
+  const readLocalPosts = () => {
+    try { return JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]'); } catch { return []; }
+  };
+
+  const mergeLocalPosts = (serverPosts = []) => {
+    const localPosts = readLocalPosts().filter((post) => !selectedTag || (post.tags || []).includes(selectedTag));
+    const knownIds = new Set(serverPosts.map((post) => String(post._id)));
+    return [...localPosts.filter((post) => !knownIds.has(String(post._id))), ...serverPosts];
+  };
+
   const fetchPosts = async () => {
     setLoading(true);
     try {
@@ -18,10 +28,11 @@ export const Home = ({ onOpenCreatePost }) => {
       if (selectedTag) params.tag = selectedTag;
       const res = await postsApi.getAll(params);
       if (res.success && res.data) {
-        setPosts(res.data);
+        setPosts(mergeLocalPosts(res.data));
       }
     } catch (err) {
       console.error('Failed to load posts:', err);
+      setPosts(mergeLocalPosts([]));
     } finally {
       setLoading(false);
     }
@@ -29,6 +40,9 @@ export const Home = ({ onOpenCreatePost }) => {
 
   useEffect(() => {
     fetchPosts();
+    const refreshLocalPosts = () => setPosts(mergeLocalPosts(posts));
+    window.addEventListener('local-posts:changed', refreshLocalPosts);
+    return () => window.removeEventListener('local-posts:changed', refreshLocalPosts);
   }, [activeFilter, selectedTag]);
 
   return (

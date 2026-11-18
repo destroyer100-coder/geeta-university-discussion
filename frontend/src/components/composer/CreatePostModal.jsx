@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from '../common/Icons';
-import { communitiesApi, postsApi, uploadsApi } from '../../services/api';
+import { communitiesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { RequestToPostModal } from '../community/RequestToPostModal';
 
 // The audience selector only ever holds a community id string, or '' for
 // Global/Campus-Wide (community = null). Anything that is not a non-empty
@@ -133,25 +132,19 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, in
     refreshPermission(selectedCommunityId);
   }, [selectedCommunityId, user]);
 
-  const handleQuickJoin = async () => {
-    if (!user) {
-      alert('Please sign in before creating a community post.');
-      return;
-    }
-    if (!sanitizeCommunityId(selectedCommunityId)) return;
-    try {
-      const res = await communitiesApi.join(sanitizeCommunityId(selectedCommunityId));
-      if (res.success) {
-        // Private communities return pending:true until a moderator approves
-        if (res.pending) {
-          alert(res.message || 'Your join request was sent to the community moderators for approval.');
-        }
-        refreshPermission(selectedCommunityId);
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to join community');
-      refreshPermission(selectedCommunityId);
-    }
+  const handleQuickJoin = () => {
+    const id = sanitizeCommunityId(selectedCommunityId);
+    if (!id) return;
+    let overrides = {};
+    try { overrides = JSON.parse(localStorage.getItem('guf-community-membership-preview') || '{}'); } catch { /* use an empty preview map */ }
+    overrides[id] = true;
+    try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(overrides)); } catch { /* current session can still continue */ }
+    const community = communities.find((item) => String(item._id) === id) || permissionInfo?.community || null;
+    setPermissionInfo({
+      community,
+      permission: { allowed: true, requireApproval: false, reason: 'Local preview membership enabled.' },
+    });
+    setError('Community membership changed in this browser preview only.');
   };
 
   // Escape closes the topmost layer: nested request modal first, then composer.
@@ -180,41 +173,38 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, in
     setTags(tags.filter((item) => item !== t));
   };
 
-  // Upload handler for files / images / videos
-  const handleFileUpload = async (e, forcedType) => {
-    const files = Array.from(e.target.files);
+  // Stage selected files locally. No file is sent to a server in this phase.
+  const handleFileUpload = async (event, forcedType) => {
+    const files = Array.from(event.target.files || []);
     if (!files.length) return;
-
     setUploading(true);
     setError(null);
-
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
-
     try {
-      const res = await uploadsApi.uploadMultiple(formData);
-      if (res.success && res.data) {
-        const mapped = res.data.map((item) => ({
-          type: forcedType || item.type,
-          originalName: item.originalName,
-          mimeType: item.mimeType,
-          size: item.size,
-          storageKey: item.filename,
-          url: item.url,
-          relativePath: item.originalName,
-        }));
-
-        setAttachments((prev) => [...prev, ...mapped]);
-      }
-    } catch (err) {
-      setError(err.message || 'File upload failed');
+      const mapped = await Promise.all(files.map((file) => new Promise((resolve, reject) => {
+        if (file.size > 1024 * 1024) {
+          reject(new Error(file.name + ' is larger than the 1 MB local preview limit.'));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          type: forcedType || (file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file'),
+          originalName: file.name,
+          mimeType: file.type,
+          size: file.size,
+          url: typeof reader.result === 'string' ? reader.result : '',
+          localPreview: true,
+          relativePath: file.name,
+        });
+        reader.onerror = () => reject(new Error('Could not preview ' + file.name + '.'));
+        reader.readAsDataURL(file);
+      })));
+      setAttachments((previous) => [...previous, ...mapped]);
+    } catch (uploadError) {
+      setError(uploadError.message || 'File could not be added to this local preview.');
     } finally {
       setUploading(false);
       setShowAttachmentMenu(false);
-      // Reset input value so same file can be re-selected if needed
-      e.target.value = '';
+      event.target.value = '';
     }
   };
 
@@ -258,21 +248,23 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, in
     }
   };
 
-  const handlePublish = async () => {
+  const handlePublish = () => {
     if (!title.trim() || !body.trim()) {
       setError('Please provide a title and body description.');
       return;
     }
-
     setSubmitting(true);
     setError(null);
 
-    // Global / Campus-Wide sends community = null. An id string is the only
-    // other accepted shape - never an object.
     const targetCommunityId = sanitizeCommunityId(selectedCommunityId);
-
-    const payload = {
-      community: targetCommunityId || null,
+    const selectedCommunity = communities.find((item) => String(item._id) === targetCommunityId) || permissionInfo?.community || null;
+    const previewPost = {
+      _id: 'local-post-' + Date.now(),
+      community: selectedCommunity ? {
+        _id: selectedCommunity._id,
+        name: selectedCommunity.name,
+        slug: selectedCommunity.slug,
+      } : null,
       type: postType,
       title: title.trim(),
       body: body.trim(),
@@ -281,31 +273,48 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, in
       allowComments,
       isQuestion,
       attachments,
-      folderPaths,
-      poll: poll && poll.question && poll.options?.length >= 2 ? poll : null,
+      folders: folderPaths.map((name, index) => ({ _id: 'local-folder-' + index, name, relativePath: name })),
+      poll: poll && poll.question && poll.options?.length >= 2
+        ? { ...poll, options: poll.options.map((text) => ({ text, votesCount: 0 })), userVotedOption: null }
+        : null,
       linkPreview,
+      author: user ? {
+        _id: user._id,
+        name: user.name,
+        avatar: user.avatar,
+        department: user.department,
+        year: user.year,
+        verified: user.verified,
+      } : { name: 'Guest', department: 'University Community' },
+      createdAt: new Date().toISOString(),
+      status: 'active',
+      likesCount: 0,
+      commentsCount: 0,
+      helpfulCount: 0,
+      isLiked: false,
+      isSaved: false,
+      isHelpful: false,
+      isLocalPreview: true,
     };
 
+    let localPosts = [];
+    try { localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]'); } catch { /* start with this post */ }
     try {
-      const res = await postsApi.create(payload);
-      if (res.success) {
-        alert(res.message || 'Post published successfully!');
-        if (onPostCreated) onPostCreated(res.data);
-        onClose();
-      }
-    } catch (err) {
-      if (err.status === 403 && err.data?.canRequest) {
-        setShowRequestModal(true);
-      } else {
-        setError(err.message || 'Failed to publish post');
-      }
-    } finally {
+      localStorage.setItem('guf-local-post-preview', JSON.stringify([previewPost, ...localPosts].slice(0, 50)));
+    } catch {
+      setError('The browser could not store this post preview. Reduce attached file size and try again.');
       setSubmitting(false);
+      return;
     }
+
+    window.dispatchEvent(new Event('local-posts:changed'));
+    onPostCreated?.(previewPost);
+    onClose();
+    setSubmitting(false);
   };
 
-  const isAllowed = permissionInfo?.permission?.allowed;
-  const requireApproval = permissionInfo?.permission?.requireApproval;
+  const isAllowed = true;
+  const requireApproval = false;
   const currentComm = permissionInfo?.community;
 
   return (
@@ -432,6 +441,8 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, in
                 )}
               </div>
             </div>
+
+            <div className="create-post-local-preview-note"><Icon name="info" size={15} /> Frontend preview: posts and attachments stay in this browser and are not published to the university server.</div>
 
             {/* Notice banner for restricted / private community */}
             {!isAllowed && !checkingPermission && currentComm && (
@@ -970,14 +981,14 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, in
         </div>
       </div>
 
-      <RequestToPostModal
-        isOpen={showRequestModal}
-        onClose={() => setShowRequestModal(false)}
-        community={currentComm}
-        initialTitle={title}
-        initialBody={body}
-        onSuccess={() => onClose()}
-      />
-    </>
+      {showRequestModal ? (
+        <div className="modal-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setShowRequestModal(false); }}>
+          <section className="modal-content create-post-request-preview" role="dialog" aria-modal="true" aria-label="Request to post">
+            <h3>Request to Post</h3>
+            <p>This request can be previewed during frontend development. No request is sent to the community server.</p>
+            <button type="button" className="btn btn-primary" onClick={() => { setShowRequestModal(false); setError('Your request is shown as a local preview only.'); }}>Confirm Preview</button>
+          </section>
+        </div>
+      ) : null}    </>
   );
 };

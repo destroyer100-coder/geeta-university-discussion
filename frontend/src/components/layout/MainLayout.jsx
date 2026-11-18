@@ -49,11 +49,13 @@ export const MainLayout = () => {
   };
 
   const handlePostCreated = (post) => {
-    if (post?._id) {
-      navigate(`/discussions/${post._id}`);
-    } else {
-      window.location.reload();
+    if (post?.isLocalPreview) {
+      window.dispatchEvent(new Event('local-posts:changed'));
+      navigate('/');
+      return;
     }
+    if (post?._id) navigate(`/discussions/${post._id}`);
+    else navigate('/');
   };
 
   const hideRightbar =
