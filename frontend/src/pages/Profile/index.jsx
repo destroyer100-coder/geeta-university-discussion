@@ -79,7 +79,10 @@ export const ProfilePage = () => {
         const followingIds = (() => { try { return JSON.parse(localStorage.getItem('guf-following-preview') || '[]'); } catch { return []; } })();
         const localPreview = readProfilePreview()[String(targetUserId)] || {};
         setProfileData({ ...res.data, ...localPreview, ...(followingIds.includes(String(targetUserId)) ? { isFollowing: true } : (localPreview.isFollowing === false ? { isFollowing: false } : {})) });
-        const localPosts = readLocalPosts(targetUserId);\n        const serverPosts = res.data.posts || [];\n        const serverIds = new Set(serverPosts.map((post) => String(post._id)));\n        setUserPosts([...localPosts.filter((post) => !serverIds.has(String(post._id))), ...serverPosts]);
+        const localPosts = readLocalPosts(targetUserId);
+        const serverPosts = res.data.posts || [];
+        const serverIds = new Set(serverPosts.map((post) => String(post._id)));
+        setUserPosts([...localPosts.filter((post) => !serverIds.has(String(post._id))), ...serverPosts]);
         setUserComments(res.data.comments || []);
         setEditName(res.data.name || '');
         setEditBio(res.data.bio || '');
