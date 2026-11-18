@@ -22,8 +22,6 @@ export const PeoplePage = () => {
     try {
       const params = { page: 1, limit: 50 };
       if (searchQuery.trim()) params.search = searchQuery.trim();
-      if (roleFilter !== 'All') params.role = roleFilter.toLowerCase();
-      if (selectedDepartment !== 'All') params.department = selectedDepartment;
       const response = await usersApi.getAll(params);
       setPeople(response.success && Array.isArray(response.data) ? response.data : []);
     } catch (error) {
@@ -56,6 +54,12 @@ export const PeoplePage = () => {
     () => people.filter((person) => !user?._id || person._id?.toString() !== user._id.toString()).slice(0, 4),
     [people, user?._id]
   );
+
+  const visiblePeople = useMemo(() => people.filter((person) => {
+    const matchesRole = roleFilter === 'All' || person.role === roleFilter.toLowerCase();
+    const matchesDepartment = selectedDepartment === 'All' || (person.department || 'Not specified') === selectedDepartment;
+    return matchesRole && matchesDepartment;
+  }), [people, roleFilter, selectedDepartment]);
 
   return (
     <div className="page-shell page-people">
@@ -92,7 +96,7 @@ export const PeoplePage = () => {
           {errorNotice ? <div className="notification-error" role="alert">{errorNotice}</div> : null}
           {loading ? (
             <div className="loading-state">Loading university members...</div>
-          ) : people.length === 0 ? (
+          ) : visiblePeople.length === 0 ? (
             <div className="card people-empty">
               <Icon name="users" size={30} />
               <h3>No members found</h3>
@@ -100,7 +104,7 @@ export const PeoplePage = () => {
             </div>
           ) : (
             <div className="people-list">
-              {people.map((person) => {
+              {visiblePeople.map((person) => {
                 const isMe = user?._id && person._id && user._id.toString() === person._id.toString();
                 const profileLink = isMe ? '/profile/me' : '/profile/' + person._id;
                 return (

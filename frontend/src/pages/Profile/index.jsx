@@ -381,10 +381,10 @@ export const ProfilePage = () => {
                 <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{profileData.followingCount || 0}</strong> Following
               </span>
               <span>
-                <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{userPosts.length}</strong> Discussions
+                <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{userPosts.length}</strong> Recent Discussions
               </span>
               <span>
-                <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{userComments.length}</strong> Answers
+                <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{userComments.length}</strong> Recent Answers
               </span>
             </div>
           </div>
@@ -655,8 +655,8 @@ export const ProfilePage = () => {
           <section className="card profile-side-card">
             <header className="profile-side-heading"><h2><Icon name="barChart2" size={18} /> Profile Overview</h2></header>
             <div className="profile-overview-grid">
-              <div><strong>{userPosts.length}</strong><span>Discussions</span></div>
-              <div><strong>{userComments.length}</strong><span>Comments</span></div>
+              <div><strong>{userPosts.length}</strong><span>Recent Posts</span></div>
+              <div><strong>{userComments.length}</strong><span>Recent Comments</span></div>
               <div><strong>{profileData.followersCount || 0}</strong><span>Followers</span></div>
               <div><strong>{profileData.followingCount || 0}</strong><span>Following</span></div>
             </div>

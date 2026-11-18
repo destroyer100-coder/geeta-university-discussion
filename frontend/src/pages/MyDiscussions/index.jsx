@@ -70,11 +70,12 @@ export const MyDiscussionsPage = () => {
   }, [user?._id, activeStatus, page]);
 
   useEffect(() => {
-    if (!authLoading) {
-      fetchCounts();
-      fetchMyPosts();
-    }
-  }, [user?._id, authLoading, fetchCounts, fetchMyPosts]);
+    if (!authLoading) fetchCounts();
+  }, [user?._id, authLoading, fetchCounts]);
+
+  useEffect(() => {
+    if (!authLoading) fetchMyPosts();
+  }, [authLoading, fetchMyPosts]);
 
   const selectStatus = (status) => {
     setActiveStatus(status);

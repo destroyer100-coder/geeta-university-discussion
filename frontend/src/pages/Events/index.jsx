@@ -68,7 +68,6 @@ export const EventsPage = () => {
 
   useEffect(() => { loadEvents(); }, [user?._id]);
 
-  const now = Date.now();
   const todayKey = localDateValue(new Date());
   const filteredEvents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
