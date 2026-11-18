@@ -112,7 +112,7 @@ export const SearchPage = () => {
 
           {error ? (
             <section className="card search-state-card" role="alert">
-              <Icon name="alertCircle" size={24} />
+              <Icon name="info" size={24} />
               <h2>We couldn’t complete your search</h2>
               <p>{error}</p>
               <button type="button" className="btn btn-primary btn-sm" onClick={() => window.location.reload()}>
