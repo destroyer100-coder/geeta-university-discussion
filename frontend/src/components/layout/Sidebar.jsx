@@ -74,7 +74,7 @@ const normalizeCommunities = (response) => {
 const navItems = [
   { to: '/', label: 'Home', icon: 'home', end: true },
   { to: '/explore', label: 'Explore', icon: 'compass' },
-  { to: '/communities', label: 'Communities', icon: 'users' },
+  { to: '/communities', label: 'Communities', icon: 'users', end: true },
   { to: '/events', label: 'Events', icon: 'calendar' },
   { to: '/people', label: 'People', icon: 'userCheck' },
   { to: '/messages', label: 'Messages', icon: 'messageSquare', badgeKey: 'messages' },
