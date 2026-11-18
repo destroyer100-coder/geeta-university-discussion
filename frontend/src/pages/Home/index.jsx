@@ -188,7 +188,7 @@ export const Home = ({ onOpenCreatePost }) => {
           <PostCard
             key={post._id}
             post={post}
-            onPostUpdated={fetchPosts}
+            onPostUpdated={() => fetchPosts(1, false)}
           />
         ))
       )}
