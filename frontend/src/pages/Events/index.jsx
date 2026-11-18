@@ -65,10 +65,10 @@ export const EventsPage = () => {
         user ? communitiesApi.getAll() : Promise.resolve({ success: true, data: [] }),
       ]);
       const eventRows = eventResponse.success && Array.isArray(eventResponse.data) ? eventResponse.data : [];
-      const localEvents = readLocalEvents();
+      const localEvents = user?.isGuestPreview ? readLocalEvents().filter((event) => event.isLocalPreview) : [];
       const eventIds = new Set(eventRows.map((item) => String(item._id)));
       const combinedEvents = [...localEvents.filter((item) => !eventIds.has(String(item._id))), ...eventRows];
-      const rsvpOverrides = readRsvpPreview();
+      const rsvpOverrides = user?.isGuestPreview ? readRsvpPreview() : [];
       setEvents(combinedEvents.map((item) => {
         if (!rsvpOverrides.includes(String(item._id))) return item;
         const attendees = Array.isArray(item.attendees) ? item.attendees : [];
@@ -78,9 +78,9 @@ export const EventsPage = () => {
       setCommunities(communityResponse.success && Array.isArray(communityResponse.data) ? communityResponse.data : []);
     } catch (error) {
       console.error('Failed to load events:', error);
-      const localEvents = readLocalEvents();
-      const localCommunities = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
-      const rsvpOverrides = readRsvpPreview();
+      const localEvents = user?.isGuestPreview ? readLocalEvents().filter((event) => event.isLocalPreview) : [];
+      const localCommunities = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]').filter((community) => user?.isGuestPreview || !community.isLocalPreview); } catch { return []; } })();
+      const rsvpOverrides = user?.isGuestPreview ? readRsvpPreview() : [];
       setEvents(localEvents.map((item) => {
         if (!rsvpOverrides.includes(String(item._id))) return item;
         const attendees = Array.isArray(item.attendees) ? item.attendees : [];
