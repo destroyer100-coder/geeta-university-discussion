@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../common/Icons';
-import { postsApi, pollsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+
+const readPostPreviews = () => {
+  try { return JSON.parse(localStorage.getItem('guf-post-action-preview') || '{}'); } catch { return {}; }
+};
+const persistPostPreview = (postId, patch) => {
+  const store = readPostPreviews();
+  store[String(postId)] = { ...(store[String(postId)] || {}), ...patch };
+  try { localStorage.setItem('guf-post-action-preview', JSON.stringify(store)); } catch { /* Current component state remains usable. */ }
+};
+const applyPostPreview = (post) => ({
+  ...post,
+  ...(readPostPreviews()[String(post?._id)] || {}),
+});
 
 export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermissions = null }) => {
   const { user } = useAuth();
-  const [currentPost, setCurrentPost] = useState(post);
+  const [currentPost, setCurrentPost] = useState(() => applyPostPreview(post));
   const [voting, setVoting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -14,188 +26,99 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    setCurrentPost(post);
+    setCurrentPost(applyPostPreview(post));
   }, [post]);
 
-  // Optimistic Like with Rollback (Point 21)
-  const handleLike = async (e) => {
+  // All discussion actions below are frontend previews for this phase.
+  // They update component state and localStorage only; no write API is called.
+  const handleLike = (e) => {
     e.preventDefault();
     if (isLiking) return;
     setIsLiking(true);
-
-    const prevLiked = currentPost.isLiked;
-    const prevCount = currentPost.likesCount ?? (currentPost.likes?.length || 0);
-
-    setCurrentPost((prev) => ({
-      ...prev,
-      isLiked: !prevLiked,
-      likesCount: prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1,
-    }));
-
-    try {
-      const res = await postsApi.like(currentPost._id);
-      if (res.success) {
-        setCurrentPost((prev) => ({
-          ...prev,
-          isLiked: res.liked,
-          likesCount: res.likesCount,
-        }));
-      }
-    } catch (err) {
-      setCurrentPost((prev) => ({
-        ...prev,
-        isLiked: prevLiked,
-        likesCount: prevCount,
-      }));
-      alert(err.message || 'Please log in to like');
-    } finally {
-      setIsLiking(false);
-    }
+    const liked = !currentPost.isLiked;
+    const count = currentPost.likesCount ?? (currentPost.likes?.length || 0);
+    const patch = { isLiked: liked, likesCount: liked ? count + 1 : Math.max(0, count - 1) };
+    setCurrentPost((current) => ({ ...current, ...patch }));
+    persistPostPreview(currentPost._id, patch);
+    setIsLiking(false);
   };
 
-  // Optimistic Save with Rollback (Point 21)
-  const handleSave = async (e) => {
+  const handleSave = (e) => {
     e.preventDefault();
     if (isSaving) return;
     setIsSaving(true);
-
-    const prevSaved = currentPost.isSaved;
-    const prevCount = currentPost.savesCount ?? (currentPost.saves?.length || 0);
-
-    setCurrentPost((prev) => ({
-      ...prev,
-      isSaved: !prevSaved,
-      savesCount: prevSaved ? Math.max(0, prevCount - 1) : prevCount + 1,
-    }));
-
-    try {
-      const res = await postsApi.save(currentPost._id);
-      if (res.success) {
-        setCurrentPost((prev) => ({
-          ...prev,
-          isSaved: res.saved,
-          savesCount: res.savesCount,
-        }));
-      }
-    } catch (err) {
-      setCurrentPost((prev) => ({
-        ...prev,
-        isSaved: prevSaved,
-        savesCount: prevCount,
-      }));
-      alert(err.message || 'Please log in to save');
-    } finally {
-      setIsSaving(false);
-    }
+    const saved = !currentPost.isSaved;
+    const count = currentPost.savesCount ?? (currentPost.saves?.length || 0);
+    const patch = { isSaved: saved, savesCount: saved ? count + 1 : Math.max(0, count - 1) };
+    setCurrentPost((current) => ({ ...current, ...patch }));
+    persistPostPreview(currentPost._id, patch);
+    setIsSaving(false);
   };
 
-  // Optimistic Helpful Vote with Rollback (Point 21)
-  const handleHelpful = async (e) => {
+  const handleHelpful = (e) => {
     e.preventDefault();
     if (isHelpfulVoting) return;
     setIsHelpfulVoting(true);
-
-    const prevHelpful = currentPost.isHelpful;
-    const prevCount = currentPost.helpfulCount ?? (currentPost.helpfulVotes?.length || 0);
-
-    setCurrentPost((prev) => ({
-      ...prev,
-      isHelpful: !prevHelpful,
-      helpfulCount: prevHelpful ? Math.max(0, prevCount - 1) : prevCount + 1,
-    }));
-
-    try {
-      const res = await postsApi.helpful(currentPost._id);
-      if (res.success) {
-        setCurrentPost((prev) => ({
-          ...prev,
-          isHelpful: res.helpful,
-          helpfulCount: res.helpfulCount,
-        }));
-      }
-    } catch (err) {
-      setCurrentPost((prev) => ({
-        ...prev,
-        isHelpful: prevHelpful,
-        helpfulCount: prevCount,
-      }));
-      alert(err.message || 'Please log in');
-    } finally {
-      setIsHelpfulVoting(false);
-    }
+    const helpful = !currentPost.isHelpful;
+    const count = currentPost.helpfulCount ?? (currentPost.helpfulVotes?.length || 0);
+    const patch = { isHelpful: helpful, helpfulCount: helpful ? count + 1 : Math.max(0, count - 1) };
+    setCurrentPost((current) => ({ ...current, ...patch }));
+    persistPostPreview(currentPost._id, patch);
+    setIsHelpfulVoting(false);
   };
 
-  // Pin / Unpin Post (Point 7)
-  const handleTogglePin = async () => {
+  const handleTogglePin = () => {
     if (actionLoading) return;
     setActionLoading(true);
-    try {
-      const res = await postsApi.pin(currentPost._id);
-      if (res.success) {
-        setCurrentPost((prev) => ({ ...prev, isPinned: res.isPinned }));
-        if (onPostUpdated) onPostUpdated();
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to update pin state');
-    } finally {
-      setActionLoading(false);
-    }
+    const patch = { isPinned: !currentPost.isPinned };
+    setCurrentPost((current) => ({ ...current, ...patch }));
+    persistPostPreview(currentPost._id, patch);
+    setActionLoading(false);
   };
 
-  // Lock / Unlock Comments (Point 4)
-  const handleToggleLock = async () => {
+  const handleToggleLock = () => {
     if (actionLoading) return;
     setActionLoading(true);
-    try {
-      const res = await postsApi.lock(currentPost._id);
-      if (res.success) {
-        setCurrentPost((prev) => ({
-          ...prev,
-          status: res.status,
-          allowComments: res.status !== 'locked',
-        }));
-        if (onPostUpdated) onPostUpdated();
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to update lock state');
-    } finally {
-      setActionLoading(false);
-    }
+    const nextStatus = currentPost.status === 'locked' ? 'active' : 'locked';
+    const patch = { status: nextStatus, allowComments: nextStatus !== 'locked' };
+    setCurrentPost((current) => ({ ...current, ...patch }));
+    persistPostPreview(currentPost._id, patch);
+    setActionLoading(false);
   };
 
-  const handleDeletePost = async () => {
-    if (!window.confirm('Are you sure you want to delete this discussion?')) return;
+  const handleDeletePost = () => {
+    if (!window.confirm('Hide this discussion in your local preview?')) return;
     if (actionLoading) return;
     setActionLoading(true);
-    try {
-      const res = await postsApi.delete(currentPost._id);
-      if (res.success) {
-        setCurrentPost((prev) => ({ ...prev, status: 'deleted', isDeleted: true }));
-        if (onPostUpdated) onPostUpdated();
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to delete discussion');
-    } finally {
-      setActionLoading(false);
-    }
+    const patch = { status: 'deleted', isDeleted: true };
+    setCurrentPost((current) => ({ ...current, ...patch }));
+    persistPostPreview(currentPost._id, patch);
+    setActionLoading(false);
   };
 
-  const handleVotePoll = async (optionIdx) => {
+  const handleVotePoll = (optionIdx) => {
     if (!currentPost.poll || voting) return;
     setVoting(true);
+    const options = currentPost.poll.options.map((option, index) => ({
+      ...option,
+      votesCount: Math.max(0, Number(option.votesCount || 0) - (currentPost.poll.userVotedOption === index ? 1 : 0) + (optionIdx === index ? 1 : 0)),
+    }));
+    const nextPoll = { ...currentPost.poll, options, userVotedOption: optionIdx };
+    const patch = { poll: nextPoll };
+    setCurrentPost((current) => ({ ...current, ...patch }));
+    persistPostPreview(currentPost._id, patch);
+    if (onVotePollSuccess) onVotePollSuccess(nextPoll);
+    setVoting(false);
+  };
+
+  const handleShare = async () => {
+    if (actionLoading) return;
+    const url = window.location.origin + '/discussions/' + currentPost._id;
     try {
-      const res = await pollsApi.vote(currentPost.poll._id, optionIdx);
-      if (res.success) {
-        setCurrentPost({
-          ...currentPost,
-          poll: res.data,
-        });
-        if (onVotePollSuccess) onVotePollSuccess(res.data);
-      }
-    } catch (err) {
-      alert(err.message || 'Could not record vote');
-    } finally {
-      setVoting(false);
+      await navigator.clipboard?.writeText(url);
+      setCurrentPost((current) => ({ ...current, shareMessage: 'Link copied' }));
+    } catch {
+      setCurrentPost((current) => ({ ...current, shareMessage: 'Share link: ' + url }));
     }
   };
 
@@ -264,13 +187,13 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
         <div className="post-author-meta">
           <Link to={`/profile/${author._id || 'user'}`}>
             <img
-              src={
-                author.avatar ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-              }
-              alt={author.name}
-              className="post-avatar"
-            />
+              {author.avatar ? (
+              <img src={author.avatar} alt={author.name || ''} className="post-avatar" loading="lazy" decoding="async" />
+            ) : (
+              <span className="post-avatar post-avatar-fallback" aria-hidden="true">
+                {(author.name || 'U').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+              </span>
+            )}
           </Link>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -670,37 +593,9 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
           {/* Share */}
           <button
             className="post-action-btn"
-            onClick={() => {
-              if (actionLoading) return;
-              setActionLoading(true);
-              // Check if the source community has sharing disabled
-              const sharePolicy = post.community?.permissions?.sharePolicy;
-              const shareTarget = sharePolicy === 'DISABLED' ? null : undefined;
-              postsApi
-                .share(currentPost._id, {
-                  targetCommunityId: shareTarget,
-                })
-                .then((res) => {
-                  if (res.success) {
-                    alert('Discussion shared successfully!');
-                    setCurrentPost((prev) => ({
-                      ...prev,
-                      shareMessage: 'Shared',
-                    }));
-                    if (onPostUpdated) onPostUpdated();
-                  } else {
-                    alert(res.message || 'Failed to share.');
-                  }
-                })
-                .catch((err) => {
-                  alert(err.message || 'Failed to share.');
-                })
-                .finally(() => {
-                  setActionLoading(false);
-                });
-            }}
-            title="Share Discussion"
-            disabled={actionLoading || post.community?.permissions?.sharePolicy === 'DISABLED'}
+            onClick={handleShare}
+            title="Copy discussion link"
+            disabled={post.community?.permissions?.sharePolicy === 'DISABLED'}
           >
             <Icon name="share2" size={16} />
             <span>Share</span>
