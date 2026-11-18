@@ -139,7 +139,6 @@ export const Home = ({ onOpenCreatePost }) => {
           {[
             { key: 'latest', label: 'Latest', icon: 'layers' },
             { key: 'trending', label: 'Trending', icon: 'trendingUp' },
-            { key: 'following', label: 'Following', icon: 'users' },
             { key: 'helpful', label: 'Most Helpful', icon: 'award' },
           ].map((tab) => (
             <button
