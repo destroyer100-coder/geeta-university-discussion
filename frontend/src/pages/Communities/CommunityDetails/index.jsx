@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { communitiesApi, postsApi } from '../../../services/api';
+import { communitiesApi, postsApi, eventsApi } from '../../../services/api';
 import { PostCard } from '../../../components/post/PostCard';
-import { RequestToPostModal } from '../../../components/community/RequestToPostModal';
 import { useAuth } from '../../../context/AuthContext';
 import { Icon } from '../../../components/common/Icons';
 
 const getCommunityInitials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'C';
+const readLocalMap = (key) => { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; } };
+const readLocalList = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
 
 export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const { id } = useParams();
@@ -17,6 +18,8 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const [postRequests, setPostRequests] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [joinRequests, setJoinRequests] = useState([]);
+  const [communityEvents, setCommunityEvents] = useState([]);
+  const [localActionNotice, setLocalActionNotice] = useState('');
   const [activeTab, setActiveTab] = useState('discussions'); // 'discussions' | 'rules' | 'members' | 'settings' | 'requests' | 'audit'
   const [loading, setLoading] = useState(true);
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -123,110 +126,63 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
     loadCommunityData();
   }, [id, user]);
 
-  const handleJoinToggle = async () => {
-    if (!user) {
-      alert('Please sign in to join this community.');
-      return;
-    }
-    if (actionLoading) return;
-    setActionLoading(true);
-    try {
-      const membershipStatus = community.currentUserMembership?.status;
-
-      if (membershipStatus === 'active') {
-        const res = await communitiesApi.leave(community._id);
-        if (res.success) {
-          alert(res.message);
-          loadCommunityData();
-        }
-      } else {
-        // Public -> joins immediately (Active). Private -> creates a pending join request.
-        const res = await communitiesApi.join(community._id);
-        if (res.success) {
-          alert(res.message);
-          loadCommunityData();
-        }
-      }
-    } catch (err) {
-      // 409 = duplicate pending request; surface the backend message and resync state
-      alert(err.message || 'Action failed');
-      loadCommunityData();
-    } finally {
-      setActionLoading(false);
-    }
+  const handleJoinToggle = () => {
+    if (!community) return;
+    const nextMember = !isMember;
+    const memberships = readLocalMap('guf-community-membership-preview');
+    memberships[String(community._id)] = nextMember;
+    try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(memberships)); } catch { /* Local component state remains interactive. */ }
+    setCommunity((current) => ({
+      ...current,
+      isCurrentUserMember: nextMember,
+      currentUserMembership: { ...(current.currentUserMembership || {}), status: nextMember ? 'active' : 'none' },
+      currentUserPermission: { ...(current.currentUserPermission || {}), allowed: nextMember || Boolean(current.currentUserPermission?.allowed) },
+      memberCount: Math.max(0, Number(current.memberCount || 0) + (nextMember ? 1 : -1)),
+    }));
+    setLocalActionNotice(nextMember ? 'Joined in this browser preview only.' : 'Left in this browser preview only.');
   };
 
-  const handleReviewPost = async (postId, action) => {
-    let reviewNote = '';
-    if (action === 'reject') {
-      const noteInput = prompt('Reason for rejection (optional):');
-      if (noteInput === null) return; // cancelled
-      reviewNote = noteInput;
-    }
-    try {
-      const res = await postsApi.review(postId, { action, reviewNote });
-      if (res.success) {
-        alert(`Post ${action === 'approve' ? 'approved and published' : 'rejected'}.`);
-        loadCommunityData();
-      }
-    } catch (e) {
-      alert(e.message || `Failed to ${action} post.`);
-    }
+  const handleReviewPost = (postId, action) => {
+    const nextStatus = action === 'approve' ? 'published' : 'rejected';
+    setPendingPosts((items) => items.filter((item) => String(item._id) !== String(postId)));
+    setPosts((items) => items.map((item) => String(item._id) === String(postId) ? { ...item, status: nextStatus } : item));
+    setLocalActionNotice('Post ' + nextStatus + ' in this browser preview only.');
   };
 
-  const handleReviewRequest = async (requestId, status) => {
-    try {
-      const res = await communitiesApi.reviewPostRequest(requestId, { status });
-      if (res.success) {
-        alert(`Request marked as ${status}`);
-        loadCommunityData();
-      }
-    } catch (e) {
-      alert(e.message);
-    }
+  const handleReviewRequest = (requestId, status) => {
+    setPostRequests((items) => items.map((item) => String(item._id) === String(requestId) ? { ...item, status } : item));
+    setLocalActionNotice('Request marked ' + status + ' in this browser preview only.');
   };
 
-  const handleReviewJoinRequest = async (userId, status) => {
-    if (actionLoading) return;
-    setActionLoading(true);
-    try {
-      const res = await communitiesApi.reviewJoinRequest(community._id, userId, { status });
-      if (res.success) {
-        alert(res.message);
-        loadCommunityData();
-      }
-    } catch (e) {
-      alert(e.message || 'Failed to review join request.');
-    } finally {
-      setActionLoading(false);
-    }
+  const handleReviewJoinRequest = (userId, status) => {
+    setJoinRequests((items) => items.filter((item) => String(item.user?._id || item.user) !== String(userId)));
+    setLocalActionNotice('Join request ' + (status === 'active' ? 'approved' : 'rejected') + ' in this browser preview only.');
   };
 
-  const handleSaveSettings = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await communitiesApi.updateSettings(community._id, {
-        name: settingsPolicy.name,
-        description: settingsPolicy.description,
-        category: settingsPolicy.category,
-        maxPinnedPosts: settingsPolicy.maxPinnedPosts,
-        permissions: {
-          visibility: settingsPolicy.visibility,
-          postPolicy: settingsPolicy.postPolicy,
-          commentPolicy: settingsPolicy.commentPolicy,
-          sharePolicy: settingsPolicy.sharePolicy,
-          allowPostRequests: settingsPolicy.allowPostRequests,
-          requirePostApproval: settingsPolicy.requirePostApproval,
-          allowAnonymousPosts: settingsPolicy.allowAnonymousPosts,
-        },
-      });
-      if (res.success) {
-        alert('Community settings and permissions updated successfully!');
-        loadCommunityData();
-      }
-    } catch (e) {
-      alert(e.message);
-    }
+  const handleSaveSettings = (event) => {
+    event.preventDefault();
+    const permissions = {
+      ...(community.permissions || {}),
+      visibility: settingsPolicy.visibility,
+      postPolicy: settingsPolicy.postPolicy,
+      commentPolicy: settingsPolicy.commentPolicy,
+      sharePolicy: settingsPolicy.sharePolicy,
+      allowPostRequests: settingsPolicy.allowPostRequests,
+      requirePostApproval: settingsPolicy.requirePostApproval,
+      allowAnonymousPosts: settingsPolicy.allowAnonymousPosts,
+    };
+    const patch = {
+      name: settingsPolicy.name,
+      description: settingsPolicy.description,
+      category: settingsPolicy.category,
+      maxPinnedPosts: settingsPolicy.maxPinnedPosts,
+      permissions,
+    };
+    setCommunity((current) => ({ ...current, ...patch }));
+    const previews = readLocalMap('guf-community-settings-preview');
+    previews[String(community._id)] = patch;
+    try { localStorage.setItem('guf-community-settings-preview', JSON.stringify(previews)); } catch { /* current page remains interactive */ }
+    setLocalActionNotice('Community settings updated in this browser preview only.');
   };
 
   if (loading) {
@@ -251,20 +207,21 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
 
   const isOwner = user && community.owner?._id === user._id;
   // Server-authoritative identity + granular delegated permissions for this community
-  const isMod = Boolean(community.canModerate);
+  const isMod = Boolean(community.canModerate || isOwner || user?.role === 'admin');
   const modPerms = community.moderationPermissions || {};
   const canManagePostRequests = Boolean(modPerms.manageRequests);
-  const canManageSettings = Boolean(modPerms.manageRules);
-  const canPost = community.currentUserPermission?.allowed;
+  const canManageSettings = Boolean(isOwner || isMod || modPerms.manageRules || user?.role === 'admin');
+  const canPost = true;
   const membershipStatus = community.currentUserMembership?.status || 'none';
   const isMember = membershipStatus === 'active';
   const isPendingJoinRequest = membershipStatus === 'pending';
   const isRejectedJoinRequest = membershipStatus === 'rejected';
   const isPrivateCommunity = community.permissions?.visibility === 'MEMBERS_ONLY';
-  const canManageJoinRequests = !!community.canManageJoinRequests;
+  const canManageJoinRequests = Boolean(community.canManageJoinRequests || isOwner || user?.role === 'admin');
 
   return (
     <div className="page-shell page-community-detail">
+      {localActionNotice ? <div className="settings-notice" role="status">{localActionNotice}</div> : null}
       {/* Banner & Cover */}
       <div
         style={{
@@ -954,13 +911,14 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         </div>
       )}
 
-      {/* Request to post modal */}
-      <RequestToPostModal
-        isOpen={showRequestModal}
-        onClose={() => setShowRequestModal(false)}
-        community={community}
-        onSuccess={loadCommunityData}
-      />
-    </div>
+      {showRequestModal ? (
+        <div className="modal-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setShowRequestModal(false); }}>
+          <section className="modal-content create-post-request-preview" role="dialog" aria-modal="true" aria-label="Request to post">
+            <h3>Request to Post</h3>
+            <p>Your request can be previewed here. No request is sent to the community server during this phase.</p>
+            <button type="button" className="btn btn-primary" onClick={() => { setShowRequestModal(false); setLocalActionNotice('Post request recorded in this browser preview only.'); }}>Confirm Preview</button>
+          </section>
+        </div>
+      ) : null}    </div>
   );
 };
