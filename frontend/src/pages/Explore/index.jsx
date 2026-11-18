@@ -13,6 +13,12 @@ import { PageHero } from '../../components/common/PageHero';
 
 const EXPLORE_TAGS = ['All', 'DSA', 'Placements', 'Exams', 'Projects', 'WebDev', 'AI-ML', 'Notes', 'Campus'];
 const idOf = (value) => (value?._id || value || '').toString();
+const readMembershipPreview = () => {
+  try { return JSON.parse(localStorage.getItem('guf-community-membership-preview') || '{}'); } catch { return {}; }
+};
+const readRsvpPreview = () => {
+  try { return JSON.parse(localStorage.getItem('guf-event-rsvp-preview') || '[]'); } catch { return []; }
+};
 const initials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
 
 export const ExplorePage = ({ onOpenCreatePost }) => {
@@ -54,21 +60,23 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
       usersApi.getAll({ page: 1, limit: 12 }),
       eventsApi.getAll(),
     ]);
-    setCommunities(
-      communityResult.status === 'fulfilled' && communityResult.value?.success && Array.isArray(communityResult.value.data)
-        ? communityResult.value.data
-        : []
-    );
+    const communityRows = communityResult.status === 'fulfilled' && communityResult.value?.success && Array.isArray(communityResult.value.data) ? communityResult.value.data : [];
+    const membershipOverrides = readMembershipPreview();
+    setCommunities(communityRows.map((item) => Object.prototype.hasOwnProperty.call(membershipOverrides, String(item._id))
+      ? { ...item, isCurrentUserMember: Boolean(membershipOverrides[String(item._id)]), currentUserMembershipStatus: membershipOverrides[String(item._id)] ? 'joined' : '' }
+      : item));
     setPeople(
       peopleResult.status === 'fulfilled' && peopleResult.value?.success && Array.isArray(peopleResult.value.data)
         ? peopleResult.value.data
         : []
     );
-    setEvents(
-      eventResult.status === 'fulfilled' && eventResult.value?.success && Array.isArray(eventResult.value.data)
-        ? eventResult.value.data
-        : []
-    );
+    const eventRows = eventResult.status === 'fulfilled' && eventResult.value?.success && Array.isArray(eventResult.value.data) ? eventResult.value.data : [];
+    const rsvpOverrides = readRsvpPreview();
+    setEvents(eventRows.map((item) => {
+      if (!user?._id || !rsvpOverrides.includes(String(item._id))) return item;
+      const attendees = Array.isArray(item.attendees) ? item.attendees : [];
+      return { ...item, attendees: attendees.some((person) => idOf(person) === idOf(user)) ? attendees : [...attendees, user._id] };
+    }));
     setLoadingDirectory(false);
   }, []);
 
@@ -105,44 +113,34 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     .filter((person) => !user?._id || idOf(person) !== idOf(user))
     .slice(0, 3);
 
-  const handleJoinCommunity = async (community) => {
-    if (!user) {
-      alert('Please sign in to join a community.');
-      return;
-    }
+  const handleJoinCommunity = (community) => {
     if (!community?._id || busyId) return;
     setBusyId(community._id);
-    try {
-      const response = community.isCurrentUserMember
-        ? await communitiesApi.leave(community._id)
-        : await communitiesApi.join(community._id);
-      if (response.success) await fetchDirectoryData();
-    } catch (error) {
-      alert(error.message || 'The community membership action could not be completed.');
-    } finally {
-      setBusyId('');
-    }
+    const nextJoined = !community.isCurrentUserMember;
+    const overrides = readMembershipPreview();
+    overrides[String(community._id)] = nextJoined;
+    try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(overrides)); } catch { /* local page state remains usable */ }
+    setCommunities((items) => items.map((item) => String(item._id) === String(community._id)
+      ? { ...item, isCurrentUserMember: nextJoined, currentUserMembershipStatus: nextJoined ? 'joined' : '' }
+      : item));
+    setBusyId('');
   };
 
-
-
-  const handleRSVP = async (eventItem) => {
-    if (!user) {
-      alert('Please sign in to RSVP for events.');
-      return;
-    }
+  const handleRSVP = (eventItem) => {
     if (!eventItem?._id || busyId) return;
     setBusyId(eventItem._id);
-    try {
-      const response = await eventsApi.rsvp(eventItem._id);
-      if (response.success && response.data) {
-        setEvents((current) => current.map((item) => item._id === eventItem._id ? response.data : item));
-      }
-    } catch (error) {
-      alert(error.message || 'The event RSVP could not be updated.');
-    } finally {
-      setBusyId('');
-    }
+    const rsvp = readRsvpPreview();
+    const nextAttending = !rsvp.includes(String(eventItem._id));
+    const next = nextAttending ? [...rsvp, String(eventItem._id)] : rsvp.filter((id) => id !== String(eventItem._id));
+    try { localStorage.setItem('guf-event-rsvp-preview', JSON.stringify(next)); } catch { /* local page state remains usable */ }
+    setEvents((items) => items.map((item) => {
+      if (String(item._id) !== String(eventItem._id)) return item;
+      const attendees = Array.isArray(item.attendees) ? item.attendees : [];
+      const currentId = idOf(user) || 'local-preview-user';
+      const withoutCurrent = attendees.filter((person) => idOf(person) !== currentId);
+      return { ...item, attendees: nextAttending ? [...withoutCurrent, currentId] : withoutCurrent };
+    }));
+    setBusyId('');
   };
 
   const tabs = [

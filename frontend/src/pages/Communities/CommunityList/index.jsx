@@ -6,6 +6,10 @@ import { useAuth } from '../../../context/AuthContext';
 import { Icon } from '../../../components/common/Icons';
 import { PageHero } from '../../../components/common/PageHero';
 
+const readMembershipPreview = () => {
+  try { return JSON.parse(localStorage.getItem('guf-community-membership-preview') || '{}'); } catch { return {}; }
+};
+
 const CATEGORIES = [
   'All',
   'CSE',
@@ -43,7 +47,10 @@ export const CommunityList = () => {
       const res = await communitiesApi.getAll(params);
 
       if (res.success && res.data) {
-        setCommunities(res.data);
+        const overrides = readMembershipPreview();
+        setCommunities(res.data.map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id))
+          ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]), currentUserMembershipStatus: overrides[String(item._id)] ? 'joined' : '' }
+          : item));
       } else {
         setCommunities([]);
       }
@@ -90,30 +97,18 @@ export const CommunityList = () => {
     .sort((a, b) => (Number(b.memberCount) || 0) - (Number(a.memberCount) || 0))
     .slice(0, 3), [communities, user?._id]);
 
-  const handleJoinToggle = async (communityId, isJoined) => {
-    if (!user) {
-      alert(
-        'Please sign in to join this community.'
-      );
-      return;
-    }
-
+  const handleJoinToggle = (communityId, isJoined) => {
+    if (!communityId || joiningId) return;
     setJoiningId(communityId);
-
-    try {
-      const res = isJoined
-        ? await communitiesApi.leave(communityId)
-        : await communitiesApi.join(communityId);
-
-      if (res.success) {
-        await fetchCommunities();
-      }
-    } catch (err) {
-      alert(err.message || 'Action failed');
-      await fetchCommunities();
-    } finally {
-      setJoiningId(null);
-    }
+    const nextJoined = !isJoined;
+    const overrides = readMembershipPreview();
+    overrides[String(communityId)] = nextJoined;
+    try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(overrides)); } catch { /* session state still updates */ }
+    setCommunities((items) => items.map((item) => String(item._id) === String(communityId)
+      ? { ...item, isCurrentUserMember: nextJoined, currentUserMembershipStatus: nextJoined ? 'joined' : '' }
+      : item));
+    setJoiningId(null);
+  };
   };
 
   return (

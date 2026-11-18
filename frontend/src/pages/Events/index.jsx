@@ -11,6 +11,9 @@ const localDateValue = (date) => {
 };
 const isUserAttending = (event, userId) =>
   Boolean(userId && (event.attendees || []).some((person) => (person?._id || person).toString() === userId.toString()));
+const readRsvpPreview = () => {
+  try { return JSON.parse(localStorage.getItem('guf-event-rsvp-preview') || '[]'); } catch { return []; }
+};
 const isEventOrganizer = (event, userId) =>
   Boolean(userId && (event.organizer?._id || event.organizer)?.toString() === userId.toString());
 
@@ -58,7 +61,14 @@ export const EventsPage = () => {
         eventsApi.getAll({ upcoming: 'false' }),
         user ? communitiesApi.getAll() : Promise.resolve({ success: true, data: [] }),
       ]);
-      setEvents(eventResponse.success && Array.isArray(eventResponse.data) ? eventResponse.data : []);
+      const eventRows = eventResponse.success && Array.isArray(eventResponse.data) ? eventResponse.data : [];
+      const rsvpOverrides = readRsvpPreview();
+      setEvents(eventRows.map((item) => {
+        if (!rsvpOverrides.includes(String(item._id))) return item;
+        const attendees = Array.isArray(item.attendees) ? item.attendees : [];
+        const currentId = user?._id || 'local-preview-user';
+        return { ...item, attendees: attendees.some((person) => (person?._id || person).toString() === currentId.toString()) ? attendees : [...attendees, currentId] };
+      }));
       setCommunities(communityResponse.success && Array.isArray(communityResponse.data) ? communityResponse.data : []);
     } catch (error) {
       console.error('Failed to load events:', error);
@@ -125,44 +135,46 @@ export const EventsPage = () => {
   }, [currentPage, pageCount]);
 
 
-  const handleRSVP = async (eventItem) => {
-    if (!user) {
-      alert('Please sign in to RSVP for events.');
-      return;
-    }
-    if (rsvpLoadingId === eventItem._id) return;
+  const handleRSVP = (eventItem) => {
+    if (!eventItem?._id || rsvpLoadingId) return;
     setRsvpLoadingId(eventItem._id);
-    try {
-      const response = await eventsApi.rsvp(eventItem._id);
-      if (response.success && response.data) {
-        setEvents((items) => items.map((item) => item._id === eventItem._id ? response.data : item));
-      }
-    } catch (error) {
-      alert(error.message || 'Could not update your RSVP.');
-    } finally {
-      setRsvpLoadingId(null);
-    }
+    const rsvp = readRsvpPreview();
+    const nextAttending = !rsvp.includes(String(eventItem._id));
+    const next = nextAttending ? [...rsvp, String(eventItem._id)] : rsvp.filter((id) => id !== String(eventItem._id));
+    try { localStorage.setItem('guf-event-rsvp-preview', JSON.stringify(next)); } catch { /* page state remains interactive */ }
+    setEvents((items) => items.map((item) => {
+      if (String(item._id) !== String(eventItem._id)) return item;
+      const attendees = Array.isArray(item.attendees) ? item.attendees : [];
+      const currentId = user?._id || 'local-preview-user';
+      const withoutCurrent = attendees.filter((person) => (person?._id || person).toString() !== currentId.toString());
+      return { ...item, attendees: nextAttending ? [...withoutCurrent, currentId] : withoutCurrent };
+    }));
+    setRsvpLoadingId(null);
   };
 
-  const handleCreateEvent = async (event) => {
+  const handleCreateEvent = (event) => {
     event.preventDefault();
+    if (!createForm.title.trim() || !createForm.date) {
+      setCreateError('Enter an event title and date.');
+      return;
+    }
     setCreating(true);
     setCreateError('');
-    try {
-      const response = await eventsApi.create({
-        ...createForm,
-        date: createForm.date ? new Date(createForm.date + 'T12:00:00').toISOString() : '',
-      });
-      if (response.success && response.data) {
-        setEvents((items) => [...items, response.data].sort((a, b) => new Date(a.date) - new Date(b.date)));
-        setShowCreate(false);
-        setCreateForm({ community: '', title: '', date: '', time: '', venue: '', category: '', description: '' });
-      }
-    } catch (error) {
-      setCreateError(error.message || 'Event creation was not permitted or could not be completed.');
-    } finally {
-      setCreating(false);
-    }
+    const newEvent = {
+      _id: 'local-event-' + Date.now(),
+      ...createForm,
+      community: communities.find((item) => String(item._id) === String(createForm.community)) || null,
+      date: new Date(createForm.date + 'T12:00:00').toISOString(),
+      organizer: user || null,
+      attendees: [],
+      isLocalPreview: true,
+    };
+    setEvents((items) => [...items, newEvent].sort((a, b) => new Date(a.date) - new Date(b.date)));
+    setShowCreate(false);
+    setCurrentPage(1);
+    setCreateForm({ community: '', title: '', date: '', time: '', venue: '', category: '', description: '' });
+    setCreating(false);
+    setCreateError('');
   };
 
   const scopeOptions = [
