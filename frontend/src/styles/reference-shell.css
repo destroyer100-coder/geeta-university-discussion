@@ -45,7 +45,7 @@ body {
 .navbar {
   position: sticky;
   top: 0;
-  height: 64px;
+  height: 54px;
   background: linear-gradient(105deg, #003d28 0%, #004c31 58%, #003923 100%);
   border: 0;
   border-bottom: 1px solid rgba(255,255,255,.13);
@@ -235,19 +235,19 @@ body {
 .main-layout.no-rightbar,
 .main-layout.is-collapsed.no-rightbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 324px;
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: 18px;
-  width: calc(100% - 256px);
+  width: calc(100% - 220px);
   max-width: none;
-  margin: 0 0 0 256px;
-  padding: 18px 18px 38px;
+  margin: 0 0 0 220px;
+  padding: 14px 14px 32px;
   align-items: start;
   transition: margin-left .18s ease, width .18s ease;
 }
 .main-layout.is-collapsed,
 .main-layout.is-collapsed.no-rightbar {
-  width: calc(100% - 76px);
-  margin-left: 76px;
+  width: calc(100% - 68px);
+  margin-left: 68px;
 }
 .main-layout.no-rightbar,
 .main-layout.is-collapsed.no-rightbar {
@@ -255,20 +255,20 @@ body {
 }
 .content-area { min-width: 0; padding: 0; }
 .right-sidebar {
-  top: 82px;
+  top: 68px;
   max-height: calc(100vh - 94px);
   padding-bottom: 8px;
   gap: 14px;
 }
 .left-sidebar {
   position: fixed;
-  top: 64px;
+  top: 54px;
   left: 0;
   bottom: 0;
-  width: 256px;
-  height: calc(100vh - 64px);
-  max-height: calc(100vh - 64px);
-  padding: 18px 14px 20px;
+  width: 220px;
+  height: calc(100vh - 54px);
+  max-height: calc(100vh - 54px);
+  padding: 14px 10px 18px;
   overflow-x: hidden;
   overflow-y: auto;
   border: 0;
@@ -370,24 +370,24 @@ body {
 .badge-success { background: #e5f8df; color: #10652e; border-color: #b8e4aa; }
 
 .page-hero {
-  min-height: 100px;
+  min-height: 86px;
   position: relative;
   isolation: isolate;
   display: flex;
   align-items: center;
   gap: 18px;
   overflow: hidden;
-  padding: 18px 24px;
+  padding: 14px 18px;
   margin: 2px 0 18px;
   background: linear-gradient(105deg, #fffefa 0%, #fffdf9 64%, #f8f1e8 100%);
   border: 1px solid #eee8df;
-  border-radius: 20px;
+  border-radius: 15px;
   box-shadow: 0 3px 12px rgba(68,52,30,.065);
 }
 .page-hero-icon {
-  width: 58px;
-  height: 58px;
-  flex: 0 0 58px;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
   display: grid;
   place-items: center;
   color: #fff;
