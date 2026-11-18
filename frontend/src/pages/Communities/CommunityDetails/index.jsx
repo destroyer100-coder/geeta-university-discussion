@@ -300,15 +300,19 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         }}
       >
         <div
+          className="community-detail-cover"
           style={{
-            height: '160px',
-            background: `url(${
-              community.banner ||
-              '/assets/campus-banner.webp'
-            }) center/cover no-repeat`,
-            position: 'relative',
+            backgroundImage: `linear-gradient(90deg, rgba(0,42,28,.9), rgba(0,42,28,.18)), url(${
+              community.banner || '/assets/campus-banner.webp'
+            })`,
           }}
-        />
+        >
+          <div className="community-detail-cover-copy">
+            <span>{community.category || community.type || 'UNIVERSITY COMMUNITY'}</span>
+            <h1>{community.name}</h1>
+            <p>{community.description}</p>
+          </div>
+        </div>
 
         <div style={{ padding: '20px 24px', position: 'relative' }}>
           <div
@@ -335,18 +339,11 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 </span>
               )}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{community.name}</h1>
-                  <span className="badge badge-primary">{community.category || community.type}</span>
-                  {community.permissions?.visibility === 'MEMBERS_ONLY' && (
+                {community.permissions?.visibility === 'MEMBERS_ONLY' && (
                     <span className="badge" style={{ background: '#fef3c7', color: '#92400e' }}>
                       🔒 Members Only
                     </span>
                   )}
-                </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '640px' }}>
-                  {community.description}
-                </p>
                 <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   <span>
                     👥 <strong>{community.memberCount || 0}</strong> Members
@@ -536,7 +533,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             )}
           </div>
 
-          {/* Right Panel: Community Rules & Permissions */}
+          {/* Right Panel: Community information and leadership */}
           <div>
             <div className="card" style={{ marginBottom: '16px' }}>
               <div
@@ -550,7 +547,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 }}
               >
                 <Icon name="shieldCheck" size={18} color="var(--primary)" />
-                <span>Enforced Policies</span>
+                <span>Community Info</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.825rem' }}>
