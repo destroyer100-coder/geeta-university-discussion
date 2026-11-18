@@ -187,8 +187,7 @@ export const PostCard = ({ post, onVotePollSuccess, onPostUpdated, modPermission
       <div className="post-header">
         <div className="post-author-meta">
           <Link to={`/profile/${author._id || 'user'}`}>
-            <img
-              {author.avatar ? (
+            {author.avatar ? (
               <img src={author.avatar} alt={author.name || ''} className="post-avatar" loading="lazy" decoding="async" />
             ) : (
               <span className="post-avatar post-avatar-fallback" aria-hidden="true">
