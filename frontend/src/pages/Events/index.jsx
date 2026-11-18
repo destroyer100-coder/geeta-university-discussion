@@ -23,6 +23,9 @@ export const EventsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedCommunity, setSelectedCommunity] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('soonest');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [rsvpLoadingId, setRsvpLoadingId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -75,18 +78,21 @@ export const EventsPage = () => {
         activeScope === 'all' ||
         (activeScope === 'upcoming' && !isPast) ||
         (activeScope === 'past' && isPast) ||
+        (activeScope === 'today' && localDateValue(event.date) === todayKey) ||
         (activeScope === 'mine' && (isUserAttending(event, user?._id) || isEventOrganizer(event, user?._id)));
       const matchesCategory = selectedCategory === 'All' || event.category === selectedCategory;
       const communityId = event.community?._id || event.community || '';
       const matchesCommunity = selectedCommunity === 'All' || communityId.toString() === selectedCommunity;
       const values = [event.title, event.description, event.venue, event.community?.name].filter(Boolean);
       const matchesSearch = !query || values.some((value) => value.toLowerCase().includes(query));
-      return matchesScope && matchesCategory && matchesCommunity && matchesSearch;
+      const matchesDate = !selectedDate || localDateValue(event.date) === selectedDate;
+      return matchesScope && matchesCategory && matchesCommunity && matchesSearch && matchesDate;
     }).sort((a, b) => {
       const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
-      return activeScope === 'past' ? -diff : diff;
+      const direction = activeScope === 'past' || sortOrder === 'newest' ? -1 : 1;
+      return diff * direction;
     });
-  }, [events, activeScope, selectedCategory, selectedCommunity, searchQuery, user?._id]);
+  }, [events, activeScope, selectedCategory, selectedCommunity, searchQuery, selectedDate, sortOrder, user?._id]);
 
   const handleRSVP = async (eventItem) => {
     if (!user) {
@@ -131,9 +137,34 @@ export const EventsPage = () => {
   const scopeOptions = [
     { key: 'all', label: 'All Events', icon: 'calendar' },
     { key: 'upcoming', label: 'Upcoming', icon: 'clock' },
+    { key: 'today', label: 'Today', icon: 'sun' },
     { key: 'past', label: 'Past', icon: 'archive' },
     { key: 'mine', label: 'My Events', icon: 'userCheck' },
   ];
+
+  const calendarCells = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const dayCount = new Date(year, month + 1, 0).getDate();
+    const cells = Array(firstWeekday).fill(null);
+    for (let day = 1; day <= dayCount; day += 1) {
+      const date = new Date(year, month, day);
+      const key = localDateValue(date);
+      cells.push({
+        day,
+        key,
+        hasEvent: events.some((item) => localDateValue(item.date) === key),
+      });
+    }
+    return cells;
+  }, [calendarMonth, events]);
+
+  const todayKey = localDateValue(new Date());
+  const highlightedEvents = events
+    .filter((event) => localDateValue(event.date) >= todayKey)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 3);
 
   return (
     <div className="page-shell page-events">
@@ -148,6 +179,8 @@ export const EventsPage = () => {
         ) : null}
       />
 
+      <div className="events-workspace">
+      <main className="events-main">
       <div className="page-tabs event-scope-tabs" role="tablist" aria-label="Event views">
         {scopeOptions.map((option) => (
           <button type="button" key={option.key} className={activeScope === option.key ? 'btn btn-primary' : 'btn btn-secondary'} aria-selected={activeScope === option.key} onClick={() => setActiveScope(option.key)}>
@@ -171,8 +204,19 @@ export const EventsPage = () => {
               <option key={community._id} value={community._id}>{community.name}</option>
             ))}
           </select>
+          <select className="form-control" value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sort events">
+            <option value="soonest">Sort: Soonest</option>
+            <option value="newest">Sort: Latest</option>
+          </select>
         </div>
       </div>
+
+      {selectedDate ? (
+        <div className="event-date-filter-note">
+          Showing events on {new Date(selectedDate + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+          <button type="button" onClick={() => setSelectedDate('')}>Clear date</button>
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="loading-state">Loading campus events...</div>
@@ -220,6 +264,50 @@ export const EventsPage = () => {
           })}
         </div>
       )}
+      </main>
+
+      <aside className="events-side">
+        <section className="card events-calendar-card">
+          <header className="events-side-heading">
+            <h2><Icon name="calendar" size={18} /> Event Calendar</h2>
+          </header>
+          <div className="events-calendar-toolbar">
+            <button type="button" aria-label="Previous month" onClick={() => setCalendarMonth((date) => new Date(date.getFullYear(), date.getMonth() - 1, 1))}><Icon name="chevronLeft" size={17} /></button>
+            <strong>{calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</strong>
+            <button type="button" aria-label="Next month" onClick={() => setCalendarMonth((date) => new Date(date.getFullYear(), date.getMonth() + 1, 1))}><Icon name="chevronRight" size={17} /></button>
+          </div>
+          <div className="events-calendar-grid">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day} className="events-calendar-weekday">{day}</span>)}
+            {calendarCells.map((cell, index) => cell ? (
+              <button
+                type="button"
+                key={cell.key}
+                className={'events-calendar-day' + (cell.key === todayKey ? ' is-today' : '') + (selectedDate === cell.key ? ' is-selected' : '') + (cell.hasEvent ? ' has-event' : '')}
+                onClick={() => setSelectedDate((current) => current === cell.key ? '' : cell.key)}
+                aria-label={new Date(cell.key + 'T12:00:00').toLocaleDateString()}
+                aria-pressed={selectedDate === cell.key}
+              >{cell.day}</button>
+            ) : <span key={'blank-' + index} />)}
+          </div>
+          <button type="button" className="events-calendar-clear" onClick={() => setSelectedDate('')} disabled={!selectedDate}>Clear date filter</button>
+        </section>
+
+        <section className="card events-highlights-card">
+          <header className="events-side-heading"><h2><Icon name="trendingUp" size={18} /> Upcoming Highlights</h2></header>
+          {highlightedEvents.length ? highlightedEvents.map((item) => {
+            const date = new Date(item.date);
+            return (
+              <button type="button" className="events-highlight-row" key={item._id} onClick={() => { setSelectedDate(localDateValue(item.date)); setActiveScope('all'); }}>
+                <span className="events-highlight-date"><small>{date.toLocaleDateString(undefined, { month: 'short' })}</small><strong>{date.getDate()}</strong></span>
+                <span className="events-highlight-copy"><strong>{item.title}</strong><small>{[item.venue, item.time].filter(Boolean).join(' · ')}</small></span>
+                <Icon name="chevronRight" size={16} />
+              </button>
+            );
+          }) : <p className="events-no-highlights">No upcoming events are available.</p>}
+          <button type="button" className="events-highlights-link" onClick={() => { setActiveScope('upcoming'); setSelectedDate(''); }}>View All Events <Icon name="arrowRight" size={15} /></button>
+        </section>
+      </aside>
+      </div>
 
       {showCreate ? (
         <div className="modal-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget && !creating) setShowCreate(false); }}>

@@ -62,7 +62,8 @@ export const MainLayout = () => {
     location.pathname.startsWith('/notifications') ||
     location.pathname.startsWith('/communities') ||
     location.pathname.startsWith('/saved') ||
-    location.pathname.startsWith('/my-discussions');
+    location.pathname.startsWith('/my-discussions') ||
+    location.pathname.startsWith('/events');
 
   const layoutClassName = `main-layout${
     isSidebarCollapsed ? ' is-collapsed' : ''

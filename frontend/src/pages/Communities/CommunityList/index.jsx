@@ -56,7 +56,7 @@ export const CommunityList = () => {
 
   useEffect(() => {
     fetchCommunities();
-  }, [selectedCategory, searchTerm, sortBy, user?._id]);
+  }, [searchTerm, sortBy, user?._id]);
 
   const visibleCommunities = useMemo(() => communities.filter((community) => {
     const ownerId = community.owner?._id || community.owner;
