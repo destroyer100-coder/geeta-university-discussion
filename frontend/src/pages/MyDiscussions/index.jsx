@@ -7,6 +7,14 @@ import { PageHero } from '../../components/common/PageHero';
 import { Icon } from '../../components/common/Icons';
 
 const PAGE_SIZE = 10;
+const readLocalPosts = (userId) => {
+  try {
+    const items = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]');
+    return items.filter((post) => String(post.author?._id || post.author || '') === String(userId || ''));
+  } catch {
+    return [];
+  }
+};
 
 export const MyDiscussionsPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -26,6 +34,7 @@ export const MyDiscussionsPage = () => {
       return;
     }
     setCountLoading(true);
+    let serverCounts = { all: 0, published: 0, pending: 0, rejected: 0 };
     try {
       const [allResult, publishedResult, pendingResult, rejectedResult] = await Promise.all([
         postsApi.getAll({ author: user._id, page: 1, limit: 1 }),
@@ -33,17 +42,23 @@ export const MyDiscussionsPage = () => {
         postsApi.getAll({ author: user._id, status: 'pending', page: 1, limit: 1 }),
         postsApi.getAll({ author: user._id, status: 'rejected', page: 1, limit: 1 }),
       ]);
-      setCounts({
+      serverCounts = {
         all: allResult.pagination?.total || 0,
         published: publishedResult.pagination?.total || 0,
         pending: pendingResult.pagination?.total || 0,
         rejected: rejectedResult.pagination?.total || 0,
-      });
+      };
     } catch (error) {
-      setErrorNotice(error.message || 'Discussion totals could not be loaded.');
-    } finally {
-      setCountLoading(false);
+      setErrorNotice(error.message || 'Server discussion totals are unavailable; showing local preview posts.');
     }
+    const localPosts = readLocalPosts(user._id);
+    setCounts({
+      all: serverCounts.all + localPosts.length,
+      published: serverCounts.published + localPosts.filter((post) => post.status === 'published' || post.status === 'active').length,
+      pending: serverCounts.pending + localPosts.filter((post) => post.status === 'pending').length,
+      rejected: serverCounts.rejected + localPosts.filter((post) => post.status === 'rejected').length,
+    });
+    setCountLoading(false);
   }, [user?._id]);
 
   const fetchMyPosts = useCallback(async () => {
@@ -55,15 +70,23 @@ export const MyDiscussionsPage = () => {
     }
     setLoading(true);
     setErrorNotice('');
+    const localPosts = readLocalPosts(user._id)
+      .filter((post) => activeStatus === 'all' || (activeStatus === 'published' ? ['published', 'active'].includes(post.status) : post.status === activeStatus))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     try {
       const params = { author: user._id, page, limit: PAGE_SIZE };
       if (activeStatus !== 'all') params.status = activeStatus;
       const response = await postsApi.getAll(params);
-      setPosts(response.success && Array.isArray(response.data) ? response.data : []);
-      setPageCount(response.pagination?.pages || 0);
+      const serverPosts = response.success && Array.isArray(response.data) ? response.data : [];
+      const serverIds = new Set(serverPosts.map((post) => String(post._id)));
+      const localOnly = localPosts.filter((post) => !serverIds.has(String(post._id)));
+      setPosts(page === 1 ? [...localOnly, ...serverPosts] : serverPosts);
+      const serverTotal = response.pagination?.total || 0;
+      setPageCount(Math.max(response.pagination?.pages || 0, Math.ceil((serverTotal + localOnly.length) / PAGE_SIZE)));
     } catch (error) {
-      setPosts([]);
-      setErrorNotice(error.message || 'Your discussions could not be loaded.');
+      setErrorNotice(error.message || 'Server discussions are unavailable; showing local preview posts.');
+      setPosts(localPosts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
+      setPageCount(Math.ceil(localPosts.length / PAGE_SIZE));
     } finally {
       setLoading(false);
     }
@@ -76,6 +99,12 @@ export const MyDiscussionsPage = () => {
   useEffect(() => {
     if (!authLoading) fetchMyPosts();
   }, [authLoading, fetchMyPosts]);
+
+  useEffect(() => {
+    const refresh = () => { fetchCounts(); fetchMyPosts(); };
+    window.addEventListener('local-posts:changed', refresh);
+    return () => window.removeEventListener('local-posts:changed', refresh);
+  }, [fetchCounts, fetchMyPosts]);
 
   const selectStatus = (status) => {
     setActiveStatus(status);
@@ -94,8 +123,8 @@ export const MyDiscussionsPage = () => {
       {!user ? (
         <div className="card people-empty">
           <Icon name="messageSquare" size={30} />
-          <h3>Sign in to view your discussions</h3>
-          <Link to="/login" className="btn btn-primary">Sign in</Link>
+          <h3>Sign in or continue as a guest</h3>
+          <Link to="/login" className="btn btn-primary">Open Login</Link>
         </div>
       ) : (
         <div className="my-discussions-workspace">

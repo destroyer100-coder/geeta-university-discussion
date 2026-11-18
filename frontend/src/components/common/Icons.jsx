@@ -180,6 +180,19 @@ export const Icon = ({ name, size = 18, className = '', color = 'currentColor', 
     repeat: (
       <path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 01-3 3H3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),
+
+    graduationCap: (
+      <path d="M2 9l10-5 10 5-10 5L2 9zm4 2.2V16c3.5 2.5 8.5 2.5 12 0v-4.8M22 9v6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    user: (
+      <path d="M20 21a8 8 0 00-16 0m8-10a4 4 0 100-8 4 4 0 000 8z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    userRound: (
+      <path d="M18 20a6 6 0 00-12 0m6-9a4 4 0 100-8 4 4 0 000 8z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    layers: (
+      <path d="M12 3L2 9l10 6 10-6-10-6zm-10 11l10 6 10-6M2 16l10 6 10-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
   };
 
   return (

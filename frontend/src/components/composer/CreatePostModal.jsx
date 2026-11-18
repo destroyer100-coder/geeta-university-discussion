@@ -287,7 +287,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, in
         verified: user.verified,
       } : { name: 'Guest', department: 'University Community' },
       createdAt: new Date().toISOString(),
-      status: 'active',
+      status: 'published',
       likesCount: 0,
       commentsCount: 0,
       helpfulCount: 0,
