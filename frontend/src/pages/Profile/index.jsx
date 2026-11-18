@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { usersApi, postsApi } from '../../services/api';
 import { PostCard } from '../../components/post/PostCard';
 import { Icon } from '../../components/common/Icons';
-import { PageHero } from '../../components/common/PageHero';
 
 const getInitials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
 
@@ -421,6 +420,8 @@ export const ProfilePage = () => {
         </div>
       </div>
 
+      <div className="profile-workspace">
+        <main className="profile-main-content">
       {/* Tab Panels */}
       {/* 1. Discussions Tab */}
       {activeTab === 'posts' && (
@@ -647,6 +648,52 @@ export const ProfilePage = () => {
           )}
         </div>
       )}
+
+
+        </main>
+        <aside className="profile-side">
+          <section className="card profile-side-card">
+            <header className="profile-side-heading"><h2><Icon name="barChart2" size={18} /> Profile Overview</h2></header>
+            <div className="profile-overview-grid">
+              <div><strong>{userPosts.length}</strong><span>Discussions</span></div>
+              <div><strong>{userComments.length}</strong><span>Comments</span></div>
+              <div><strong>{profileData.followersCount || 0}</strong><span>Followers</span></div>
+              <div><strong>{profileData.followingCount || 0}</strong><span>Following</span></div>
+            </div>
+          </section>
+
+          <section className="card profile-side-card">
+            <header className="profile-side-heading"><h2><Icon name="userCheck" size={18} /> About</h2><span className="profile-side-muted">Details</span></header>
+            <div className="profile-about-row"><span>University</span><strong>Geeta University</strong></div>
+            <div className="profile-about-row"><span>Department</span><strong>{profileData.department || 'Not specified'}</strong></div>
+            <div className="profile-about-row"><span>Year / Role</span><strong>{profileData.year || profileData.role || 'Member'}</strong></div>
+            <div className="profile-about-row"><span>Member since</span><strong>{profileData.createdAt ? new Date(profileData.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'Not available'}</strong></div>
+            <div className="profile-about-row"><span>Verification</span><strong>{profileData.verified ? 'Verified' : 'Not verified'}</strong></div>
+          </section>
+
+          <section className="card profile-side-card">
+            <header className="profile-side-heading"><h2><Icon name="users" size={18} /> Communities</h2><span className="profile-side-muted">{profileData.communities?.length || 0}</span></header>
+            {profileData.communities?.length ? profileData.communities.slice(0, 4).map((community) => (
+              <Link className="profile-side-community" to={'/communities/' + (community.slug || community._id)} key={community._id}>
+                {community.avatar ? <img src={community.avatar} alt="" loading="lazy" decoding="async" /> : <span>{getInitials(community.name)}</span>}
+                <span><strong>{community.name}</strong><small>{community.communityRole || 'Member'}</small></span>
+                <Icon name="chevronRight" size={15} />
+              </Link>
+            )) : <p className="profile-side-empty">No community memberships are available.</p>}
+            <Link className="profile-side-footer-link" to="/communities">Explore Communities <Icon name="arrowRight" size={14} /></Link>
+          </section>
+
+          <section className="card profile-side-card">
+            <header className="profile-side-heading"><h2><Icon name="trendingUp" size={18} /> Recent Contributions</h2></header>
+            {userPosts.slice(0, 3).map((post) => (
+              <Link to={'/discussions/' + post._id} className="profile-contribution" key={post._id}>
+                <strong>{post.title}</strong><small>{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</small>
+              </Link>
+            ))}
+            {userPosts.length === 0 ? <p className="profile-side-empty">No discussions have been published.</p> : null}
+          </section>
+        </aside>
+      </div>
 
       {/* Edit Profile Modal */}
       {showEditModal && (

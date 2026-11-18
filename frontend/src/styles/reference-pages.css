@@ -1091,3 +1091,43 @@
 :root[data-theme="dark"] .people-filter-option:hover{background:var(--bg-muted)}
 :root[data-theme="dark"] .people-filter-option.active{background:#4c3e1d;color:#fff4d3}
 :root[data-theme="dark"] .people-suggestion{border-color:var(--border-color)}
+
+/* Profile timeline and contextual profile information rail */
+.profile-workspace{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}
+.profile-main-content{min-width:0}
+.profile-side{display:flex;flex-direction:column;gap:13px}
+.profile-side-card{padding:14px!important}
+.profile-side-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #eee7de}
+.profile-side-heading h2{display:flex;align-items:center;gap:8px;font-size:.91rem;font-weight:850}
+.profile-side-heading h2 svg{color:var(--primary)}
+.profile-side-muted{font-size:.68rem;color:var(--text-muted)}
+.profile-overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.profile-overview-grid>div{padding:10px;border-radius:10px;background:#f4f6f0}
+.profile-overview-grid strong,.profile-overview-grid span{display:block}
+.profile-overview-grid strong{font-size:1.1rem;color:var(--primary);font-weight:900}
+.profile-overview-grid span{margin-top:2px;color:var(--text-muted);font-size:.68rem}
+.profile-about-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f0ede7}
+.profile-about-row:last-child{border-bottom:0}
+.profile-about-row span{color:var(--text-muted);font-size:.7rem;flex:0 0 82px}
+.profile-about-row strong{font-size:.72rem;text-align:right;overflow-wrap:anywhere}
+.profile-side-community{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eee7de;color:var(--text-main);text-decoration:none}
+.profile-side-community>img,.profile-side-community>span:first-child{width:34px;height:34px;flex:0 0 34px;border-radius:9px;object-fit:cover}
+.profile-side-community>span:first-child{display:grid;place-items:center;background:#e7f2e1;color:#075a34;font-size:.68rem;font-weight:850}
+.profile-side-community>span:nth-child(2){min-width:0;flex:1}
+.profile-side-community strong,.profile-side-community small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.profile-side-community strong{font-size:.73rem}
+.profile-side-community small{margin-top:2px;color:var(--text-muted);font-size:.65rem;text-transform:capitalize}
+.profile-side-community>svg{color:var(--text-muted)}
+.profile-side-footer-link{display:flex;align-items:center;justify-content:center;gap:6px;padding-top:11px;color:var(--primary);font-size:.7rem;font-weight:850;text-decoration:none}
+.profile-contribution{display:block;padding:9px 0;border-bottom:1px solid #eee7de;color:var(--text-main);text-decoration:none}
+.profile-contribution:last-child{border-bottom:0}
+.profile-contribution strong,.profile-contribution small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.profile-contribution strong{font-size:.74rem}
+.profile-contribution small{margin-top:3px;color:var(--text-muted);font-size:.66rem}
+.profile-side-empty{color:var(--text-muted);font-size:.73rem;line-height:1.45}
+@media(max-width:1200px){.profile-workspace{grid-template-columns:minmax(0,1fr) 270px}}
+@media(max-width:900px){.profile-workspace{grid-template-columns:minmax(0,1fr)}.profile-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.profile-side{grid-template-columns:minmax(0,1fr)}.page-profile .profile-cover{height:130px}.page-profile .profile-main-avatar{width:84px;height:84px}}
+:root[data-theme="dark"] .profile-side-card{background:var(--bg-card);border-color:var(--border-color)}
+:root[data-theme="dark"] .profile-overview-grid>div{background:var(--bg-muted)}
+:root[data-theme="dark"] .profile-side-community,:root[data-theme="dark"] .profile-contribution,:root[data-theme="dark"] .profile-about-row{border-color:var(--border-color);color:var(--text-main)}
