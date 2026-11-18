@@ -5,6 +5,7 @@ import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { Rightbar } from './Rightbar';
 import { CreatePostModal } from '../composer/CreatePostModal';
+import { UnreadCountsProvider } from '../../context/UnreadCountsContext';
 
 export const MainLayout = () => {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
@@ -110,6 +111,7 @@ export const MainLayout = () => {
   };
 
   return (
+    <UnreadCountsProvider>
     <div className="app-container">
       <Navbar
         onOpenCreatePost={() => handleOpenCreatePost()}
@@ -144,5 +146,6 @@ export const MainLayout = () => {
         onPostCreated={handlePostCreated}
       />
     </div>
+    </UnreadCountsProvider>
   );
 };

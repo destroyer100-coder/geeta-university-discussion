@@ -2,8 +2,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Icon } from '../common/Icons';
-import { communitiesApi, messagesApi, notificationsApi } from '../../services/api';
+import { communitiesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useUnreadCounts } from '../../context/UnreadCountsContext';
 
 export const COMMUNITIES_CHANGED_EVENT = 'communities:changed';
 
@@ -91,8 +92,8 @@ export const Sidebar = ({
   const [communities, setCommunities] = useState([]);
   const [communitiesLoading, setCommunitiesLoading] = useState(true);
   const [communitiesError, setCommunitiesError] = useState(false);
-  const [navCounts, setNavCounts] = useState({ messages: 0, notifications: 0 });
   const { user } = useAuth();
+  const { counts: navCounts } = useUnreadCounts();
 
   const location = useLocation();
   const closeMobileNav = onCloseMobileNav || (() => {});
@@ -138,32 +139,7 @@ export const Sidebar = ({
     loadCommunities();
   }, [location.pathname, loadCommunities]);
 
-  const loadNavCounts = useCallback(async () => {
-    if (!user) {
-      setNavCounts({ messages: 0, notifications: 0 });
-      return;
-    }
-    const [notificationResult, messageResult] = await Promise.allSettled([
-      notificationsApi.getAll(),
-      messagesApi.getConversations(),
-    ]);
-    const next = { messages: 0, notifications: 0 };
-    if (notificationResult.status === 'fulfilled' && notificationResult.value?.success) {
-      next.notifications = Number(notificationResult.value.unreadCount) || 0;
-    }
-    if (messageResult.status === 'fulfilled' && messageResult.value?.success && Array.isArray(messageResult.value.data)) {
-      next.messages = messageResult.value.data.reduce((sum, conversation) => sum + (Number(conversation.unreadCount) || 0), 0);
-    }
-    setNavCounts(next);
-  }, [user]);
-
-  useEffect(() => {
-    loadNavCounts();
-    const onRefresh = () => loadNavCounts();
-    window.addEventListener('notifications:changed', onRefresh);
-    window.addEventListener('messages:changed', onRefresh);
-    window.addEventListener('focus', onRefresh);
-    return () => {
+  return () => {
       window.removeEventListener('notifications:changed', onRefresh);
       window.removeEventListener('messages:changed', onRefresh);
       window.removeEventListener('focus', onRefresh);

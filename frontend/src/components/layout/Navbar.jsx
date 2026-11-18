@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../common/Icons';
 import { useAuth } from '../../context/AuthContext';
+import { useUnreadCounts } from '../../context/UnreadCountsContext';
 import { messagesApi, notificationsApi } from '../../services/api';
 
 export const NOTIFICATIONS_CHANGED_EVENT = 'notifications:changed';
@@ -17,70 +18,17 @@ const targetForNotification = (item) => {
 
 export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = false }) => {
   const { user, logout } = useAuth();
+  const { counts, refreshCounts } = useUnreadCounts();
+  const unreadCount = counts.notifications;
+  const messageUnreadCount = counts.messages;
   const navigate = useNavigate();
-  const location = useLocation();
   const searchRef = useRef(null);
   const [showPersonaMenu, setShowPersonaMenu] = useState(false);
   const [openPopover, setOpenPopover] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [notificationPreview, setNotificationPreview] = useState([]);
   const [messagePreview, setMessagePreview] = useState([]);
   const [previewLoading, setPreviewLoading] = useState(false);
-
-  const loadUnreadCount = useCallback(async () => {
-    if (!user) {
-      setUnreadCount(0);
-      return;
-    }
-    try {
-      const res = await notificationsApi.getAll();
-      if (res?.success) setUnreadCount(res.unreadCount || 0);
-    } catch {
-      setUnreadCount(0);
-    }
-  }, [user]);
-
-  const loadMessageCount = useCallback(async () => {
-    if (!user) {
-      setMessageUnreadCount(0);
-      return;
-    }
-    try {
-      const res = await messagesApi.getConversations();
-      if (res?.success && Array.isArray(res.data)) {
-        setMessageUnreadCount(res.data.reduce((sum, item) => sum + (Number(item.unreadCount) || 0), 0));
-      }
-    } catch {
-      setMessageUnreadCount(0);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    loadUnreadCount();
-    loadMessageCount();
-  }, [loadUnreadCount, loadMessageCount, location.pathname]);
-
-  useEffect(() => {
-    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, loadUnreadCount);
-    return () => window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, loadUnreadCount);
-  }, [loadUnreadCount]);
-
-  useEffect(() => {
-    const onShortcut = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        searchRef.current?.focus();
-      }
-      if (event.key === 'Escape') {
-        setOpenPopover('');
-        setShowPersonaMenu(false);
-      }
-    };
-    window.addEventListener('keydown', onShortcut);
-    return () => window.removeEventListener('keydown', onShortcut);
-  }, []);
 
   const openPreview = async (type) => {
     setShowPersonaMenu(false);
@@ -95,13 +43,11 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
         const res = await notificationsApi.getAll();
         if (res?.success) {
           setNotificationPreview(Array.isArray(res.data) ? res.data.slice(0, 4) : []);
-          setUnreadCount(res.unreadCount || 0);
         }
       } else {
         const res = await messagesApi.getConversations();
         if (res?.success && Array.isArray(res.data)) {
           setMessagePreview(res.data.slice(0, 4));
-          setMessageUnreadCount(res.data.reduce((sum, item) => sum + (Number(item.unreadCount) || 0), 0));
         }
       }
     } catch (error) {
@@ -124,8 +70,8 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
     try {
       await notificationsApi.markAllRead();
       setNotificationPreview((items) => items.map((item) => ({ ...item, read: true })));
-      setUnreadCount(0);
       window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+      refreshCounts();
     } catch (error) {
       console.error('Failed to mark notifications as read:', error);
     }
@@ -136,7 +82,7 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
       try {
         await notificationsApi.markRead(item._id);
         setNotificationPreview((items) => items.map((entry) => entry._id === item._id ? { ...entry, read: true } : entry));
-        loadUnreadCount();
+        window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
       } catch (error) {
         console.error('Failed to mark notification as read:', error);
       }
