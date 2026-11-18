@@ -289,13 +289,21 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   return (
     <div className="page-shell page-community-detail">
       {localActionNotice ? <div className="settings-notice" role="status">{localActionNotice}</div> : null}
-      {/* Community identity and primary navigation — aligned to the visual build specification */}
+      {/* Community header and tabs — matched to PDF visual reference, page 3 */}
       <section className="community-reference-header">
         <div className="community-reference-heading">
           <div className="community-reference-title">
-            <span className="community-reference-kicker">{community.category || community.type || 'University'} Community</span>
-            <h1>{community.name}</h1>
-            <p>{community.description}</p>
+            <span className="community-reference-kicker">
+              {community.name?.trim().toLowerCase() === 'cse' ? 'CSE Community' : `${community.name || 'University'} Community`}
+            </span>
+            <h1>
+              {community.name?.trim().toLowerCase() === 'cse' ? 'Computer Science & Engineering' : community.name}
+            </h1>
+            <p>
+              {community.name?.trim().toLowerCase() === 'cse'
+                ? 'Discussions, projects, DSA, internships and campus tech.'
+                : community.description}
+            </p>
           </div>
           <div className="community-reference-actions">
             {isOwner ? (
@@ -310,24 +318,15 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
               </button>
             )}
             {isRejectedJoinRequest && !isOwner ? <span className="community-rejected-note">Previous request rejected</span> : null}
-            {canPost && onOpenCreatePostWithCommunity ? (
-              <button type="button" className="btn btn-primary" onClick={() => onOpenCreatePostWithCommunity(community._id)}>Create Discussion</button>
+            {canManageSettings ? (
+              <button type="button" className="btn btn-outline" onClick={() => setActiveTab('settings')}>Manage Community</button>
             ) : null}
           </div>
-        </div>
-        <div className="community-reference-meta">
-          <span><strong>{community.memberCount || 0}</strong> Members</span>
-          <span><strong>{community.postCount || posts.length}</strong> Discussions</span>
-          <span><strong>{community.owner?.name || 'Not listed'}</strong> Community Head</span>
-          <span className={isPrivateCommunity ? 'community-privacy-private' : 'community-privacy-public'}>
-            {isPrivateCommunity ? 'Members only' : 'Public community'}
-          </span>
         </div>
         <nav className="community-reference-tabs" aria-label="Community sections">
           <button type="button" className={activeTab === 'discussions' ? 'active' : ''} onClick={() => setActiveTab('discussions')}>Discussions</button>
           <button type="button" className={activeTab === 'permissions' ? 'active' : ''} onClick={() => setActiveTab('permissions')}>Rules &amp; Permissions</button>
-          <button type="button" className={activeTab === 'members' ? 'active' : ''} onClick={() => setActiveTab('members')}>Members &amp; Mods ({community.memberCount || 0})</button>
-          {canManageSettings ? <button type="button" className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>Settings</button> : null}
+          <button type="button" className={activeTab === 'members' ? 'active' : ''} onClick={() => setActiveTab('members')}>Members &amp; Mods</button>
         </nav>
       </section>
 
@@ -433,15 +432,6 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '12px', paddingTop: '10px' }}>
-                <button
-                  className="btn btn-outline btn-sm"
-                  style={{ width: '100%' }}
-                  onClick={() => setActiveTab('permissions')}
-                >
-                  View Guidelines & Rules →
-                </button>
-              </div>
             </div>
 
 
