@@ -1782,7 +1782,7 @@
 .page-settings .settings-theme-option{
   display:flex;align-items:center;gap:11px;min-width:0;min-height:48px;padding:9px 13px;
   border:1px solid #dfe5dc;border-radius:10px;background:#fff;color:var(--settings-ink);
-  font:600 13px/1.35 inherit;text-align:left;cursor:pointer;transition:border-color .16s,background .16s,box-shadow .16s;
+  font-family:inherit;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer;transition:border-color .16s,background .16s,box-shadow .16s;
 }
 .page-settings .settings-theme-option>span{width:18px;height:18px;flex:0 0 18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 .page-settings .settings-theme-option strong{flex:1;min-width:0;font-size:13px;font-weight:650}
@@ -1830,7 +1830,7 @@
 .page-settings .settings-radio-row span{flex:1;min-width:0;color:#34443a;font-size:13px;line-height:1.5}
 .page-settings .settings-select-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,42%);align-items:center;gap:16px;min-height:56px;padding:10px 0;border-bottom:1px solid var(--settings-line);font-size:13px}
 .page-settings .settings-select-row>span{color:#34443a;font-size:13px;line-height:1.45}
-.page-settings .settings-select-row select{width:100%;max-width:none;min-height:40px;padding:8px 11px;border:1px solid #d9e0d8;border-radius:9px;background:#fff;color:var(--settings-ink);font:500 13px/1.4 inherit}
+.page-settings .settings-select-row select{width:100%;max-width:none;min-height:40px;padding:8px 11px;border:1px solid #d9e0d8;border-radius:9px;background:#fff;color:var(--settings-ink);font-family:inherit;font-size:13px;font-weight:500;line-height:1.4}
 .page-settings .settings-privacy-columns{align-items:stretch;gap:14px}
 .page-settings .settings-privacy-callout{display:flex;align-items:flex-start;gap:9px;min-width:0;margin:0;padding:18px;background:#f1f7ed;border:1px solid #dfeadd;border-radius:13px;color:#315b3d;font-size:13px;line-height:1.5}
 .page-settings .settings-privacy-callout>svg{flex:0 0 30px}
