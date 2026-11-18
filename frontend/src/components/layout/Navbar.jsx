@@ -205,7 +205,13 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
                     <Link to="/login" className="persona-item" onClick={() => setShowPersonaMenu(false)}><Icon name="repeat" size={17} /><span>Switch Account</span></Link>
                     <button type="button" className="persona-item nav-logout-item" onClick={() => { logout(); setShowPersonaMenu(false); }}><Icon name="logOut" size={17} /><span>Log Out</span></button>
                   </>
-                ) : <Link to="/login" className="persona-item" onClick={() => setShowPersonaMenu(false)}><Icon name="lock" size={17} /><span>Sign In</span></Link>}
+                ) : (
+                  <>
+                    <Link to="/login" className="persona-item" onClick={() => setShowPersonaMenu(false)}><Icon name="lock" size={17} /><span>Sign In</span></Link>
+                    <Link to="/login?next=%2Fprofile%2Fme" className="persona-item" onClick={() => setShowPersonaMenu(false)}><Icon name="userCheck" size={17} /><span>My Profile</span><small>Sign in required</small></Link>
+                    <Link to="/settings" className="persona-item" onClick={() => setShowPersonaMenu(false)}><Icon name="settings" size={17} /><span>Settings</span></Link>
+                  </>
+                )}
               </div>
             )}
           </div>
