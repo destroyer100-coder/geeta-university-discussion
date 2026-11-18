@@ -81,6 +81,7 @@ const navItems = [
   { to: '/notifications', label: 'Notifications', icon: 'bell', badgeKey: 'notifications' },
   { to: '/my-discussions', label: 'My Discussions', icon: 'messageSquare' },
   { to: '/saved', label: 'Saved', icon: 'bookmark' },
+  { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
 export const Sidebar = ({
