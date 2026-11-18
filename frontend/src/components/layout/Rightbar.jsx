@@ -5,7 +5,7 @@ import { eventsApi, postsApi, communitiesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 const initials = (name = '') =>
-  name.trim().split(/\\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
+  name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
 
 export const Rightbar = () => {
   const { user } = useAuth();
