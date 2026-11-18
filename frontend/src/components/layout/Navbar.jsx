@@ -90,14 +90,26 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
     navigate('/search?q=' + encodeURIComponent(query));
   };
 
-  const handleMarkAllNotificationsRead = () => {
-    setNotificationPreview((items) => items.map((item) => ({ ...item, read: true })));
-    window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await notificationsApi.markAllRead();
+      setNotificationPreview((items) => items.map((item) => ({ ...item, read: true })));
+      window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+    } catch (error) {
+      console.error('Could not mark notifications as read:', error);
+    }
   };
 
-  const handleNotificationClick = (item) => {
-    setNotificationPreview((items) => items.map((entry) => entry._id === item._id ? { ...entry, read: true } : entry));
-    window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+  const handleNotificationClick = async (item) => {
+    if (item?._id && !item.read) {
+      try {
+        await notificationsApi.markRead(item._id);
+        setNotificationPreview((items) => items.map((entry) => entry._id === item._id ? { ...entry, read: true } : entry));
+        window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+      } catch (error) {
+        console.error('Could not mark notification as read:', error);
+      }
+    }
     setOpenPopover('');
     navigate(targetForNotification(item));
   };
