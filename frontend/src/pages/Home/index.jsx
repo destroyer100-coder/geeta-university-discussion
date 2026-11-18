@@ -68,7 +68,7 @@ export const Home = ({ onOpenCreatePost }) => {
   return (
     <div className="page-shell page-home">
       <section className="home-welcome-heading">
-        <h1>Welcome back, {user?.name?.trim().split(/\\s+/)[0] || 'there'}!</h1>
+        <h1>Welcome back, {user?.name?.trim().split(/\s+/)[0] || 'there'}!</h1>
         <p>Discover discussions, share your thoughts, and be part of the Geeta University community.</p>
       </section>
 
