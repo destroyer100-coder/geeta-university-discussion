@@ -544,3 +544,10 @@ body {
 .sidebar-user-card.is-compact{justify-content:center;padding-inline:5px}
 .sidebar-user-card.is-compact>img,.sidebar-user-card.is-compact .sidebar-user-initials{width:42px;height:42px}
 @media(max-width:768px){.sidebar-header{display:none}.sidebar-user-card{margin-top:16px}}
+
+/* Unread badges in primary navigation */
+.sidebar-count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;margin-left:auto;padding:0 6px;border-radius:999px;background:#f2c45f;color:#1e281e;font-size:.68rem;font-weight:900;line-height:1}
+.sidebar-count-messages{background:#14d99b;color:#003c29}
+.sidebar-count-notifications{background:#f3c65e;color:#3c2b09}
+.left-sidebar.collapsed .sidebar-count-badge{position:absolute;right:3px;top:2px;min-width:15px;height:15px;padding:0 3px;font-size:.55rem}
+.left-sidebar.collapsed .sidebar-link{position:relative}

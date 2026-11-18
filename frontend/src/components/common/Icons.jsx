@@ -32,6 +32,12 @@ export const Icon = ({ name, size = 18, className = '', color = 'currentColor', 
     monitor: (
       <path d="M4 5h16v11H4zM8 20h8m-4-4v4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),
+    edit3: (
+      <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L8 18l-4 1 1-4 11.5-11.5z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    zap: (
+      <path d="M13 2L4 14h7l-1 8 10-13h-7l1-7z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
     search: (
       <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),
