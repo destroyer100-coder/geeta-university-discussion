@@ -36,10 +36,6 @@ export const CommunityList = () => {
     try {
       const params = { sort: sortBy };
 
-      if (selectedCategory && selectedCategory !== 'All') {
-        params.category = selectedCategory;
-      }
-
       if (searchTerm.trim()) {
         params.search = searchTerm.trim();
       }
@@ -63,11 +59,32 @@ export const CommunityList = () => {
   }, [selectedCategory, searchTerm, sortBy, user?._id]);
 
   const visibleCommunities = useMemo(() => communities.filter((community) => {
-    const role = community.currentUserRole || (community.owner?._id === user?._id ? 'owner' : '');
-    if (selectedScope === 'joined') return Boolean(community.isCurrentUserMember);
-    if (selectedScope === 'managed') return ['owner', 'moderator'].includes(role);
-    return true;
-  }), [communities, selectedScope, user?._id]);
+    const ownerId = community.owner?._id || community.owner;
+    const role = community.currentUserRole || (ownerId === user?._id ? 'owner' : '');
+    const isManaged = ['owner', 'moderator'].includes(role);
+    const isJoined = Boolean(community.isCurrentUserMember);
+    const matchesScope =
+      selectedScope === 'mine' ? (isJoined || isManaged) :
+      selectedScope === 'joined' ? isJoined :
+      selectedScope === 'managed' ? isManaged : true;
+    const matchesCategory = selectedCategory === 'All' || community.category === selectedCategory;
+    return matchesScope && matchesCategory;
+  }), [communities, selectedScope, selectedCategory, user?._id]);
+
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    communities.forEach((community) => {
+      const category = community.category || 'General';
+      counts[category] = (counts[category] || 0) + 1;
+    });
+    return counts;
+  }, [communities]);
+
+  const recommendedCommunities = useMemo(() => communities
+    .filter((community) => !community.isCurrentUserMember && !['owner', 'moderator'].includes(community.currentUserRole))
+    .slice()
+    .sort((a, b) => (Number(b.memberCount) || 0) - (Number(a.memberCount) || 0))
+    .slice(0, 3), [communities]);
 
   const handleJoinToggle = async (communityId, isJoined) => {
     if (!user) {
@@ -101,16 +118,14 @@ export const CommunityList = () => {
         icon="users"
         title="Communities"
         description="Join interest-based groups, department communities and campus circles."
-        action={user && (
-          <Link to="/communities/create" className="btn btn-primary">
-            <Icon name="plus" size={18} /> Create a Community
-          </Link>
-        )}
       />
 
+      <div className="communities-workspace">
+      <main className="communities-main">
       <div className="page-tabs community-scope-tabs" role="tablist" aria-label="Community views">
         {[
           { key: 'all', label: 'All Communities' },
+          { key: 'mine', label: 'My Communities' },
           { key: 'joined', label: 'Joined' },
           { key: 'managed', label: 'Managed' },
         ].map((tab) => (
@@ -151,10 +166,12 @@ export const CommunityList = () => {
       </div>
       {selectedScope !== 'all' ? (
         <p className="community-scope-note">
-          {selectedScope === 'joined'
-            ? 'Showing joined communities available in public community discovery.'
-            : 'Showing communities you own or moderate that are available in public community discovery.'}
-          {' '}Private communities are not included in the public discovery API.
+          {selectedScope === 'mine'
+            ? 'Showing communities you have joined or manage from the public discovery results.'
+            : selectedScope === 'joined'
+              ? 'Showing joined communities from the public discovery results.'
+              : 'Showing communities you own or moderate from the public discovery results.'}
+          {' '}Private communities are not included in this discovery endpoint.
         </p>
       ) : null}
 
@@ -337,6 +354,60 @@ export const CommunityList = () => {
           })}
         </div>
       )}
+      </main>
+
+      <aside className="communities-side">
+        {user ? (
+          <Link to="/communities/create" className="btn btn-primary communities-side-create">
+            <Icon name="plus" size={18} /> Create a Community
+          </Link>
+        ) : null}
+
+        <section className="card communities-side-card">
+          <h2 className="communities-side-title"><Icon name="bookmark" size={18} /> Categories</h2>
+          {CATEGORIES.map((category) => (
+            <button
+              type="button"
+              key={category}
+              className={selectedCategory === category ? 'community-category-option active' : 'community-category-option'}
+              onClick={() => setSelectedCategory(category)}
+            >
+              <span>{category === 'All' ? 'All Categories' : category}</span>
+              <strong>{category === 'All' ? communities.length : (categoryCounts[category] || 0)}</strong>
+            </button>
+          ))}
+        </section>
+
+        <section className="card communities-side-card">
+          <h2 className="communities-side-title"><Icon name="trendingUp" size={18} /> Recommended</h2>
+          {recommendedCommunities.length ? recommendedCommunities.map((community) => (
+            <div className="community-recommendation" key={community._id}>
+              <span aria-hidden="true">
+                {(community.name || 'C').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+              </span>
+              <div className="community-recommendation-copy">
+                <strong>{community.name}</strong>
+                <small>{community.category || 'Community'} · {community.memberCount || 0} members</small>
+              </div>
+              {community.isCurrentUserMember ? (
+                <span className="badge badge-success">Joined</span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  disabled={joiningId === community._id}
+                  onClick={() => handleJoinToggle(community._id, false)}
+                >
+                  {joiningId === community._id ? '...' : 'Join'}
+                </button>
+              )}
+            </div>
+          )) : (
+            <p className="community-scope-note">No recommendations are available from the current community records.</p>
+          )}
+        </section>
+      </aside>
+      </div>
     </div>
   );
 };
