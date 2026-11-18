@@ -275,8 +275,8 @@ body {
   border-right: 1px solid rgba(255,255,255,.08);
   border-radius: 0;
   background:
-    radial-gradient(ellipse at 24% 90%, rgba(20,128,78,.25), transparent 44%),
-    linear-gradient(180deg, #003e2c 0%, #004b34 60%, #003c2b 100%);
+    linear-gradient(180deg, #003e2c 0%, rgba(0,75,52,.96) 55%, rgba(0,60,43,.78) 100%),
+    url('/assets/campus-banner.webp') center bottom / 100% 190px no-repeat;
   box-shadow: 5px 0 16px rgba(0,36,24,.12);
   color: #fff;
   z-index: 1040;
