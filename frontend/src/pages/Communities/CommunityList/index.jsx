@@ -47,11 +47,15 @@ export const CommunityList = () => {
       const res = await communitiesApi.getAll(params);
 
       if (res.success && Array.isArray(res.data)) {
-        if (!searchTerm.trim()) {
-          try { localStorage.setItem('guf-community-cache', JSON.stringify(res.data)); } catch { /* Cache is optional. */ }
-        }
+        const cachedBefore = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
+        const serverIds = new Set(res.data.map((item) => String(item._id)));
+        const combinedRows = [...cachedBefore.filter((item) => item.isLocalPreview && !serverIds.has(String(item._id))), ...res.data];
+        try { localStorage.setItem('guf-community-cache', JSON.stringify(combinedRows.slice(0, 100))); } catch { /* Cache is optional. */ }
         const overrides = readMembershipPreview();
-        setCommunities(res.data.map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id))
+        setCommunities(combinedRows.filter((item) => {
+          const query = searchTerm.trim().toLowerCase();
+          return !query || [item.name, item.description, item.category].filter(Boolean).some((value) => String(value).toLowerCase().includes(query));
+        }).map((item) => Object.prototype.hasOwnProperty.call(overrides, String(item._id))
           ? { ...item, isCurrentUserMember: Boolean(overrides[String(item._id)]), currentUserMembershipStatus: overrides[String(item._id)] ? 'joined' : '' }
           : item));
       } else {
@@ -75,6 +79,12 @@ export const CommunityList = () => {
 
   useEffect(() => {
     fetchCommunities();
+  }, [searchTerm, sortBy, user?._id]);
+
+  useEffect(() => {
+    const refresh = () => fetchCommunities();
+    window.addEventListener('communities:changed', refresh);
+    return () => window.removeEventListener('communities:changed', refresh);
   }, [searchTerm, sortBy, user?._id]);
 
   const visibleCommunities = useMemo(() => communities.filter((community) => {

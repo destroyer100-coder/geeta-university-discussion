@@ -78,7 +78,9 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     if (apiCommunityRows.length) {
       try { localStorage.setItem('guf-community-cache', JSON.stringify(apiCommunityRows)); } catch { /* Optional cache only. */ }
     }
-    const communityRows = apiCommunityRows.length ? apiCommunityRows : (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
+    const cachedCommunities = (() => { try { return JSON.parse(localStorage.getItem('guf-community-cache') || '[]'); } catch { return []; } })();
+    const serverCommunityIds = new Set(apiCommunityRows.map((item) => String(item._id)));
+    const communityRows = [...cachedCommunities.filter((item) => item.isLocalPreview && !serverCommunityIds.has(String(item._id))), ...apiCommunityRows];
     const membershipOverrides = readMembershipPreview();
     setCommunities(communityRows.map((item) => Object.prototype.hasOwnProperty.call(membershipOverrides, String(item._id))
       ? { ...item, isCurrentUserMember: Boolean(membershipOverrides[String(item._id)]), currentUserMembershipStatus: membershipOverrides[String(item._id)] ? 'joined' : '' }
@@ -114,6 +116,12 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     return () => window.removeEventListener('local-posts:changed', refreshLocalPosts);
   }, [fetchExplorePosts]);
   useEffect(() => { fetchDirectoryData(); }, [fetchDirectoryData, user?._id]);
+
+  useEffect(() => {
+    const refresh = () => fetchDirectoryData();
+    window.addEventListener('communities:changed', refresh);
+    return () => window.removeEventListener('communities:changed', refresh);
+  }, [fetchDirectoryData, user?._id]);
 
   const filteredCommunities = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
