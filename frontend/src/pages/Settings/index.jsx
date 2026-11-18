@@ -52,13 +52,21 @@ export const SettingsPage = () => {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.dataset.theme = appearance.mode;
-    root.dataset.accent = appearance.accent;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = () => {
+      root.dataset.theme = appearance.mode === 'system'
+        ? (mediaQuery.matches ? 'dark' : 'light')
+        : appearance.mode;
+      root.dataset.accent = appearance.accent;
+    };
+    applyTheme();
+    if (appearance.mode === 'system') mediaQuery.addEventListener?.('change', applyTheme);
     try {
       localStorage.setItem('guf-appearance', JSON.stringify(appearance));
     } catch {
       // Appearance still applies for this session when browser storage is unavailable.
     }
+    return () => mediaQuery.removeEventListener?.('change', applyTheme);
   }, [appearance]);
 
   const loadAccountPanels = async () => {

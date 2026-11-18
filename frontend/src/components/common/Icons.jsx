@@ -38,6 +38,12 @@ export const Icon = ({ name, size = 18, className = '', color = 'currentColor', 
     zap: (
       <path d="M13 2L4 14h7l-1 8 10-13h-7l1-7z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),
+    moreHorizontal: (
+      <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    'arrow-left': (
+      <path d="M19 12H5m7 7l-7-7 7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    ),
     search: (
       <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     ),

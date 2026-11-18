@@ -74,7 +74,7 @@ export const EventsPage = () => {
     const query = searchQuery.trim().toLowerCase();
     return events.filter((event) => {
       const date = new Date(event.date).getTime();
-      const isPast = date < now;
+      const isPast = localDateValue(event.date) < todayKey;
       const matchesScope =
         activeScope === 'all' ||
         (activeScope === 'upcoming' && !isPast) ||
