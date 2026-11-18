@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { usersApi, postsApi } from '../../services/api';
+import { usersApi } from '../../services/api';
 import { PostCard } from '../../components/post/PostCard';
 import { Icon } from '../../components/common/Icons';
 
 const getInitials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
+const readProfilePreview = () => {
+  try { return JSON.parse(localStorage.getItem('guf-profile-action-preview') || '{}'); } catch { return {}; }
+};
+const writeProfilePreview = (id, patch) => {
+  const store = readProfilePreview();
+  store[String(id)] = { ...(store[String(id)] || {}), ...patch };
+  try { localStorage.setItem('guf-profile-action-preview', JSON.stringify(store)); } catch { /* Keep this session interactive. */ }
+};
 
 export const ProfilePage = () => {
   const { id } = useParams();
@@ -43,7 +51,7 @@ export const ProfilePage = () => {
     try {
       const res = await usersApi.getProfile(targetUserId);
       if (res.success && res.data) {
-        setProfileData(res.data);
+        setProfileData({ ...res.data, ...(readProfilePreview()[String(targetUserId)] || {}) });
         setUserPosts(res.data.posts || []);
         setUserComments(res.data.comments || []);
         setEditName(res.data.name || '');
@@ -88,114 +96,68 @@ export const ProfilePage = () => {
         currentUser.email === profileData.email)
   );
 
-  // Follow / Unfollow
-  const handleToggleFollow = async () => {
-    if (!currentUser) {
-      alert('Please log in to follow users.');
+  // Follow, mute and block are local browser previews in this frontend phase.
+  const handleToggleFollow = () => {
+    if (!currentUser || !profileData) {
+      setErrorNotice('Sign in to preview follow actions.');
       return;
     }
-    if (actionLoading) return;
-    setActionLoading(true);
-    try {
-      const res = await usersApi.toggleFollow('user', profileData._id);
-      if (res.success) {
-        setProfileData((prev) => ({
-          ...prev,
-          isFollowing: res.following,
-          followersCount: res.following ? prev.followersCount + 1 : Math.max(0, prev.followersCount - 1),
-        }));
-      }
-    } catch (err) {
-      alert(err.message || 'Follow action failed');
-    } finally {
-      setActionLoading(false);
-    }
+    const following = !profileData.isFollowing;
+    const patch = {
+      isFollowing: following,
+      followersCount: Math.max(0, Number(profileData.followersCount || 0) + (following ? 1 : -1)),
+    };
+    setProfileData((prev) => ({ ...prev, ...patch }));
+    writeProfilePreview(profileData._id, patch);
   };
 
-  // Block / Unblock
-  const handleToggleBlock = async () => {
-    if (!currentUser) return;
-    if (actionLoading) return;
-    setActionLoading(true);
-    try {
-      if (profileData.isBlocked) {
-        const res = await usersApi.unblock(profileData._id);
-        if (res.success) {
-          setProfileData((prev) => ({ ...prev, isBlocked: false }));
-          alert('User unblocked.');
-        }
-      } else {
-        const res = await usersApi.block(profileData._id);
-        if (res.success) {
-          setProfileData((prev) => ({ ...prev, isBlocked: true }));
-          alert('User blocked. They can no longer interact with your discussions or message you.');
-        }
-      }
-    } catch (err) {
-      alert(err.message || 'Block action failed');
-    } finally {
-      setActionLoading(false);
-    }
+  const handleToggleBlock = () => {
+    if (!currentUser || !profileData) return;
+    const patch = { isBlocked: !profileData.isBlocked };
+    setProfileData((prev) => ({ ...prev, ...patch }));
+    writeProfilePreview(profileData._id, patch);
+    setErrorNotice(patch.isBlocked ? 'Blocked in this browser preview only.' : 'Unblocked in this browser preview only.');
   };
 
-  // Mute / Unmute
-  const handleToggleMute = async () => {
-    if (!currentUser) return;
-    if (actionLoading) return;
-    setActionLoading(true);
-    try {
-      if (profileData.isMuted) {
-        const res = await usersApi.unmute(profileData._id);
-        if (res.success) {
-          setProfileData((prev) => ({ ...prev, isMuted: false }));
-          alert('User unmuted.');
-        }
-      } else {
-        const res = await usersApi.mute(profileData._id);
-        if (res.success) {
-          setProfileData((prev) => ({ ...prev, isMuted: true }));
-          alert('User muted. Their posts will no longer appear in your feed.');
-        }
-      }
-    } catch (err) {
-      alert(err.message || 'Mute action failed');
-    } finally {
-      setActionLoading(false);
-    }
+  const handleToggleMute = () => {
+    if (!currentUser || !profileData) return;
+    const patch = { isMuted: !profileData.isMuted };
+    setProfileData((prev) => ({ ...prev, ...patch }));
+    writeProfilePreview(profileData._id, patch);
+    setErrorNotice(patch.isMuted ? 'Muted in this browser preview only.' : 'Unmuted in this browser preview only.');
   };
 
-  // Save Profile Edits
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
+  // Profile edits update this screen and browser-local preview storage only.
+  const handleSaveProfile = (event) => {
+    event.preventDefault();
+    if (!profileData) return;
     setSavingProfile(true);
-    try {
-      const res = await usersApi.updateProfile({
-        name: editName,
-        bio: editBio,
-        department: editDepartment,
-        year: editYear,
-        avatar: editAvatar,
-      });
-      if (res.success) {
-        setProfileData((prev) => ({
-          ...prev,
-          ...res.data,
-        }));
-        setShowEditModal(false);
-        alert('Profile updated successfully!');
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to update profile');
-    } finally {
-      setSavingProfile(false);
+    const patch = {
+      name: editName.trim(),
+      bio: editBio,
+      department: editDepartment,
+      year: editYear,
+      avatar: editAvatar,
+    };
+    setProfileData((prev) => ({ ...prev, ...patch }));
+    writeProfilePreview(profileData._id, patch);
+    if (isOwnProfile) {
+      try { localStorage.setItem('guf-profile-preview', JSON.stringify(patch)); } catch { /* Session state remains updated. */ }
     }
+    setShowEditModal(false);
+    setErrorNotice('Profile changes are saved in this browser preview only.');
+    setSavingProfile(false);
   };
 
   // Copy Profile Link
-  const handleShareProfile = () => {
+  const handleShareProfile = async () => {
     const url = window.location.origin + `/profile/${profileData._id}`;
-    navigator.clipboard?.writeText?.(url);
-    alert('Profile link copied to clipboard!');
+    try {
+      await navigator.clipboard?.writeText?.(url);
+      setErrorNotice('Profile link copied.');
+    } catch {
+      setErrorNotice(url);
+    }
   };
 
   // Direct Message action
@@ -203,26 +165,9 @@ export const ProfilePage = () => {
     navigate(`/messages?user=${profileData._id}`);
   };
 
-  // Account Deletion
-  const handleDeleteAccount = async () => {
-    const confirmation = window.prompt(
-      'Type "DELETE" to confirm permanent account deletion and anonymization:'
-    );
-    if (confirmation !== 'DELETE') return;
-
-    setActionLoading(true);
-    try {
-      const res = await usersApi.deleteAccount();
-      if (res.success) {
-        alert(res.message);
-        logout();
-        navigate('/');
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to delete account');
-    } finally {
-      setActionLoading(false);
-    }
+  // Destructive account actions are disabled during frontend-only review.
+  const handleDeleteAccount = () => {
+    setErrorNotice('Account deletion is disabled in this frontend-only phase. No account data was changed.');
   };
 
   if (loading) {
