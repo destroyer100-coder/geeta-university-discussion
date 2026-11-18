@@ -51,7 +51,9 @@ export const ProfilePage = () => {
     try {
       const res = await usersApi.getProfile(targetUserId);
       if (res.success && res.data) {
-        setProfileData({ ...res.data, ...(readProfilePreview()[String(targetUserId)] || {}) });
+        const followingIds = (() => { try { return JSON.parse(localStorage.getItem('guf-following-preview') || '[]'); } catch { return []; } })();
+        const localPreview = readProfilePreview()[String(targetUserId)] || {};
+        setProfileData({ ...res.data, ...localPreview, ...(followingIds.includes(String(targetUserId)) ? { isFollowing: true } : (localPreview.isFollowing === false ? { isFollowing: false } : {})) });
         setUserPosts(res.data.posts || []);
         setUserComments(res.data.comments || []);
         setEditName(res.data.name || '');
@@ -109,6 +111,9 @@ export const ProfilePage = () => {
     };
     setProfileData((prev) => ({ ...prev, ...patch }));
     writeProfilePreview(profileData._id, patch);
+    const followingIds = (() => { try { return JSON.parse(localStorage.getItem('guf-following-preview') || '[]'); } catch { return []; } })();
+    const nextFollowing = following ? [...new Set([...followingIds, String(profileData._id)])] : followingIds.filter((value) => value !== String(profileData._id));
+    try { localStorage.setItem('guf-following-preview', JSON.stringify(nextFollowing)); } catch { /* current profile state remains updated */ }
   };
 
   const handleToggleBlock = () => {

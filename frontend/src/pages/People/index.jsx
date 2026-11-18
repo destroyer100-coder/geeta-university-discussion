@@ -72,7 +72,13 @@ export const PeoplePage = () => {
 
   const toggleFollow = (personId) => {
     const id = String(personId);
-    setFollowingIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+    setFollowingIds((current) => {
+      const next = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
+      const previews = (() => { try { return JSON.parse(localStorage.getItem('guf-profile-action-preview') || '{}'); } catch { return {}; } })();
+      previews[id] = { ...(previews[id] || {}), isFollowing: next.includes(id) };
+      try { localStorage.setItem('guf-profile-action-preview', JSON.stringify(previews)); } catch { /* Keep the current page interactive. */ }
+      return next;
+    });
   };
 
   const clearFilters = () => {

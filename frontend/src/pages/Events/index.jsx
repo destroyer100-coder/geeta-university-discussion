@@ -11,7 +11,7 @@ const localDateValue = (date) => {
 };
 const isUserAttending = (event, userId) =>
   Boolean(userId && (event.attendees || []).some((person) => (person?._id || person).toString() === userId.toString()));
-const readRsvpPreview = () => {
+const readLocalEvents = () => {\n  try { return JSON.parse(localStorage.getItem('guf-local-event-preview') || '[]'); } catch { return []; }\n};\nconst readRsvpPreview = () => {
   try { return JSON.parse(localStorage.getItem('guf-event-rsvp-preview') || '[]'); } catch { return []; }
 };
 const isEventOrganizer = (event, userId) =>
@@ -62,8 +62,11 @@ export const EventsPage = () => {
         user ? communitiesApi.getAll() : Promise.resolve({ success: true, data: [] }),
       ]);
       const eventRows = eventResponse.success && Array.isArray(eventResponse.data) ? eventResponse.data : [];
+      const localEvents = readLocalEvents();
+      const eventIds = new Set(eventRows.map((item) => String(item._id)));
+      const combinedEvents = [...localEvents.filter((item) => !eventIds.has(String(item._id))), ...eventRows];
       const rsvpOverrides = readRsvpPreview();
-      setEvents(eventRows.map((item) => {
+      setEvents(combinedEvents.map((item) => {
         if (!rsvpOverrides.includes(String(item._id))) return item;
         const attendees = Array.isArray(item.attendees) ? item.attendees : [];
         const currentId = user?._id || 'local-preview-user';
@@ -169,6 +172,9 @@ export const EventsPage = () => {
       attendees: [],
       isLocalPreview: true,
     };
+    const localEvents = readLocalEvents();
+    const nextLocalEvents = [newEvent, ...localEvents.filter((item) => String(item._id) !== String(newEvent._id))].slice(0, 30);
+    try { localStorage.setItem('guf-local-event-preview', JSON.stringify(nextLocalEvents)); } catch { /* current screen still updates */ }
     setEvents((items) => [...items, newEvent].sort((a, b) => new Date(a.date) - new Date(b.date)));
     setShowCreate(false);
     setCurrentPage(1);

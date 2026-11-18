@@ -85,8 +85,12 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
         : []
     );
     const eventRows = eventResult.status === 'fulfilled' && eventResult.value?.success && Array.isArray(eventResult.value.data) ? eventResult.value.data : [];
+    let localEvents = [];
+    try { localEvents = JSON.parse(localStorage.getItem('guf-local-event-preview') || '[]'); } catch { localEvents = []; }
+    const serverEventIds = new Set(eventRows.map((item) => String(item._id)));
+    const combinedEvents = [...localEvents.filter((item) => !serverEventIds.has(String(item._id))), ...eventRows];
     const rsvpOverrides = readRsvpPreview();
-    setEvents(eventRows.map((item) => {
+    setEvents(combinedEvents.map((item) => {
       if (!user?._id || !rsvpOverrides.includes(String(item._id))) return item;
       const attendees = Array.isArray(item.attendees) ? item.attendees : [];
       return { ...item, attendees: attendees.some((person) => idOf(person) === idOf(user)) ? attendees : [...attendees, user._id] };
