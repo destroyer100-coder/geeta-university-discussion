@@ -8,6 +8,9 @@ export const Home = ({ onOpenCreatePost }) => {
   const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState('latest');
   const [selectedTag, setSelectedTag] = useState('');
 
@@ -21,26 +24,43 @@ export const Home = ({ onOpenCreatePost }) => {
     return [...localPosts.filter((post) => !knownIds.has(String(post._id))), ...serverPosts];
   };
 
-  const fetchPosts = async () => {
-    setLoading(true);
+  const fetchPosts = async (requestedPage = 1, append = false) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     try {
-      const params = { sort: activeFilter };
+      const params = { sort: activeFilter, page: requestedPage, limit: 10 };
       if (selectedTag) params.tag = selectedTag;
       const res = await postsApi.getAll(params);
-      if (res.success && res.data) {
-        setPosts(mergeLocalPosts(res.data));
+      if (res.success && Array.isArray(res.data)) {
+        const serverRows = res.data;
+        setPosts((current) => {
+          if (!append) return mergeLocalPosts(serverRows);
+          const knownIds = new Set(current.map((post) => String(post._id)));
+          return [...current, ...serverRows.filter((post) => !knownIds.has(String(post._id)))];
+        });
+        setPage(requestedPage);
+        setHasMore(serverRows.length === 10);
+      } else if (!append) {
+        setPosts(mergeLocalPosts([]));
+        setPage(1);
+        setHasMore(false);
       }
     } catch (err) {
       console.error('Failed to load posts:', err);
-      setPosts(mergeLocalPosts([]));
+      if (!append) {
+        setPosts(mergeLocalPosts([]));
+        setPage(1);
+        setHasMore(false);
+      }
     } finally {
-      setLoading(false);
+      if (append) setLoadingMore(false);
+      else setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchPosts();
-    const refreshLocalPosts = () => setPosts(mergeLocalPosts(posts));
+    const refreshLocalPosts = () => setPosts((current) => mergeLocalPosts(current));
     window.addEventListener('local-posts:changed', refreshLocalPosts);
     return () => window.removeEventListener('local-posts:changed', refreshLocalPosts);
   }, [activeFilter, selectedTag]);
@@ -171,6 +191,14 @@ export const Home = ({ onOpenCreatePost }) => {
             onPostUpdated={fetchPosts}
           />
         ))
+      )}
+
+      {!loading && hasMore && (
+        <div className="home-feed-load-more">
+          <button type="button" className="btn btn-outline" onClick={() => fetchPosts(page + 1, true)} disabled={loadingMore}>
+            {loadingMore ? 'Loading more discussions…' : 'Load More Discussions'}
+          </button>
+        </div>
       )}
     </div>
   );
