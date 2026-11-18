@@ -90,7 +90,7 @@ const SwitchRow = ({ label, description, checked, onChange }) => (
 );
 
 export const SettingsPage = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState(() => {
     const value = new URLSearchParams(window.location.search).get('section');
@@ -255,11 +255,31 @@ export const SettingsPage = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user?._id || user?.isGuestPreview) {
+      setNotice('Sign in with a real account before requesting account deletion.');
+      return;
+    }
+    const confirmed = window.confirm('Delete your account? Your personal profile will be anonymized. This action cannot be undone.');
+    if (!confirmed) return;
+    try {
+      const response = await usersApi.deleteAccount();
+      if (!response?.success) throw new Error(response?.message || 'Account deletion could not be completed.');
+      setNotice('Your account has been deleted and personal data anonymized. Signing you out.');
+      window.setTimeout(() => {
+        logout();
+        navigate('/login', { replace: true });
+      }, 900);
+    } catch (error) {
+      setNotice(error.message || 'Account deletion could not be completed.');
+    }
+  };
+
   const updateDialog = (event) => {
     event.preventDefault();
     setDialogAction('');
     setDialogValue('');
-    setNotice('This control is a frontend preview. No password, email, or phone number was sent or changed.');
+    setNotice('Password, email and phone changes are not supported by the current backend API. No account data was changed.');
   };
 
   const currentName = profileForm.name || user?.name || 'Your name';
@@ -333,7 +353,7 @@ export const SettingsPage = () => {
                   </section>
                   <section className="settings-danger-zone">
                     <div><strong>Danger Zone</strong><p>Irreversible actions. Proceed with care.</p></div>
-                    <button type="button" className="btn btn-outline settings-danger-button" onClick={() => setNotice('Account deletion is disabled in this frontend-only phase. No account data was changed.')}>Delete Account</button>
+                    <button type="button" className="btn btn-outline settings-danger-button" onClick={handleDeleteAccount}>Delete Account</button>
                   </section>
                 </>
               ) : (
