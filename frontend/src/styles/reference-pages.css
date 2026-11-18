@@ -1373,3 +1373,9 @@
 :root[data-theme="dark"] .search-result-avatar,:root[data-theme="dark"] .search-empty-icon{background:#234733;color:#d8f0df}
 @media(max-width:760px){.search-community-grid,.search-people-list{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:520px){.search-results-toolbar{align-items:flex-start;flex-direction:column}.search-result-tabs{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.search-result-tabs button{justify-content:center}.search-person-card{flex-wrap:wrap}.search-view-profile{margin-left:53px}}
+
+
+/* Home feed pagination control */
+.home-feed-load-more{display:flex;justify-content:center;padding:14px 0 4px}
+.home-feed-load-more .btn{min-width:min(260px,100%);min-height:42px;border-radius:11px;font-weight:800}
+.home-feed-load-more .btn:disabled{opacity:.65;cursor:wait}
