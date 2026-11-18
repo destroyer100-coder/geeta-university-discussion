@@ -81,10 +81,14 @@ export const CommunityList = () => {
   }, [communities]);
 
   const recommendedCommunities = useMemo(() => communities
-    .filter((community) => !community.isCurrentUserMember && !['owner', 'moderator'].includes(community.currentUserRole))
+    .filter((community) => {
+      const ownerId = community.owner?._id || community.owner;
+      const managed = ['owner', 'moderator'].includes(community.currentUserRole) || ownerId === user?._id;
+      return !community.isCurrentUserMember && community.currentUserMembershipStatus !== 'pending' && !managed;
+    })
     .slice()
     .sort((a, b) => (Number(b.memberCount) || 0) - (Number(a.memberCount) || 0))
-    .slice(0, 3), [communities]);
+    .slice(0, 3), [communities, user?._id]);
 
   const handleJoinToggle = async (communityId, isJoined) => {
     if (!user) {
@@ -391,6 +395,8 @@ export const CommunityList = () => {
               </div>
               {community.isCurrentUserMember ? (
                 <span className="badge badge-success">Joined</span>
+              ) : community.currentUserMembershipStatus === 'pending' ? (
+                <span className="badge badge-warning">Requested</span>
               ) : (
                 <button
                   type="button"

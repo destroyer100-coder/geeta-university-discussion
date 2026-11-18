@@ -13,8 +13,6 @@ export const PeoplePage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
-  const [followingMap, setFollowingMap] = useState({});
-  const [followBusyId, setFollowBusyId] = useState('');
   const [errorNotice, setErrorNotice] = useState('');
 
   const fetchPeople = async () => {
@@ -27,13 +25,7 @@ export const PeoplePage = () => {
       const response = await usersApi.getAll(params);
       const rows = response.success && Array.isArray(response.data) ? response.data : [];
       setPeople(rows);
-      setFollowingMap((current) => {
-        const next = { ...current };
-        rows.forEach((person) => {
-          if (typeof person.isFollowing === 'boolean' && next[person._id] === undefined) next[person._id] = person.isFollowing;
-        });
-        return next;
-      });
+;
     } catch (error) {
       setPeople([]);
       setErrorNotice(error.message || 'University members could not be loaded.');
@@ -44,24 +36,7 @@ export const PeoplePage = () => {
 
   useEffect(() => { fetchPeople(); }, [searchQuery, roleFilter]);
 
-  const toggleFollow = async (person) => {
-    if (!user) {
-      alert('Please sign in to follow university members.');
-      return;
-    }
-    if (!person?._id || followBusyId) return;
-    setFollowBusyId(person._id);
-    try {
-      const response = await usersApi.toggleFollow('user', person._id);
-      if (response.success) {
-        setFollowingMap((current) => ({ ...current, [person._id]: Boolean(response.following) }));
-      }
-    } catch (error) {
-      alert(error.message || 'Follow action could not be completed.');
-    } finally {
-      setFollowBusyId('');
-    }
-  };
+
 
   return (
     <div className="page-shell page-people">
@@ -112,10 +87,8 @@ export const PeoplePage = () => {
                     <Link to="/profile/me" className="btn btn-outline btn-sm">My Profile</Link>
                   ) : (
                     <>
-                      <button type="button" className={isFollowing ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'} disabled={followBusyId === person._id} onClick={() => toggleFollow(person)}>
-                        {followBusyId === person._id ? 'Updating...' : isFollowing ? 'Following' : 'Follow'}
-                      </button>
-                      <Link to={profileLink} className="btn btn-outline btn-sm">View Profile</Link>
+                      <Link to={profileLink} className="btn btn-primary btn-sm">View Profile</Link>
+                      <Link to={'/messages?user=' + person._id} className="btn btn-outline btn-sm">Message</Link>
                     </>
                   )}
                 </div>

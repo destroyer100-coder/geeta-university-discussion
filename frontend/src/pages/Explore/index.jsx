@@ -51,7 +51,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     setLoadingDirectory(true);
     const [communityResult, peopleResult, eventResult] = await Promise.allSettled([
       communitiesApi.getAll({ sort: 'members' }),
-      usersApi.getAll(),
+      usersApi.getAll({ page: 1, limit: 12 }),
       eventsApi.getAll(),
     ]);
     setCommunities(
@@ -124,26 +124,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
     }
   };
 
-  const handleFollowPerson = async (person) => {
-    if (!user) {
-      alert('Please sign in to follow university members.');
-      return;
-    }
-    if (!person?._id || busyId) return;
-    setBusyId(person._id);
-    try {
-      const response = await usersApi.toggleFollow('user', person._id);
-      if (response.success) {
-        setPeople((current) => current.map((item) => idOf(item) === idOf(person)
-          ? { ...item, isFollowing: Boolean(response.following) }
-          : item));
-      }
-    } catch (error) {
-      alert(error.message || 'The follow action could not be completed.');
-    } finally {
-      setBusyId('');
-    }
-  };
+
 
   const handleRSVP = async (eventItem) => {
     if (!user) {
@@ -290,9 +271,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
                   <article className="card explore-person-row" key={person._id}>
                     {person.avatar ? <img src={person.avatar} alt="" loading="lazy" decoding="async" /> : <span className="explore-person-initials">{initials(person.name)}</span>}
                     <div className="explore-person-copy"><strong>{person.name}</strong><small>{[person.department, person.year, person.role].filter(Boolean).join(' · ')}</small></div>
-                    <button type="button" className={person.isFollowing ? 'btn btn-secondary btn-sm' : 'btn btn-outline btn-sm'} disabled={busyId === person._id} onClick={() => handleFollowPerson(person)}>
-                      {busyId === person._id ? '...' : person.isFollowing ? 'Following' : 'Follow'}
-                    </button>
+                    <Link to={'/messages?user=' + person._id} className="btn btn-outline btn-sm">Message</Link>
                     <Link to={'/profile/' + person._id} className="btn btn-outline btn-sm">Profile</Link>
                   </article>
                 ))}
@@ -340,7 +319,7 @@ export const ExplorePage = ({ onOpenCreatePost }) => {
               <div className="explore-suggested-row" key={person._id}>
                 {person.avatar ? <img src={person.avatar} alt="" loading="lazy" decoding="async" /> : <span>{initials(person.name)}</span>}
                 <div><strong>{person.name}</strong><small>{[person.department, person.year].filter(Boolean).join(' · ')}</small></div>
-                <button type="button" disabled={busyId === person._id} onClick={() => handleFollowPerson(person)}>{busyId === person._id ? '...' : person.isFollowing ? 'Following' : 'Follow'}</button>
+                <Link to={'/profile/' + person._id} className="explore-suggested-view">View</Link>
               </div>
             )) : <p className="explore-side-empty">No suggested members are available.</p>}
           </section>

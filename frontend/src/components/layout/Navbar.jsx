@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../common/Icons';
 import { useAuth } from '../../context/AuthContext';
@@ -18,7 +18,7 @@ const targetForNotification = (item) => {
 
 export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = false }) => {
   const { user, logout } = useAuth();
-  const { counts, refreshCounts } = useUnreadCounts();
+  const { counts } = useUnreadCounts();
   const unreadCount = counts.notifications;
   const messageUnreadCount = counts.messages;
   const navigate = useNavigate();
@@ -71,7 +71,6 @@ export const Navbar = ({ onOpenCreatePost, onOpenMobileNav, isMobileNavOpen = fa
       await notificationsApi.markAllRead();
       setNotificationPreview((items) => items.map((item) => ({ ...item, read: true })));
       window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
-      refreshCounts();
     } catch (error) {
       console.error('Failed to mark notifications as read:', error);
     }

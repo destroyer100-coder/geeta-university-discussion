@@ -135,7 +135,7 @@ export const CreatePostModal = ({ isOpen, onClose, initialCommunityId = null, in
 
   const handleQuickJoin = async () => {
     if (!user) {
-      alert('Please log in first or select a demo persona from the top right menu.');
+      alert('Please sign in before creating a community post.');
       return;
     }
     if (!sanitizeCommunityId(selectedCommunityId)) return;
