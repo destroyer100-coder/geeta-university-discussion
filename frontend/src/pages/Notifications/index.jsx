@@ -5,11 +5,20 @@ import { Icon } from '../../components/common/Icons';
 import { NOTIFICATIONS_CHANGED_EVENT } from '../../components/layout/Navbar';
 import { PageHero } from '../../components/common/PageHero';
 
-const notificationGroup = (type) => {
-  if (['like', 'comment', 'reply', 'accepted_answer'].includes(type)) return 'discussion';
-  if (['post_request', 'join_request', 'request_approved', 'request_rejected'].includes(type)) return 'community';
-  if (type === 'announcement') return 'announcement';
-  return 'other';
+const notificationGroup = (type = '') => {
+  if (['mention', 'mentioned', 'mention_created'].includes(type)) return 'mentions';
+  if (['reply', 'comment', 'accepted_answer', 'comment_reply'].includes(type)) return 'replies';
+  if (['post_request', 'join_request', 'request_approved', 'request_rejected', 'community_update'].includes(type)) return 'communities';
+  if (['event', 'event_reminder', 'event_created', 'event_update'].includes(type)) return 'events';
+  return 'system';
+};
+
+const readNotificationPreferences = () => {
+  try {
+    return JSON.parse(localStorage.getItem('guf-notification-preferences-preview') || '{"comments":true,"mentions":true,"communities":true,"events":true,"announcements":true}');
+  } catch {
+    return { comments: true, mentions: true, communities: true, events: true, announcements: true };
+  }
 };
 
 const notificationTarget = (item) => {
@@ -20,11 +29,12 @@ const notificationTarget = (item) => {
 };
 
 const filterOptions = [
-  { key: 'all', label: 'All Notifications' },
-  { key: 'unread', label: 'Unread' },
-  { key: 'discussion', label: 'Discussions' },
-  { key: 'community', label: 'Communities' },
-  { key: 'announcement', label: 'Announcements' },
+  { key: 'all', label: 'All' },
+  { key: 'mentions', label: 'Mentions' },
+  { key: 'replies', label: 'Replies' },
+  { key: 'communities', label: 'Communities' },
+  { key: 'events', label: 'Events' },
+  { key: 'system', label: 'System' },
 ];
 
 export const NotificationsPage = () => {
@@ -33,6 +43,11 @@ export const NotificationsPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
   const [errorNotice, setErrorNotice] = useState('');
+  const [notificationPreferences, setNotificationPreferences] = useState(readNotificationPreferences);
+
+  useEffect(() => {
+    try { localStorage.setItem('guf-notification-preferences-preview', JSON.stringify(notificationPreferences)); } catch { /* preferences remain active for this session */ }
+  }, [notificationPreferences]);
 
   const syncBadge = () => window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
 
@@ -56,9 +71,11 @@ export const NotificationsPage = () => {
   const counts = useMemo(() => ({
     all: notifications.length,
     unread: notifications.filter((item) => !item.read).length,
-    discussion: notifications.filter((item) => notificationGroup(item.type) === 'discussion').length,
-    community: notifications.filter((item) => notificationGroup(item.type) === 'community').length,
-    announcement: notifications.filter((item) => notificationGroup(item.type) === 'announcement').length,
+    mentions: notifications.filter((item) => notificationGroup(item.type) === 'mentions').length,
+    replies: notifications.filter((item) => notificationGroup(item.type) === 'replies').length,
+    communities: notifications.filter((item) => notificationGroup(item.type) === 'communities').length,
+    events: notifications.filter((item) => notificationGroup(item.type) === 'events').length,
+    system: notifications.filter((item) => notificationGroup(item.type) === 'system').length,
   }), [notifications]);
 
   const visibleNotifications = useMemo(() => {
@@ -73,26 +90,16 @@ export const NotificationsPage = () => {
     });
   }, [notifications, activeFilter, sortOrder]);
 
-  const handleMarkAll = async () => {
+  const handleMarkAll = () => {
     if (!counts.unread) return;
-    try {
-      await notificationsApi.markAllRead();
-      setNotifications((items) => items.map((item) => ({ ...item, read: true })));
-      syncBadge();
-    } catch (error) {
-      setErrorNotice(error.message || 'Could not mark notifications as read.');
-    }
+    setNotifications((items) => items.map((item) => ({ ...item, read: true })));
+    syncBadge();
   };
 
-  const handleNotificationClick = async (item) => {
+  const handleNotificationClick = (item) => {
     if (item.read) return;
-    try {
-      await notificationsApi.markRead(item._id);
-      setNotifications((items) => items.map((current) => current._id === item._id ? { ...current, read: true } : current));
-      syncBadge();
-    } catch (error) {
-      setErrorNotice(error.message || 'Could not update this notification.');
-    }
+    setNotifications((items) => items.map((current) => current._id === item._id ? { ...current, read: true } : current));
+    syncBadge();
   };
 
   return (
@@ -101,7 +108,7 @@ export const NotificationsPage = () => {
         icon="bell"
         title="Notifications"
         description="Stay updated with the latest activities and updates from your campus."
-        action={<button type="button" className="btn btn-outline btn-sm" onClick={handleMarkAll} disabled={!counts.unread}><Icon name="check" size={16} /> Mark all as read</button>}
+        action={<div className="notification-hero-actions"><button type="button" className="btn btn-outline btn-sm" onClick={handleMarkAll} disabled={!counts.unread}><Icon name="check" size={16} /> Mark all as read</button><Link to="/settings?section=notifications" className="btn btn-outline btn-sm"><Icon name="settings" size={15} /> Notification Preferences</Link></div>}
       />
 
       <div className="notification-workspace">
@@ -184,13 +191,24 @@ export const NotificationsPage = () => {
               </button>
             ))}
           </section>
-          <section className="card notification-side-card">
-            <h2><Icon name="settings" size={19} /> Notification Status</h2>
-            <div className="notification-status-row"><span>Unread notifications</span><strong>{counts.unread}</strong></div>
-            <div className="notification-status-row"><span>Read notifications</span><strong>{counts.all - counts.unread}</strong></div>
-            <div className="notification-status-row"><span>Total notifications</span><strong>{counts.all}</strong></div>
-            <p className="notification-settings-note">Delivery preferences are not exposed by the current notification API. Read status and the notification list are synced with your account.</p>
-            <button type="button" className="btn btn-outline btn-sm notification-refresh" onClick={loadNotifications}><Icon name="refreshCw" size={15} /> Refresh</button>
+          <section className="card notification-side-card notification-preferences-card">
+            <h2><Icon name="settings" size={19} /> Notification Settings</h2>
+            <p className="notification-settings-intro">Manage what notifications you receive in this browser.</p>
+            {[
+              ['comments', 'Comments & Replies'],
+              ['mentions', 'Mentions'],
+              ['communities', 'Community Updates'],
+              ['events', 'Event Reminders'],
+              ['announcements', 'Announcements'],
+            ].map(([key, label]) => (
+              <label className="notification-preference-row" key={key}>
+                <span>{label}</span>
+                <input type="checkbox" checked={Boolean(notificationPreferences[key])} onChange={(event) => setNotificationPreferences((current) => ({ ...current, [key]: event.target.checked }))} />
+                <i aria-hidden="true" />
+              </label>
+            ))}
+            <Link to="/settings?section=notifications" className="btn btn-outline btn-sm notification-refresh">Manage Preferences <Icon name="arrowRight" size={15} /></Link>
+            <p className="notification-settings-note">These preference switches are local frontend controls; they do not change email or push delivery.</p>
           </section>
         </aside>
       </div>
