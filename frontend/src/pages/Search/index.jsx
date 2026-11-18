@@ -23,6 +23,7 @@ export const SearchPage = () => {
   const [loading, setLoading] = useState(Boolean(query));
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,7 +61,7 @@ export const SearchPage = () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [query]);
+  }, [query, retryToken]);
 
   const counts = useMemo(() => ({
     all: results.posts.length + results.communities.length + results.users.length,
@@ -115,7 +116,7 @@ export const SearchPage = () => {
               <Icon name="info" size={24} />
               <h2>We couldn’t complete your search</h2>
               <p>{error}</p>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => window.location.reload()}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setRetryToken((value) => value + 1)}>
                 Try Again
               </button>
             </section>
