@@ -19,6 +19,11 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [joinRequests, setJoinRequests] = useState([]);
   const [communityEvents, setCommunityEvents] = useState([]);
+  const [communityMembers, setCommunityMembers] = useState([]);
+  const [postFilter, setPostFilter] = useState('all');
+  const [postSearch, setPostSearch] = useState('');
+  const [postSort, setPostSort] = useState('latest');
+  const [showCommunityDetails, setShowCommunityDetails] = useState(false);
   const [localActionNotice, setLocalActionNotice] = useState('');
   const [activeTab, setActiveTab] = useState('discussions'); // 'discussions' | 'rules' | 'members' | 'settings' | 'requests' | 'audit'
   const [loading, setLoading] = useState(true);
@@ -103,6 +108,13 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
           setCommunityEvents(readLocalList('guf-local-event-preview').filter((item) => String(item.community?._id || item.community || '') === String(comm._id)));
         }
 
+        try {
+          const membersRes = await communitiesApi.getMembers(comm._id);
+          setCommunityMembers(membersRes?.success && Array.isArray(membersRes.data) ? membersRes.data : []);
+        } catch {
+          setCommunityMembers([]);
+        }
+
         // Moderation surfaces are fetched only when the SERVER says this user holds
         // the corresponding delegation for this exact community (rules §8).
         const isModIdentity = Boolean(comm.canModerate);
@@ -179,20 +191,21 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
     loadCommunityData();
   }, [id, user]);
 
-  const handleJoinToggle = () => {
-    if (!community) return;
-    const nextMember = !isMember;
-    const memberships = readLocalMap('guf-community-membership-preview');
-    memberships[String(community._id)] = nextMember;
-    try { localStorage.setItem('guf-community-membership-preview', JSON.stringify(memberships)); } catch { /* Local component state remains interactive. */ }
-    setCommunity((current) => ({
-      ...current,
-      isCurrentUserMember: nextMember,
-      currentUserMembership: { ...(current.currentUserMembership || {}), status: nextMember ? 'active' : 'none' },
-      currentUserPermission: { ...(current.currentUserPermission || {}), allowed: nextMember || Boolean(current.currentUserPermission?.allowed) },
-      memberCount: Math.max(0, Number(current.memberCount || 0) + (nextMember ? 1 : -1)),
-    }));
-    setLocalActionNotice(nextMember ? 'Joined in this browser preview only.' : 'Left in this browser preview only.');
+  const handleJoinToggle = async () => {
+    if (!community || actionLoading) return;
+    setActionLoading(true);
+    try {
+      const response = isMember
+        ? await communitiesApi.leave(community._id)
+        : await communitiesApi.join(community._id);
+      if (!response?.success) throw new Error(response?.message || 'Unable to update membership.');
+      await loadCommunityData();
+      setLocalActionNotice(isMember ? 'You left this community.' : 'Your community membership was updated.');
+    } catch (error) {
+      setLocalActionNotice(error.message || 'Unable to update community membership.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleReviewPost = (postId, action) => {
@@ -289,156 +302,140 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
   return (
     <div className="page-shell page-community-detail">
       {localActionNotice ? <div className="settings-notice" role="status">{localActionNotice}</div> : null}
-      {/* Community header and tabs — matched to PDF visual reference, page 3 */}
-      <section className="community-reference-header">
-        <div className="community-reference-heading">
-          <div className="community-reference-title">
-            <span className="community-reference-kicker">
-              {community.name?.trim().toLowerCase() === 'cse' ? 'CSE Community' : `${community.name || 'University'} Community`}
-            </span>
-            <h1>
-              {community.name?.trim().toLowerCase() === 'cse' ? 'Computer Science & Engineering' : community.name}
-            </h1>
-            <p>
-              {community.name?.trim().toLowerCase() === 'cse'
-                ? 'Discussions, projects, DSA, internships and campus tech.'
-                : community.description}
-            </p>
+      {/* Community hero and complete navigation from the supplied CSE Hub reference */}
+      <section className="community-hub-hero">
+        <div className="community-hub-hero-content">
+          <div className="community-hub-identity">
+            <span className="community-hub-mark"><Icon name="graduationCap" size={36} /></span>
+            <div>
+              <span className="community-hub-eyebrow">{community.name?.trim().toLowerCase() === 'cse' ? 'CSE HUB' : 'COMMUNITY HUB'}</span>
+              <h1>{community.name?.trim().toLowerCase() === 'cse' ? 'CSE Hub' : community.name}</h1>
+              <p>{community.name?.trim().toLowerCase() === 'cse' ? 'Computer Science & Engineering' : community.description}</p>
+            </div>
           </div>
-          <div className="community-reference-actions">
-            {isOwner ? (
-              <span className="community-role-pill">Community Head</span>
-            ) : isMember ? (
-              <button type="button" className="btn btn-secondary" onClick={handleJoinToggle} disabled={actionLoading}>✓ Joined</button>
-            ) : isPendingJoinRequest ? (
-              <button type="button" className="btn btn-secondary" disabled>Request Pending</button>
-            ) : (
-              <button type="button" className="btn btn-primary" onClick={handleJoinToggle} disabled={actionLoading}>
-                {isPrivateCommunity ? 'Request to Join' : 'Join Community'}
-              </button>
-            )}
-            {isRejectedJoinRequest && !isOwner ? <span className="community-rejected-note">Previous request rejected</span> : null}
-            {canManageSettings ? (
-              <button type="button" className="btn btn-outline" onClick={() => setActiveTab('settings')}>Manage Community</button>
-            ) : null}
+          <div className="community-hub-hero-actions">
+            <button type="button" className={isMember ? 'community-joined-button' : 'community-join-button'} onClick={handleJoinToggle} disabled={actionLoading || isOwner}>
+              <Icon name={isMember ? 'check' : 'plus'} size={16} />
+              {actionLoading ? 'Please wait…' : isMember ? 'Joined' : isPendingJoinRequest ? 'Request Pending' : isPrivateCommunity ? 'Request to Join' : 'Join Community'}
+              <Icon name="chevronDown" size={15} />
+            </button>
+            <span className="community-hero-stat"><Icon name="users" size={19} />{Number(community.memberCount || communityMembers.length || 0).toLocaleString()}</span>
+            <span className="community-hero-stat"><Icon name="messageSquare" size={19} />{Number(community.postCount ?? posts.length).toLocaleString()}</span>
+            <span className="community-hero-stat"><Icon name="fileText" size={19} />{posts.filter((post) => post.type === 'resource').length.toLocaleString()}</span>
+            <button type="button" className="community-hero-more" onClick={() => setShowCommunityDetails((value) => !value)} aria-label="More community details"><Icon name="moreHorizontal" size={22} /></button>
           </div>
         </div>
-        <nav className="community-reference-tabs" aria-label="Community sections">
-          <button type="button" className={activeTab === 'discussions' ? 'active' : ''} onClick={() => setActiveTab('discussions')}>Discussions</button>
-          <button type="button" className={activeTab === 'permissions' ? 'active' : ''} onClick={() => setActiveTab('permissions')}>Rules &amp; Permissions</button>
-          <button type="button" className={activeTab === 'members' ? 'active' : ''} onClick={() => setActiveTab('members')}>Members &amp; Mods</button>
-        </nav>
       </section>
 
-      {/* TAB 1: DISCUSSIONS */}
+      <div className="community-hub-layout">
+        <div className="community-hub-main">
+          <nav className="community-hub-tabs" aria-label="Community navigation">
+            {[
+              ['discussions', 'messageSquare', 'Discussions'],
+              ['members', 'users', 'Members'],
+              ['events', 'calendar', 'Events'],
+              ['resources', 'bookOpen', 'Resources'],
+              ['permissions', 'shieldCheck', 'Permissions'],
+              ...(isMod ? [['audit', 'fileText', 'Audit Logs']] : []),
+              ...(canManageSettings ? [['settings', 'settings', 'Settings']] : []),
+              ...(canManagePostRequests ? [['requests', 'archive', 'Requests']] : []),
+            ].map(([key, iconName, label]) => (
+              <button type="button" key={key} className={activeTab === key ? 'active' : ''} onClick={() => setActiveTab(key)}>
+                <Icon name={iconName} size={18} />{label}
+                {key === 'members' ? <span>{Number(community.memberCount || communityMembers.length || 0).toLocaleString()}</span> : null}
+              </button>
+            ))}
+          </nav>
+      {/* Discussions: real community posts with client-side discovery controls */}
       {activeTab === 'discussions' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '20px' }}>
-          <div>
-            {!canPost && (
-              <div
-                style={{
-                  background: '#fffbeb',
-                  border: '1px solid #fde68a',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '12px 16px',
-                  marginBottom: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Icon name="lock" size={18} color="#d97706" />
-                  <span style={{ fontSize: '0.825rem', color: '#92400e' }}>
-                    {community.currentUserPermission?.reason || 'Posting is restricted in this community.'}
-                  </span>
-                </div>
-                {community.permissions?.allowPostRequests && (
-                  <button className="btn btn-warning btn-sm" onClick={() => setShowRequestModal(true)}>
-                    Request to Post
-                  </button>
-                )}
-              </div>
-            )}
-
-            {posts.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                <p style={{ color: 'var(--text-muted)' }}>No discussions in this community yet.</p>
-                {canPost && onOpenCreatePostWithCommunity && (
-                  <button
-                    className="btn btn-primary"
-                    style={{ marginTop: '12px' }}
-                    onClick={() => onOpenCreatePostWithCommunity(community._id)}
-                  >
-                    Start First Discussion
-                  </button>
-                )}
-              </div>
-            ) : (
-              posts.map((p) => (
-                <PostCard
-                  key={p._id}
-                  post={p}
-                  modPermissions={modPerms}
-                  onPostUpdated={loadCommunityData}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Right Panel: Community information and leadership */}
-          <div>
-            <div className="card" style={{ marginBottom: '16px' }}>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  marginBottom: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <Icon name="shieldCheck" size={18} color="var(--primary)" />
-                <span>Community Info</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.825rem' }}>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Visibility</span>
-                  <strong>
-                    {community.permissions?.visibility === 'PUBLIC'
-                      ? 'Everyone (Public)'
-                      : 'Members Only (Private)'}
-                  </strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Posting Policy</span>
-                  <span className="badge badge-warning">
-                    {community.permissions?.postPolicy || 'MEMBERS'}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Members</span>
-                  <strong>{community.memberCount || 0}</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Discussions</span>
-                  <strong>{community.postCount || posts.length}</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Moderators</span>
-                  <strong>{community.moderators?.length || 0}</strong>
-                </div>
-              </div>
-
+        <>
+          <div className="community-post-toolbar">
+            <div className="community-post-filters">
+              {[
+                ['all', 'All Posts', 'layers'],
+                ['trending', 'Trending', 'trendingUp'],
+                ['unanswered', 'Unanswered', 'helpCircle'],
+                ['announcements', 'Announcements', 'megaphone'],
+              ].map(([key, label, iconName]) => (
+                <button type="button" key={key} className={postFilter === key ? 'active' : ''} onClick={() => setPostFilter(key)}>
+                  <Icon name={iconName} size={16} />{label}
+                </button>
+              ))}
             </div>
-
-
+            <div className="community-post-tools">
+              <label className="community-sort-control">
+                <Icon name="filter" size={16} />
+                <select value={postSort} onChange={(event) => setPostSort(event.target.value)} aria-label="Sort community discussions">
+                  <option value="latest">Latest</option>
+                  <option value="popular">Most popular</option>
+                  <option value="oldest">Oldest</option>
+                </select>
+              </label>
+              <label className="community-search-control">
+                <Icon name="search" size={16} />
+                <input type="search" value={postSearch} onChange={(event) => setPostSearch(event.target.value)} placeholder="Search in this community…" />
+              </label>
+              <button type="button" className="community-create-discussion" onClick={() => onOpenCreatePostWithCommunity?.(community._id)} disabled={!onOpenCreatePostWithCommunity || !canPost}>
+                <Icon name="plus" size={18} />Create Discussion
+              </button>
+            </div>
           </div>
-        </div>
+
+          <div className="community-hub-content-grid">
+            <section className="community-post-feed" aria-label="Community discussions">
+              {!canPost ? (
+                <div className="community-post-permission"><Icon name="lock" size={18} /><span>{community.currentUserPermission?.reason || 'Posting is restricted in this community.'}</span>{community.permissions?.allowPostRequests ? <button type="button" onClick={() => setShowRequestModal(true)}>Request to Post</button> : null}</div>
+              ) : null}
+              {(() => {
+                const query = postSearch.trim().toLowerCase();
+                let visiblePosts = posts.filter((post) => {
+                  const text = [post.title, post.content, post.body, post.description].filter(Boolean).join(' ').toLowerCase();
+                  if (query && !text.includes(query)) return false;
+                  if (postFilter === 'announcements' && !(post.type === 'announcement' || post.category === 'ANNOUNCEMENT' || post.isAnnouncement)) return false;
+                  if (postFilter === 'unanswered' && Number(post.commentCount ?? post.commentsCount ?? post.comments?.length ?? 0) > 0) return false;
+                  return true;
+                });
+                if (postFilter === 'trending' || postSort === 'popular') {
+                  visiblePosts = [...visiblePosts].sort((a, b) => Number(b.likeCount || b.likes?.length || 0) + Number(b.commentCount || b.comments?.length || 0) * 2 - (Number(a.likeCount || a.likes?.length || 0) + Number(a.commentCount || a.comments?.length || 0) * 2));
+                } else if (postSort === 'oldest') {
+                  visiblePosts = [...visiblePosts].reverse();
+                } else {
+                  visiblePosts = [...visiblePosts].sort((a, b) => Number(Boolean(b.isPinned || b.pinned)) - Number(Boolean(a.isPinned || a.pinned)));
+                }
+                return visiblePosts.length ? visiblePosts.map((post) => <PostCard key={post._id} post={post} modPermissions={modPerms} onPostUpdated={loadCommunityData} />) : (
+                  <div className="community-empty-feed"><Icon name="messageSquare" size={28} /><strong>{posts.length ? 'No discussions match these filters.' : 'No discussions have been published yet.'}</strong><span>{posts.length ? 'Try another filter or search term.' : 'Start the first discussion in this community.'}</span>{!posts.length && canPost && onOpenCreatePostWithCommunity ? <button type="button" className="community-create-discussion" onClick={() => onOpenCreatePostWithCommunity(community._id)}><Icon name="plus" size={17} />Start First Discussion</button> : null}</div>
+                );
+              })()}
+            </section>
+
+            <aside className="community-hub-right-rail">
+              <section className="community-rail-card">
+                <button type="button" className="community-rail-primary" onClick={() => onOpenCreatePostWithCommunity?.(community._id)} disabled={!onOpenCreatePostWithCommunity || !canPost}><Icon name="plus" size={19} />Create Discussion</button>
+                <button type="button" className="community-rail-link" onClick={() => setShowCommunityDetails((value) => !value)}><Icon name="info" size={20} />Community Details<Icon name="chevronRight" size={17} /></button>
+                {showCommunityDetails ? <div className="community-rail-expanded">{community.description || 'No community description provided.'}<span>Visibility: {community.permissions?.visibility === 'PUBLIC' ? 'Public' : 'Members only'}</span></div> : null}
+                <button type="button" className="community-rail-link" onClick={() => setActiveTab('members')}><Icon name="users" size={20} />Members ({Number(community.memberCount || communityMembers.length || 0).toLocaleString()})<Icon name="chevronRight" size={17} /></button>
+                <button type="button" className="community-rail-link" onClick={() => setActiveTab('permissions')}><Icon name="calendar" size={20} />Community Rules<Icon name="chevronRight" size={17} /></button>
+                <div className="community-quick-stats">
+                  <h3><Icon name="barChart2" size={20} />Quick Stats</h3>
+                  <div className="community-stat-grid">
+                    <div><strong>{Number(community.postCount ?? posts.length).toLocaleString()}</strong><span>Discussions</span></div>
+                    <div><strong>{Number(community.memberCount || communityMembers.length || 0).toLocaleString()}</strong><span>Members</span></div>
+                    <div><strong>{posts.filter((post) => post.type === 'resource').length.toLocaleString()}</strong><span>Resources</span></div>
+                  </div>
+                </div>
+                <div className="community-moderation-summary">
+                  <h3><Icon name="shieldCheck" size={20} />Moderation</h3>
+                  <button type="button" onClick={() => isMod ? setActiveTab('audit') : setActiveTab('permissions')}>
+                    <Icon name={isMod ? 'checkCircle2' : 'lock'} size={18} />{isMod ? 'You have moderation access' : 'View community rules'}<Icon name="chevronRight" size={17} />
+                  </button>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </>
       )}
 
+      <div className="community-hub-secondary-content">
       {/* TAB: EVENTS */}
       {activeTab === 'events' && (
         <div className="card community-tab-panel">
@@ -494,28 +491,18 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
         </div>
       )}
 
-      {/* TAB 3: MEMBERS */}
+      {/* Members directory — fetched from the community members endpoint */}
       {activeTab === 'members' && (
-        <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '16px' }}>
-            Community Leadership & Members
-          </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-            {community.memberCount} members belong to this channel.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: '12px' }}>
-            <div style={{ padding: '12px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
-              <strong>{community.owner?.name}</strong>
-              <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700 }}>Head / Owner</div>
-            </div>
-            {community.moderators?.map((m) => (
-              <div key={m._id} style={{ padding: '12px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
-                <strong>{m.name}</strong>
-                <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>Moderator</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <section className="card community-tab-panel">
+          <h2>Community Members</h2>
+          <p className="community-tab-intro">{Number(community.memberCount || communityMembers.length || 0).toLocaleString()} members in this community</p>
+          {communityMembers.length ? <div className="community-members-grid">{communityMembers.map((member) => {
+            const person = member.user || member.member || member;
+            const personId = person._id || member._id;
+            const role = member.role || member.membershipRole || (String(personId) === String(community.owner?._id) ? 'HEAD' : 'MEMBER');
+            return <article className="community-member-card" key={personId}><span className="community-member-avatar">{person.avatar ? <img src={person.avatar} alt="" /> : getCommunityInitials(person.name || 'Member')}</span><span className="community-member-copy"><strong>{person.name || 'University member'}</strong><small>{role === 'HEAD' || role === 'OWNER' ? 'Community Head' : role === 'MODERATOR' ? 'Moderator' : 'Member'}</small></span></article>;
+          })}</div> : <p className="community-tab-empty">Member details are not available from the server yet.</p>}
+        </section>
       )}
 
       {/* TAB 4: POST REQUESTS & PENDING SUBMISSIONS (manage_requests delegation only) */}
@@ -856,6 +843,7 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
             <button type="button" className="btn btn-primary" onClick={() => { setShowRequestModal(false); setLocalActionNotice('Post request recorded in this browser preview only.'); }}>Confirm Preview</button>
           </section>
         </div>
+      </div>
       ) : null}    </div>
   );
 };
