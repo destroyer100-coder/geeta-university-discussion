@@ -11,6 +11,11 @@ export const CreatePostPage = () => {
         isOpen={true}
         onClose={() => navigate(-1)}
         onPostCreated={(post) => {
+          if (post?.isLocalPreview) {
+            window.dispatchEvent(new Event('local-posts:changed'));
+            navigate('/');
+            return;
+          }
           navigate(post?._id ? `/discussions/${post._id}` : '/');
         }}
       />

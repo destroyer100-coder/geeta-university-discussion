@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { communitiesApi } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { Icon } from '../../../components/common/Icons';
 
@@ -41,7 +40,7 @@ export const CreateCommunity = () => {
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>Community created</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-          <strong>{created.name}</strong> is now live. You&rsquo;re the owner.
+          <strong>{created.name}</strong> is available in this browser preview. You&rsquo;re the local preview owner.
         </p>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button onClick={() => navigate(`/communities/${created.slug || created._id}`)} className="btn btn-primary">
@@ -70,24 +69,38 @@ export const CreateCommunity = () => {
     if (errors[key]) setErrors({ ...errors, [key]: null });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setServerError(null);
     if (!validate()) return;
     setSubmitting(true);
+    const slugBase = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const community = {
+      _id: 'local-community-' + Date.now(),
+      slug: slugBase + '-preview',
+      name: form.name.trim(),
+      description: form.description.trim(),
+      category: form.category,
+      owner: user,
+      moderators: [],
+      memberCount: 1,
+      isCurrentUserMember: true,
+      currentUserRole: 'owner',
+      currentUserMembershipStatus: 'joined',
+      currentUserMembership: { status: 'active' },
+      currentUserPermission: { allowed: true },
+      permissions: { visibility: form.visibility, postPolicy: 'MEMBERS', commentPolicy: 'EVERYONE', sharePolicy: 'EVERYONE', allowPostRequests: false, requirePostApproval: false },
+      rules: [],
+      isLocalPreview: true,
+      createdAt: new Date().toISOString(),
+    };
     try {
-      const res = await communitiesApi.create({
-        name: form.name.trim(),
-        description: form.description.trim(),
-        category: form.category,
-        visibility: form.visibility,
-      });
-      if (res.success && res.data) {
-        setCreated(res.data);
-        window.dispatchEvent(new Event('communities:changed'));
-      }
-    } catch (err) {
-      setServerError(err.message || 'Failed to create community. Please try again.');
+      const cached = JSON.parse(localStorage.getItem('guf-community-cache') || '[]');
+      localStorage.setItem('guf-community-cache', JSON.stringify([community, ...cached.filter((item) => String(item._id) !== String(community._id))].slice(0, 100)));
+      setCreated(community);
+      window.dispatchEvent(new Event('communities:changed'));
+    } catch {
+      setServerError('This browser could not store the community preview. Please free some browser storage and try again.');
     } finally {
       setSubmitting(false);
     }

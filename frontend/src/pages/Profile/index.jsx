@@ -208,7 +208,7 @@ export const ProfilePage = () => {
 
   // Direct Message action
   const handleSendMessage = () => {
-    navigate(`/messages?user=${profileData._id}`);
+    navigate(`/messages?user=${profileData._id}`, { state: { selectedUser: profileData } });
   };
 
   // Destructive account actions are disabled during frontend-only review.

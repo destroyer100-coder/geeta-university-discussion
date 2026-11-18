@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { messagesApi, usersApi, communitiesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/common/Icons';
@@ -26,7 +26,9 @@ const localPreviewMessage = (message) => ({
 
 export const MessagesPage = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const routeUser = location.state?.selectedUser || null;
   const requestedUserId = searchParams.get('user');
   const [conversations, setConversations] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -51,12 +53,16 @@ export const MessagesPage = () => {
     setErrorNotice('');
     try {
       const response = await messagesApi.getConversations();
-      const rows = response?.success && Array.isArray(response.data) ? response.data : [];
+      const serverRows = response?.success && Array.isArray(response.data) ? response.data : [];
+      const cachedRows = readList('guf-community-cache').filter((item) => item.isLocalPreview);
+      const serverIds = new Set(serverRows.map((item) => String(item._id)));
+      const rows = [...cachedRows.filter((item) => !serverIds.has(String(item._id))), ...serverRows];
       setConversations(rows);
 
       if (requestedUserId) {
         const matching = rows.find((item) => getId(item.user) === requestedUserId);
-        if (matching?.user) setSelectedUser(matching.user);
+        if (routeUser && getId(routeUser) === requestedUserId) setSelectedUser(routeUser);
+        else if (matching?.user) setSelectedUser(matching.user);
         else {
           try {
             const profile = await usersApi.getProfile(requestedUserId);
@@ -76,6 +82,10 @@ export const MessagesPage = () => {
       }
     } catch (error) {
       setConversations([]);
+      if (requestedUserId && routeUser && getId(routeUser) === requestedUserId) {
+        setSelectedUser(routeUser);
+        setSelectedGroup(null);
+      }
       setErrorNotice(error.message || 'Conversations could not be loaded. You can still use the local preview controls.');
     } finally {
       setLoading(false);
@@ -106,7 +116,7 @@ export const MessagesPage = () => {
   useEffect(() => {
     loadConversations();
     loadGroups();
-  }, [user?._id, requestedUserId]);
+  }, [user?._id, requestedUserId, routeUser?._id]);
 
   const loadDirectThread = async (person) => {
     if (!person?._id) {
