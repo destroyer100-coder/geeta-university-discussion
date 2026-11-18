@@ -2064,3 +2064,49 @@
 }
 :root[data-theme="dark"] .page-settings .settings-help-list>section>button{background:var(--bg-muted)!important;color:var(--text-main)!important}
 :root[data-theme="dark"] .page-settings .settings-provider-mark{background:var(--bg-muted)!important;color:var(--text-main)!important}
+
+
+/* Community detail page — compact reference layout */
+.page-community-detail{display:flex;flex-direction:column;gap:18px;min-width:0}
+.community-reference-header{
+  width:100%;min-width:0;overflow:hidden;padding:22px 24px 0;
+  border:1px solid var(--border-color);border-radius:16px;background:var(--bg-card);
+  box-shadow:0 3px 10px rgba(55,41,20,.06);
+}
+.community-reference-heading{display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+.community-reference-title{min-width:0;flex:1}
+.community-reference-kicker{display:block;margin:0 0 5px;color:var(--primary);font-size:12px;font-weight:750;letter-spacing:.035em;text-transform:uppercase}
+.community-reference-title h1{margin:0;color:var(--text-main);font-size:25px;font-weight:800;letter-spacing:-.025em;line-height:1.25}
+.community-reference-title p{margin:6px 0 0;color:var(--text-secondary);font-size:13px;line-height:1.55}
+.community-reference-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.community-reference-actions .btn{min-height:38px;padding:9px 15px;font-size:12px;font-weight:700;white-space:nowrap}
+.community-role-pill{display:inline-flex;align-items:center;min-height:34px;padding:7px 12px;border-radius:8px;background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:750}
+.community-rejected-note{color:#a33c32;font-size:11px}
+.community-reference-meta{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin-top:18px;padding:12px 0;border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color)}
+.community-reference-meta>span{display:inline-flex;align-items:center;gap:5px;padding:0 17px;border-right:1px solid var(--border-color);color:var(--text-secondary);font-size:12px;line-height:1.5}
+.community-reference-meta>span:first-child{padding-left:0}
+.community-reference-meta>span:last-child{border-right:0}
+.community-reference-meta strong{color:var(--text-main);font-weight:750}
+.community-reference-meta .community-privacy-public{color:#087447;font-weight:700}
+.community-reference-meta .community-privacy-private{color:#a16207;font-weight:700}
+.community-reference-tabs{display:flex;align-items:center;gap:24px;min-height:48px;overflow-x:auto}
+.community-reference-tabs button{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:48px;padding:0 2px;border:0;background:transparent;color:var(--text-secondary);font:600 13px/1.4 inherit;white-space:nowrap;cursor:pointer}
+.community-reference-tabs button:hover{color:var(--primary)}
+.community-reference-tabs button.active{color:var(--primary);font-weight:800}
+.community-reference-tabs button.active:after{position:absolute;right:0;bottom:0;left:0;height:3px;border-radius:3px 3px 0 0;background:var(--primary);content:""}
+.page-community-detail .community-reference-header~div[style*="grid-template-columns"]{align-items:start}
+.page-community-detail .community-reference-header~div .card{padding:18px}
+.page-community-detail .community-tab-panel{padding:22px}
+.page-community-detail .community-tab-panel h3{margin:0 0 16px;color:var(--text-main);font-size:17px;font-weight:800}
+.page-community-detail .community-tab-empty{margin:0;padding:28px 12px;color:var(--text-muted);font-size:13px;text-align:center}
+.sidebar-community-link.active .sidebar-community-name{color:#09281a!important;font-weight:800}
+.sidebar-community-link.active .sidebar-community-avatar{box-shadow:0 0 0 2px rgba(4,91,54,.18)}
+@media(max-width:760px){
+ .community-reference-header{padding:18px 16px 0}
+ .community-reference-heading{align-items:flex-start;flex-direction:column}
+ .community-reference-actions{justify-content:flex-start;width:100%}
+ .community-reference-meta{gap:8px 0}
+ .community-reference-meta>span{padding:0 10px;font-size:11px}
+ .community-reference-tabs{gap:18px}
+ .page-community-detail>div[style*="grid-template-columns"]{grid-template-columns:minmax(0,1fr)!important}
+}
