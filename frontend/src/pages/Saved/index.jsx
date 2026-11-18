@@ -13,39 +13,57 @@ export const SavedPage = () => {
   const [activeType, setActiveType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [errorNotice, setErrorNotice] = useState('');
+  const [localPreviewCount, setLocalPreviewCount] = useState(0);
 
   const loadSaved = async () => {
-    if (!user) {
-      setPosts([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setErrorNotice('');
-    try {
-      const response = await usersApi.getSaved();
-      setPosts(response.success && Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      setErrorNotice(error.message || 'Saved discussions could not be loaded.');
-      setPosts([]);
-    } finally {
-      setLoading(false);
+    let serverPosts = [];
+    if (user) {
+      try {
+        const response = await usersApi.getSaved();
+        serverPosts = response.success && Array.isArray(response.data) ? response.data : [];
+      } catch (error) {
+        setErrorNotice(error.message || 'Account-saved discussions could not be loaded. Showing local preview saves where available.');
+      }
     }
+
+    let localPosts = [];
+    let actionMap = {};
+    try { localPosts = JSON.parse(localStorage.getItem('guf-local-post-preview') || '[]'); } catch { localPosts = []; }
+    try { actionMap = JSON.parse(localStorage.getItem('guf-post-action-preview') || '{}'); } catch { actionMap = {}; }
+    const localSaved = localPosts.map((post) => ({ ...post, ...(actionMap[String(post._id)] || {}) })).filter((post) => post.isSaved);
+    const serverIds = new Set(serverPosts.map((post) => String(post._id)));
+    const merged = [...localSaved.filter((post) => !serverIds.has(String(post._id))), ...serverPosts];
+    setPosts(merged);
+    setLocalPreviewCount(localSaved.length);
+    setLoading(false);
   };
 
-  useEffect(() => { loadSaved(); }, [user?._id]);
+  useEffect(() => {
+    loadSaved();
+    const refresh = () => loadSaved();
+    window.addEventListener('post-action-preview:changed', refresh);
+    window.addEventListener('local-posts:changed', refresh);
+    return () => {
+      window.removeEventListener('post-action-preview:changed', refresh);
+      window.removeEventListener('local-posts:changed', refresh);
+    };
+  }, [user?._id]);
 
   const counts = useMemo(() => ({
     all: posts.length,
-    discussion: posts.filter((post) => post.type === 'discussion').length,
+    post: posts.filter((post) => post.type !== 'resource').length,
     question: posts.filter((post) => post.type === 'question').length,
     resource: posts.filter((post) => post.type === 'resource').length,
+    events: 0,
+    communities: 0,
   }), [posts]);
 
   const visiblePosts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return posts.filter((post) => {
-      const matchesType = activeType === 'all' || post.type === activeType;
+      const matchesType = activeType === 'all' || (activeType === 'post' ? post.type !== 'resource' : post.type === activeType);
       const matchesSearch = !query || [post.title, post.body, ...(post.tags || [])]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
@@ -77,9 +95,10 @@ export const SavedPage = () => {
             <div className="page-tabs saved-filter-tabs" role="tablist" aria-label="Saved post types">
               {[
                 { key: 'all', label: 'All Saved' },
-                { key: 'discussion', label: 'Posts' },
+                { key: 'post', label: 'Posts' },
                 { key: 'resource', label: 'Resources' },
-                { key: 'question', label: 'Questions' },
+                { key: 'events', label: 'Events' },
+                { key: 'communities', label: 'Communities' },
               ].map((tab) => (
                 <button type="button" key={tab.key} className={activeType === tab.key ? 'btn btn-primary' : 'btn btn-secondary'} aria-selected={activeType === tab.key} onClick={() => setActiveType(tab.key)}>
                   {tab.label} <span>{counts[tab.key]}</span>
@@ -88,6 +107,7 @@ export const SavedPage = () => {
             </div>
 
             {errorNotice ? <div className="notification-error" role="alert">{errorNotice}</div> : null}
+            {localPreviewCount ? <p className="saved-local-preview-note">{localPreviewCount} locally saved item{localPreviewCount === 1 ? '' : 's'} in this browser preview.</p> : null}
             {loading ? (
               <div className="loading-state">Loading saved posts...</div>
             ) : visiblePosts.length === 0 ? (
@@ -108,9 +128,10 @@ export const SavedPage = () => {
             <section className="card saved-side-card">
               <header className="saved-side-heading"><h2><Icon name="barChart2" size={18} /> Saved Overview</h2></header>
               <div className="saved-overview-total"><strong>{counts.all}</strong><span>Saved posts</span></div>
-              <div className="saved-type-row"><span><Icon name="messageSquare" size={15} /> Discussions</span><strong>{counts.discussion}</strong></div>
+              <div className="saved-type-row"><span><Icon name="messageSquare" size={15} /> Posts</span><strong>{counts.post}</strong></div>
               <div className="saved-type-row"><span><Icon name="fileText" size={15} /> Resources</span><strong>{counts.resource}</strong></div>
-              <div className="saved-type-row"><span><Icon name="helpCircle" size={15} /> Questions</span><strong>{counts.question}</strong></div>
+              <div className="saved-type-row"><span><Icon name="calendar" size={15} /> Events</span><strong>{counts.events}</strong></div>
+              <div className="saved-type-row"><span><Icon name="users" size={15} /> Communities</span><strong>{counts.communities}</strong></div>
               <p className="saved-side-note">These totals are calculated from the saved posts returned for your account.</p>
             </section>
 

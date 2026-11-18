@@ -10,6 +10,7 @@ const persistPostPreview = (postId, patch) => {
   const store = readPostPreviews();
   store[String(postId)] = { ...(store[String(postId)] || {}), ...patch };
   try { localStorage.setItem('guf-post-action-preview', JSON.stringify(store)); } catch { /* Current component state remains usable. */ }
+  window.dispatchEvent(new Event('post-action-preview:changed'));
 };
 const applyPostPreview = (post) => ({
   ...post,
