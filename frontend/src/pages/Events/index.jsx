@@ -11,7 +11,9 @@ const localDateValue = (date) => {
 };
 const isUserAttending = (event, userId) =>
   Boolean(userId && (event.attendees || []).some((person) => (person?._id || person).toString() === userId.toString()));
-const readLocalEvents = () => {\n  try { return JSON.parse(localStorage.getItem('guf-local-event-preview') || '[]'); } catch { return []; }\n};\nconst readRsvpPreview = () => {
+const readLocalEvents = () => {
+  try { return JSON.parse(localStorage.getItem('guf-local-event-preview') || '[]'); } catch { return []; }
+};\nconst readRsvpPreview = () => {
   try { return JSON.parse(localStorage.getItem('guf-event-rsvp-preview') || '[]'); } catch { return []; }
 };
 const isEventOrganizer = (event, userId) =>
