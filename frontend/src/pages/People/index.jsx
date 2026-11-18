@@ -19,7 +19,7 @@ export const PeoplePage = () => {
   const [selectedDepartment, setSelectedDepartment] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedRole, setSelectedRole] = useState('All');
-  const [followingIds, setFollowingIds] = useState(readFollowing);
+  const [followingIds, setFollowingIds] = useState(() => user?.isGuestPreview ? readFollowing() : []);
   const [filtersApplied, setFiltersApplied] = useState(false);
   const [errorNotice, setErrorNotice] = useState('');
   const [followBusyId, setFollowBusyId] = useState('');
@@ -46,6 +46,10 @@ export const PeoplePage = () => {
       try { localStorage.setItem('guf-following-preview', JSON.stringify(followingIds)); } catch { /* Guest preview remains in memory. */ }
     }
   }, [followingIds]);
+
+  useEffect(() => {
+    setFollowingIds(user?.isGuestPreview ? readFollowing() : []);
+  }, [user?._id, user?.isGuestPreview]);
 
   const departments = useMemo(() => [...new Set(people.map((person) => person.department).filter(Boolean))].sort(), [people]);
   const years = useMemo(() => [...new Set(people.map((person) => person.year).filter(Boolean))].sort(), [people]);
