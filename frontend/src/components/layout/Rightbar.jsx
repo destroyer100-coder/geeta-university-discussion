@@ -47,8 +47,8 @@ export const Rightbar = ({ onOpenCreatePost }) => {
                       background: 'var(--primary-light)',
                       border: '1px solid #bfdbfe',
                       borderRadius: 'var(--radius-md)',
-                      width: '44px',
-                      height: '44px',
+                      width: '68px',
+                      height: '68px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -63,14 +63,12 @@ export const Rightbar = ({ onOpenCreatePost }) => {
                       {month}
                     </span>
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {ev.title}
-                    </div>
-                    <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                      {[ev.venue, ev.time].filter(Boolean).join(' · ') || 'Event details not provided'}
-                    </div>
+                  <div className="rightbar-event-copy">
+                    <strong>{ev.title}</strong>
+                    {ev.venue ? <span><Icon name="mapPin" size={13} />{ev.venue}</span> : null}
+                    {ev.time ? <span><Icon name="clock" size={13} />{ev.time}</span> : null}
                   </div>
+                  <Icon name="chevronRight" size={19} className="rightbar-event-chevron" />
                 </div>
               );
             })
@@ -101,7 +99,7 @@ export const Rightbar = ({ onOpenCreatePost }) => {
       </div>
 
       <div className="card rightbar-announcements">
-        <div className="rightbar-card-heading"><Icon name="bell" size={18} /><strong>Campus Announcements</strong></div>
+        <div className="rightbar-card-heading"><Icon name="megaphone" size={19} /><strong>Campus Announcements</strong></div>
         {announcements.length ? announcements.map((item) => (
           <Link to="/notifications" className="rightbar-announcement-item" key={item._id}>
             {item.message}
