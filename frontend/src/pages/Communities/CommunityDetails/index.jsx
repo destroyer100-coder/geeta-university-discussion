@@ -566,12 +566,12 @@ export const CommunityDetails = ({ onOpenCreatePostWithCommunity }) => {
                   </span>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Comment Policy</span>
-                  <strong>{community.permissions?.commentPolicy || 'EVERYONE'}</strong>
+                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Members</span>
+                  <strong>{community.memberCount || 0}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Approval Required</span>
-                  <strong>{community.permissions?.requirePostApproval ? 'Yes (Moderated)' : 'No (Instant)'}</strong>
+                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Discussions</span>
+                  <strong>{community.postCount || posts.length}</strong>
                 </div>
               </div>
 
