@@ -22,6 +22,7 @@ export const PeoplePage = () => {
   const [followingIds, setFollowingIds] = useState(readFollowing);
   const [filtersApplied, setFiltersApplied] = useState(false);
   const [errorNotice, setErrorNotice] = useState('');
+  const [followBusyId, setFollowBusyId] = useState('');
 
   const fetchPeople = async () => {
     setLoading(true);
@@ -41,7 +42,9 @@ export const PeoplePage = () => {
 
   useEffect(() => { fetchPeople(); }, [searchQuery, user?._id]);
   useEffect(() => {
-    try { localStorage.setItem('guf-following-preview', JSON.stringify(followingIds)); } catch { /* local preview remains in memory */ }
+    if (user?.isGuestPreview) {
+      try { localStorage.setItem('guf-following-preview', JSON.stringify(followingIds)); } catch { /* Guest preview remains in memory. */ }
+    }
   }, [followingIds]);
 
   const departments = useMemo(() => [...new Set(people.map((person) => person.department).filter(Boolean))].sort(), [people]);
@@ -70,15 +73,34 @@ export const PeoplePage = () => {
     [people, user?._id]
   );
 
-  const toggleFollow = (personId) => {
+  const toggleFollow = async (personId) => {
     const id = String(personId);
-    setFollowingIds((current) => {
-      const next = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
-      const previews = (() => { try { return JSON.parse(localStorage.getItem('guf-profile-action-preview') || '{}'); } catch { return {}; } })();
-      previews[id] = { ...(previews[id] || {}), isFollowing: next.includes(id) };
-      try { localStorage.setItem('guf-profile-action-preview', JSON.stringify(previews)); } catch { /* Keep the current page interactive. */ }
-      return next;
-    });
+    if (!id || followBusyId) return;
+    setFollowBusyId(id);
+    setErrorNotice('');
+    try {
+      if (user?.isGuestPreview) {
+        setFollowingIds((current) => {
+          const next = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
+          const previews = (() => { try { return JSON.parse(localStorage.getItem('guf-profile-action-preview') || '{}'); } catch { return {}; } })();
+          previews[id] = { ...(previews[id] || {}), isFollowing: next.includes(id) };
+          try { localStorage.setItem('guf-profile-action-preview', JSON.stringify(previews)); } catch { /* Guest preview remains in memory. */ }
+          return next;
+        });
+      } else if (!user?._id) {
+        setErrorNotice('Sign in to follow university members.');
+      } else {
+        const response = await usersApi.toggleFollow('user', id);
+        if (!response?.success) throw new Error(response?.message || 'The follow action could not be completed.');
+        setFollowingIds((current) => response.following
+          ? (current.includes(id) ? current : [...current, id])
+          : current.filter((value) => value !== id));
+      }
+    } catch (error) {
+      setErrorNotice(error.message || 'The follow action could not be completed.');
+    } finally {
+      setFollowBusyId('');
+    }
   };
 
   const clearFilters = () => {
@@ -158,7 +180,7 @@ export const PeoplePage = () => {
               return <div className="people-suggestion" key={person._id}>
                 {person.avatar ? <img src={person.avatar} alt="" loading="lazy" decoding="async" /> : <span>{initials(person.name)}</span>}
                 <div><strong>{person.name}</strong><small>{[person.department, person.year].filter(Boolean).join(' · ') || 'University member'}</small></div>
-                <button type="button" className={following ? 'btn btn-secondary btn-sm' : 'btn btn-outline btn-sm'} onClick={() => toggleFollow(person._id)}>{following ? 'Following' : 'Follow'}</button>
+                <button type="button" className={following ? 'btn btn-secondary btn-sm' : 'btn btn-outline btn-sm'} onClick={() => toggleFollow(person._id)} disabled={followBusyId === String(person._id)}>{followBusyId === String(person._id) ? 'Updating…' : following ? 'Following' : 'Follow'}</button>
               </div>;
             }) : <p className="people-side-empty">No additional members are available in the current results.</p>}
           </section>
