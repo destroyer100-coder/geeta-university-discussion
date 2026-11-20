@@ -67,7 +67,8 @@ export const MainLayout = () => {
     location.pathname.startsWith('/saved') ||
     location.pathname.startsWith('/my-discussions') ||
     location.pathname.startsWith('/events') ||
-    location.pathname.startsWith('/explore');
+    location.pathname.startsWith('/explore') ||
+    location.pathname.startsWith('/people');
 
   const layoutClassName = `main-layout${
     isSidebarCollapsed ? ' is-collapsed' : ''
