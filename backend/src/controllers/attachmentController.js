@@ -74,7 +74,7 @@ export const uploadFiles = async (req, res, next) => {
     for (const file of req.files) {
       const ext = path.extname(file.originalname).toLowerCase();
       const detectedMime = detectFileType(file.buffer, ext);
-      const officeZip = detectedMime === 'application/zip' && ['.docx', '.xlsx', '.pptx'].includes(ext);\n      const legacyOffice = detectedMime === 'application/ole' && ['.doc', '.xls', '.ppt'].includes(ext);\n      if (!detectedMime || (detectedMime !== file.mimetype && !officeZip && !legacyOffice)) {
+      const officeZip = detectedMime === 'application/zip' && ['.docx', '.xlsx', '.pptx'].includes(ext);\n      const legacyOffice = detectedMime === 'application/ole' && ['.doc', '.xls', '.ppt'].includes(ext);\n      const csvMime = ext === '.csv' && ['text/csv', 'application/vnd.ms-excel'].includes(file.mimetype);\n      if (!detectedMime || (detectedMime !== file.mimetype && !officeZip && !legacyOffice && !csvMime)) {
         const error = new Error('The uploaded file content does not match an allowed file type.');
         error.statusCode = 400;
         throw error;
