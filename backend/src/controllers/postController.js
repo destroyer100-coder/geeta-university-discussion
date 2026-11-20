@@ -73,14 +73,6 @@ const parsePositiveInteger = (value, defaultValue) => {
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const isContainedPath = (root, candidate) => {
-  const relative = path.relative(root, candidate);
-  return relative !== '' &&
-    relative !== '..' &&
-    !relative.startsWith(`..${path.sep}`) &&
-    !path.isAbsolute(relative);
-};
-
 export const getPosts = async (req, res, next) => {
   try {
     const {
