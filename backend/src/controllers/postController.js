@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 import { Post } from '../models/Post.js';
 import { Community } from '../models/Community.js';
@@ -13,7 +12,8 @@ import { Mute } from '../models/Mute.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { permissionService } from '../services/permissionService.js';
 import { notificationService } from '../services/notificationService.js';
-import { isValidSafeUrl } from '../utils/linkSafety.js';\nimport { getUploadInfo } from '../services/gridfsStorage.js';
+import { isValidSafeUrl } from '../utils/linkSafety.js';
+import { getUploadInfo } from '../services/gridfsStorage.js';
 import {
   CONTENT_STATUS,
   POST_TYPES,
