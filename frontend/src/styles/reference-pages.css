@@ -2637,3 +2637,6 @@
  .settings-form-span{grid-column:auto}
  .notification-toolbar,.saved-toolbar,.people-toolbar{align-items:stretch}
 }
+
+/* Existing JSX uses the singular event-highlight-row class. */
+.event-highlight-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border-color)}
