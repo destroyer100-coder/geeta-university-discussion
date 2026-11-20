@@ -13,7 +13,7 @@ import { Mute } from '../models/Mute.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { permissionService } from '../services/permissionService.js';
 import { notificationService } from '../services/notificationService.js';
-import { isValidSafeUrl } from '../utils/linkSafety.js';
+import { isValidSafeUrl } from '../utils/linkSafety.js';\nimport { getUploadInfo } from '../services/gridfsStorage.js';
 import { UPLOAD_DIR } from '../config/env.js';
 import {
   CONTENT_STATUS,
@@ -845,107 +845,55 @@ export const createPost = async (req, res, next) => {
     const ownerId = req.user?._id?.toString();
     const seenStorageKeys = new Set();
     const validatedAttachments = [];
-    const uploadRoot = path.resolve(UPLOAD_DIR);
 
     for (const attachment of attachments) {
-      const storageKey = attachment && typeof attachment.storageKey === 'string'
-        ? attachment.storageKey
-        : '';
-      const filenameMatch = ATTACHMENT_NAME_PATTERN.exec(storageKey);
-
-      if (!filenameMatch || filenameMatch[1].toLowerCase() !== ownerId?.toLowerCase()) {
-        return res.status(403).json({
-          success: false,
-          message: 'One or more attachments are invalid or do not belong to you.',
-          error: {
-            code: ERROR_CODES.FORBIDDEN,
-            message: 'Attachment ownership validation failed.',
-          },
-        });
-      }
-
-      if (seenStorageKeys.has(storageKey)) {
+      const storageKey = attachment && typeof attachment.storageKey === 'string' ? attachment.storageKey : '';
+      if (!/^[a-f0-9]{24}$/i.test(storageKey) || seenStorageKeys.has(storageKey)) {
         return res.status(400).json({
           success: false,
-          message: 'Duplicate attachment storage keys are not permitted.',
-          error: {
-            code: ERROR_CODES.VALIDATION_ERROR,
-            message: 'Duplicate attachment.',
-          },
+          message: 'One or more attachments are invalid or duplicated.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid attachment storage key.' },
         });
       }
       seenStorageKeys.add(storageKey);
 
-      const extension = path.extname(storageKey).toLowerCase();
-      const fileSpec = UPLOAD_FILE_SPECS[extension];
-      if (!fileSpec || path.basename(storageKey) !== storageKey || storageKey.includes('\\')) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid attachment storage key.',
-          error: {
-            code: ERROR_CODES.VALIDATION_ERROR,
-            message: 'Invalid attachment storage key.',
-          },
-        });
-      }
-
-      const categoryRoot = path.resolve(uploadRoot, fileSpec.directory);
-      const filePath = path.resolve(categoryRoot, storageKey);
-      if (!isContainedPath(categoryRoot, filePath) || path.dirname(filePath) !== categoryRoot) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid attachment storage path.',
-          error: {
-            code: ERROR_CODES.VALIDATION_ERROR,
-            message: 'Invalid attachment storage path.',
-          },
-        });
-      }
-
-      let fileStats;
-      try {
-        fileStats = fs.lstatSync(filePath);
-      } catch (fileError) {
-        if (fileError.code === 'ENOENT') {
-          return res.status(400).json({
-            success: false,
-            message: 'An uploaded attachment could not be found. Please upload it again.',
-            error: {
-              code: ERROR_CODES.VALIDATION_ERROR,
-              message: 'Staged attachment not found.',
-            },
-          });
-        }
-        throw fileError;
-      }
-
-      if (!fileStats.isFile() || fileStats.isSymbolicLink()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid attachment file.',
-          error: {
-            code: ERROR_CODES.VALIDATION_ERROR,
-            message: 'Attachment is not a regular file.',
-          },
-        });
-      }
-
       const originalName = typeof attachment.originalName === 'string'
         ? attachment.originalName.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, 255)
         : '';
-      const relativePath = typeof attachment.relativePath === 'string'
-        ? attachment.relativePath.slice(0, 1000)
-        : '';
-      const folderRelativePath = typeof attachment.folderRelativePath === 'string'
-        ? attachment.folderRelativePath.slice(0, 1000)
-        : '';
+      const extension = path.extname(originalName).toLowerCase();
+      const fileSpec = UPLOAD_FILE_SPECS[extension];
+      if (!fileSpec || fileSpec.type === 'video') {
+        return res.status(400).json({
+          success: false,
+          message: 'Only photos and documents are accepted. Video uploads are disabled.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Unsupported attachment type.' },
+        });
+      }
 
+      const storedFile = await getUploadInfo(storageKey);
+      if (!storedFile || storedFile.metadata?.ownerId !== ownerId) {
+        return res.status(403).json({
+          success: false,
+          message: 'One or more attachments are invalid or do not belong to you.',
+          error: { code: ERROR_CODES.FORBIDDEN, message: 'Attachment ownership validation failed.' },
+        });
+      }
+      if (storedFile.length < 1 || storedFile.length > 10 * 1024 * 1024) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each attachment must be no larger than 10 MB.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Attachment size is invalid.' },
+        });
+      }
+
+      const relativePath = typeof attachment.relativePath === 'string' ? attachment.relativePath.slice(0, 1000) : '';
+      const folderRelativePath = typeof attachment.folderRelativePath === 'string' ? attachment.folderRelativePath.slice(0, 1000) : '';
       validatedAttachments.push({
         storageKey,
         url: `/api/uploads/${storageKey}`,
         originalName: originalName || `attachment${extension}`,
         mimeType: fileSpec.mimeType,
-        size: fileStats.size,
+        size: storedFile.length,
         type: fileSpec.type,
         relativePath,
         folderRelativePath,
