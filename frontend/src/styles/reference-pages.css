@@ -3491,3 +3491,209 @@
   .page-events .event-card{grid-template-columns:60px minmax(0,1fr);gap:11px}
   .page-events .event-register{grid-column:2;justify-self:start}
 }
+
+/* People directory: use the page's own filter/suggestion rail instead of
+   rendering the global discovery rail as a third competing column. */
+.page-people{
+  gap:16px;
+}
+.page-people .people-workspace{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 292px;
+  gap:20px;
+  align-items:start;
+}
+.page-people .people-main{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  min-width:0;
+}
+.page-people .people-toolbar{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:12px;
+  padding:15px;
+  border:1px solid #e9e2d8;
+  border-radius:14px;
+  background:#fffdfa;
+}
+.page-people .people-search{
+  position:relative;
+  display:flex;
+  align-items:center;
+  width:100%;
+  min-width:0;
+}
+.page-people .people-search>svg{
+  position:absolute;
+  left:13px;
+  z-index:1;
+  color:var(--text-muted);
+}
+.page-people .people-search .form-control{
+  width:100%;
+  min-height:43px;
+  padding-left:39px;
+  border-radius:10px;
+}
+.page-people .people-role-filters{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:7px;
+  width:100%;
+}
+.page-people .people-role-filters .btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-width:0;
+  min-height:37px;
+  padding:7px 8px;
+  white-space:nowrap;
+  font-size:.74rem;
+}
+.page-people .people-role-filters .btn span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:18px;
+  height:18px;
+  padding:0 4px;
+  border-radius:99px;
+  background:rgba(0,0,0,.06);
+  font-size:.66rem;
+}
+.page-people .people-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.page-people .people-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  align-items:center;
+  gap:16px;
+  min-width:0;
+  padding:15px 17px;
+  border:1px solid #e9e2d8;
+  border-radius:14px;
+  background:#fffdfa;
+  box-shadow:0 2px 8px rgba(55,41,20,.045);
+}
+.page-people .people-identity{
+  gap:13px;
+}
+.page-people .people-avatar,
+.page-people .people-avatar-fallback{
+  flex:0 0 52px;
+  width:52px;
+  height:52px;
+}
+.page-people .people-identity-copy h3{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+  font-size:.92rem;
+  line-height:1.35;
+}
+.page-people .people-identity-copy p{
+  margin:2px 0 0;
+  color:var(--text-secondary);
+  font-size:.76rem;
+  line-height:1.45;
+}
+.page-people .people-skill-tags{
+  margin-top:4px;
+}
+.page-people .people-role-badges{
+  justify-content:flex-start;
+}
+.page-people .people-actions{
+  justify-content:flex-end;
+  gap:9px;
+}
+.page-people .people-side{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  min-width:0;
+}
+.page-people .people-side-card{
+  padding:16px!important;
+  border:1px solid #e9e2d8;
+  border-radius:14px;
+  background:#fffdfa;
+}
+.page-people .people-side-heading{
+  margin-bottom:12px;
+}
+.page-people .settings-select-row{
+  display:grid;
+  grid-template-columns:82px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  padding:8px 0;
+}
+.page-people .settings-select-row>span{
+  font-size:.75rem;
+}
+.page-people .settings-select-row .form-control{
+  width:100%;
+  min-width:0;
+  min-height:39px;
+}
+.page-people .people-apply-filters,
+.page-people .people-clear-filters{
+  width:100%;
+  min-height:38px;
+  margin-top:8px;
+}
+.page-people .people-results-note{
+  margin:0 2px;
+  font-size:.7rem;
+}
+@media(max-width:1050px){
+  .page-people .people-workspace{
+    grid-template-columns:minmax(0,1fr) 270px;
+    gap:14px;
+  }
+  .page-people .people-role-filters{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+@media(max-width:820px){
+  .page-people .people-workspace{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .page-people .people-side{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:start;
+  }
+}
+@media(max-width:620px){
+  .page-people .people-role-filters{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .page-people .people-row{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:10px;
+    padding:13px;
+  }
+  .page-people .people-identity{
+    grid-column:1/-1;
+  }
+  .page-people .people-role-badges{
+    grid-column:1;
+  }
+  .page-people .people-actions{
+    grid-column:2;
+  }
+  .page-people .people-side{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
