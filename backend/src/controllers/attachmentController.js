@@ -124,11 +124,16 @@ export const serveFile = async (req, res, next) => {
 
     const fileSize = fileInfo.length;
     const ext = path.extname(fileInfo.filename || '').toLowerCase();
-    const mimeType = MIME_BY_EXTENSION[ext] || 'application/octet-stream';
+    const mimeType = fileInfo.metadata?.contentType || MIME_BY_EXTENSION[ext] || 'application/octet-stream';
+    const safeName = String(attachment.originalName || fileInfo.metadata?.originalName || 'download')
+      .replace(/[\\u0000-\\u001f\\u007f"\\\\]/g, '_')
+      .slice(0, 180);
+    const disposition = mimeType.startsWith('image/') ? 'inline' : 'attachment';
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `${disposition}; filename="download"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
     const range = req.headers.range;
     let options = {};
     if (range) {
