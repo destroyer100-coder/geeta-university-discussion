@@ -2883,3 +2883,32 @@
     grid-template-columns:88px minmax(0,1fr)!important;
   }
 }
+
+/* Notification preference rows: keep each checkbox on a consistent right edge. */
+.page-notifications .notification-preferences-card .notification-preference-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 18px;
+  align-items:center;
+  column-gap:12px;
+  width:100%;
+  min-height:42px;
+  box-sizing:border-box;
+}
+.page-notifications .notification-preferences-card .notification-preference-row > span{
+  min-width:0;
+  line-height:1.4;
+}
+.page-notifications .notification-preferences-card .notification-preference-row > input[type="checkbox"]{
+  display:block;
+  width:16px;
+  height:16px;
+  justify-self:end;
+  align-self:center;
+  margin:0;
+  padding:0;
+  flex:none;
+  cursor:pointer;
+}
+.page-notifications .notification-preferences-card .notification-preference-row > i{
+  display:none;
+}
