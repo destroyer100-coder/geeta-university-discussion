@@ -350,9 +350,24 @@ export const getPosts = async (req, res, next) => {
         const poll = await Poll.findOne({ post: post._id });
 
         let userVotedPoll = null;
-        if (poll && req.user) {
-          const vote = await PollVote.findOne({ poll: poll._id, user: req.user._id });
-          if (vote) userVotedPoll = vote.option;
+        let pollData = null;
+        if (poll) {
+          const countRows = await PollVote.aggregate([
+            { $match: { poll: poll._id } },
+            { $group: { _id: '$option', votesCount: { $sum: 1 } } },
+          ]);
+          pollData = {
+            ...poll.toObject(),
+            options: poll.options.map((item, index) => ({
+              ...item.toObject(),
+              votesCount: countRows.find((row) => row._id === index)?.votesCount || 0,
+            })),
+          };
+          if (req.user) {
+            const vote = await PollVote.findOne({ poll: poll._id, user: req.user._id });
+            if (vote) userVotedPoll = vote.option;
+          }
+          pollData.userVotedOption = userVotedPoll;
         }
 
         const isLiked = req.user
@@ -389,7 +404,7 @@ export const getPosts = async (req, res, next) => {
           isHelpful,
           attachments,
           folders,
-          poll: poll ? { ...poll.toObject(), userVotedOption: userVotedPoll } : null,
+          poll: pollData,
         };
       })
     );
@@ -502,9 +517,24 @@ export const getPostById = async (req, res, next) => {
     const poll = await Poll.findOne({ post: post._id });
 
     let userVotedPoll = null;
-    if (poll && req.user) {
-      const vote = await PollVote.findOne({ poll: poll._id, user: req.user._id });
-      if (vote) userVotedPoll = vote.option;
+    let pollData = null;
+    if (poll) {
+      const countRows = await PollVote.aggregate([
+        { $match: { poll: poll._id } },
+        { $group: { _id: '$option', votesCount: { $sum: 1 } } },
+      ]);
+      pollData = {
+        ...poll.toObject(),
+        options: poll.options.map((item, index) => ({
+          ...item.toObject(),
+          votesCount: countRows.find((row) => row._id === index)?.votesCount || 0,
+        })),
+      };
+      if (req.user) {
+        const vote = await PollVote.findOne({ poll: poll._id, user: req.user._id });
+        if (vote) userVotedPoll = vote.option;
+      }
+      pollData.userVotedOption = userVotedPoll;
     }
 
     const isLiked = req.user
