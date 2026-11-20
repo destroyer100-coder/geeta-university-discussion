@@ -3112,3 +3112,62 @@
     width:auto;
   }
 }
+
+/* Communities directory: let the result grid use the available width when only
+   one community is returned, instead of leaving a narrow card in a blank column. */
+.page-communities .community-grid{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))!important;
+  align-items:stretch;
+  gap:14px!important;
+  width:100%;
+}
+.page-communities .community-card{
+  width:100%;
+  min-width:0;
+  min-height:210px;
+  box-sizing:border-box;
+}
+.page-communities .community-card > div:first-child{
+  min-width:0;
+}
+.page-communities .community-card > div:first-child > div{
+  min-width:0;
+}
+.page-communities .community-card-description{
+  min-height:0;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.page-communities .community-card-footer{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:auto;
+  padding-top:14px;
+}
+.page-communities .community-card-footer > div:first-child{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+  flex-wrap:wrap;
+}
+.page-communities .community-card-footer > div:last-child{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  margin-left:auto;
+}
+@media(max-width:700px){
+  .page-communities .community-grid{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  .page-communities .community-card-footer{
+    align-items:flex-start;
+  }
+}
