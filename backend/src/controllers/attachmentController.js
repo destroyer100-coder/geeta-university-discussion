@@ -1,8 +1,6 @@
 import path from 'path';
-import fs from 'fs';
 import { Attachment } from '../models/Attachment.js';
 import { permissionService } from '../services/permissionService.js';
-import { UPLOAD_DIR } from '../config/env.js';
 import { saveUpload, getUploadInfo, openUploadDownloadStream, deleteUpload, isValidUploadId } from '../services/gridfsStorage.js';
 import {
   ERROR_CODES, VISIBILITY, DELEGATED_PERMISSIONS, CONTENT_STATUS,
