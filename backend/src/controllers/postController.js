@@ -14,7 +14,6 @@ import { AuditLog } from '../models/AuditLog.js';
 import { permissionService } from '../services/permissionService.js';
 import { notificationService } from '../services/notificationService.js';
 import { isValidSafeUrl } from '../utils/linkSafety.js';\nimport { getUploadInfo } from '../services/gridfsStorage.js';
-import { UPLOAD_DIR } from '../config/env.js';
 import {
   CONTENT_STATUS,
   POST_TYPES,
@@ -27,7 +26,6 @@ import {
 
 const MAX_POST_PAGE_SIZE = 100;
 const MAX_POST_SEARCH_LENGTH = 120;
-const ATTACHMENT_NAME_PATTERN = /^u-([a-f0-9]{24})-([a-f0-9]{32})(\.[a-z0-9]{1,10})$/i;
 
 const UPLOAD_FILE_SPECS = {
   '.jpg': { type: 'image', mimeType: 'image/jpeg', directory: 'images' },
