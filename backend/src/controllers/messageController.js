@@ -177,7 +177,7 @@ export const deleteMessageForMe = async (req, res, next) => {
     }
 
     // Verify both message addressing and membership in its exact conversation.
-    const conversation = await Conversation.findOne({ _id: message.conversation, participants: req.user._id, participants: { $size: 2 } });
+    const conversation = await Conversation.findOne({ _id: message.conversation, participants: { $all: [req.user._id], $size: 2 } });
     const isParticipant = !!conversation && (
       message.sender.toString() === req.user._id.toString() ||
       message.receiver.toString() === req.user._id.toString()
