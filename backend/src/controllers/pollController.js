@@ -4,12 +4,7 @@ import { Post } from '../models/Post.js';
 import { CONTENT_STATUS, VISIBILITY, ERROR_CODES } from '../constants/index.js';
 import { permissionService } from '../services/permissionService.js';
 
-const getPollWithAuthoritativeCounts = async (pollId, userId, userVotedOption) => {
-  const [counts] = await PollVote.aggregate([
-    { $match: { poll: pollId } },
-    { $group: { _id: '$option', votesCount: { $sum: 1 } } },
-  ]);
-
+const getPollWithAuthoritativeCounts = async (pollId, userVotedOption) => {
   const countRows = await PollVote.aggregate([
     { $match: { poll: pollId } },
     { $group: { _id: '$option', votesCount: { $sum: 1 } } },
@@ -120,7 +115,7 @@ export const votePoll = async (req, res, next) => {
       }
     }
 
-    const data = await getPollWithAuthoritativeCounts(poll._id, userId, userVotedOption);
+    const data = await getPollWithAuthoritativeCounts(poll._id, userVotedOption);
     return res.json({ success: true, message, data });
   } catch (error) {
     next(error);
