@@ -49,7 +49,7 @@ const detectFileType = (buffer, ext) => {
   if (ext === '.gif' && (buffer.subarray(0, 6).toString() === 'GIF87a' || buffer.subarray(0, 6).toString() === 'GIF89a')) return 'image/gif';
   if (ext === '.webp' && buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP') return 'image/webp';
   if (ext === '.pdf' && buffer.subarray(0, 5).toString() === '%PDF-') return 'application/pdf';
-  if (['.zip', '.docx', '.xlsx', '.pptx'].includes(ext) && starts(0x50, 0x4b, 0x03, 0x04)) return ext === '.zip' ? 'application/zip' : null;
+  if (['.zip', '.docx', '.xlsx', '.pptx'].includes(ext) && starts(0x50, 0x4b, 0x03, 0x04)) return 'application/zip';
   if (['.doc', '.xls', '.ppt'].includes(ext) && starts(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1)) return 'application/ole';
   if (['.txt', '.csv'].includes(ext) && !buffer.includes(0)) return ext === '.txt' ? 'text/plain' : 'text/csv';
   return null;
@@ -74,7 +74,7 @@ export const uploadFiles = async (req, res, next) => {
     for (const file of req.files) {
       const ext = path.extname(file.originalname).toLowerCase();
       const detectedMime = detectFileType(file.buffer, ext);
-      if (!detectedMime || (detectedMime !== file.mimetype && !(detectedMime === 'application/ole' && ['.doc', '.xls', '.ppt'].includes(ext)) && !(detectedMime === null && ['.docx', '.xlsx', '.pptx'].includes(ext))) ) {
+      const officeZip = detectedMime === 'application/zip' && ['.docx', '.xlsx', '.pptx'].includes(ext);\n      const legacyOffice = detectedMime === 'application/ole' && ['.doc', '.xls', '.ppt'].includes(ext);\n      if (!detectedMime || (detectedMime !== file.mimetype && !officeZip && !legacyOffice)) {
         const error = new Error('The uploaded file content does not match an allowed file type.');
         error.statusCode = 400;
         throw error;
