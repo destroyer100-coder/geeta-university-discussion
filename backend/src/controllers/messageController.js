@@ -213,7 +213,7 @@ export const deleteMessageForEveryone = async (req, res, next) => {
       });
     }
 
-    const conversation = await Conversation.findOne({ _id: message.conversation, participants: req.user._id, participants: { $size: 2 } });
+    const conversation = await Conversation.findOne({ _id: message.conversation, participants: { $all: [req.user._id], $size: 2 } });
     if (!conversation || message.sender.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
