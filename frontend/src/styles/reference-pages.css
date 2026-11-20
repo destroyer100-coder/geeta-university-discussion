@@ -3171,3 +3171,26 @@
     align-items:flex-start;
   }
 }
+
+/* Communities directory correction: preserve a compact card width when the
+   API returns only one community. auto-fill keeps the unused second track,
+   while auto-fit incorrectly stretched the single card across the whole row. */
+.page-communities .community-grid{
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))!important;
+  align-items:stretch;
+  justify-content:start;
+}
+.page-communities .community-card{
+  width:100%;
+  max-width:360px;
+  min-height:210px;
+  justify-self:start;
+}
+@media(max-width:700px){
+  .page-communities .community-grid{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  .page-communities .community-card{
+    max-width:none;
+  }
+}
