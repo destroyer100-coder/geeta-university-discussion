@@ -3,6 +3,7 @@ import path from 'path';
 
 const allowedTypes = {
   '.jpg': ['image/jpeg'], '.jpeg': ['image/jpeg'], '.png': ['image/png'],
+  '.mp4': ['video/mp4'], '.webm': ['video/webm'],
   '.gif': ['image/gif'], '.webp': ['image/webp'],
   '.pdf': ['application/pdf'], '.txt': ['text/plain'],
   '.csv': ['text/csv', 'application/vnd.ms-excel'],
