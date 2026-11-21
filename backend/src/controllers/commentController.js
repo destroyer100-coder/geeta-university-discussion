@@ -77,7 +77,7 @@ export const getComments = async (req, res, next) => {
 
       return {
         ...c,
-        body: isDeleted && !isAuthor ? '[Comment removed by moderation or author]' : c.body,
+        body: isDeleted ? '[Comment removed by moderation or author]' : c.body,
         likesCount: (c.likes || []).length,
         helpfulCount: (c.helpfulVotes || []).length,
         isLiked: req.user
@@ -321,6 +321,14 @@ export const acceptCommentAnswer = async (req, res, next) => {
       });
     }
 
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot mark a deleted comment as an accepted answer.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Comment is unavailable.' },
+      });
+    }
+
     const newStatus = !comment.isAccepted;
 
     if (newStatus) {
@@ -371,6 +379,14 @@ export const updateComment = async (req, res, next) => {
         success: false,
         message: 'Comment not found.',
         error: { code: ERROR_CODES.NOT_FOUND, message: 'Comment not found.' },
+      });
+    }
+
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot edit a deleted comment.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Comment is unavailable.' },
       });
     }
 
@@ -430,9 +446,31 @@ export const deleteComment = async (req, res, next) => {
       });
     }
 
-    await Comment.deleteOne({ _id: comment._id });
+    // Preserve the comment record as a tombstone and make deletion idempotent.
+    const deleted = await Comment.findOneAndUpdate(
+      {
+        _id: comment._id,
+        isDeleted: { $ne: true },
+        status: { $nin: [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED] },
+      },
+      {
+        $set: {
+          isDeleted: true,
+          status: CONTENT_STATUS.DELETED,
+          deletedBy: req.user._id,
+          isAccepted: false,
+          likes: [],
+          helpfulVotes: [],
+        },
+      },
+      { new: true }
+    );
 
-    // Decrement post comments count atomically
+    if (!deleted) {
+      return res.json({ success: true, message: 'Comment is already deleted.' });
+    }
+
+    // Decrement post comments count only for the first successful soft-delete.
     if (comment.post) {
       await Post.updateOne({ _id: comment.post._id }, { $inc: { commentsCount: -1 } });
     }
