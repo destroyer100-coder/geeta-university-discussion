@@ -1,41 +1,100 @@
+import mongoose from 'mongoose';
 import { Report } from '../models/Report.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { Post } from '../models/Post.js';
 import { Comment } from '../models/Comment.js';
 import { Community } from '../models/Community.js';
+import { User } from '../models/User.js';
 import { ERROR_CODES } from '../constants/index.js';
 
 export const createReport = async (req, res, next) => {
   try {
-    const { targetType, targetId, reason, details } = req.body;
+    const { targetType, targetId, reason, details } = req.body || {};
 
-    if (!targetType || !targetId || !reason) {
+    const allowedTargetTypes = ['post', 'comment', 'user'];
+    if (typeof targetType !== 'string' || !allowedTargetTypes.includes(targetType)) {
       return res.status(400).json({
         success: false,
-        message: 'Target type, target ID, and reason are required.',
-        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Missing report fields.' },
+        message: 'Target type must be post, comment, or user.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid target type.' },
       });
     }
 
-    // Resolve community context from the reported target (Point 1, 2, 11)
+    if (typeof targetId !== 'string' || !mongoose.isValidObjectId(targetId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target ID must be a valid identifier.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid target ID.' },
+      });
+    }
+
+    if (typeof reason !== 'string' || !reason.trim() || reason.trim().length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reason is required and must be at most 100 characters.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid report reason.' },
+      });
+    }
+
+    if (details !== undefined && (typeof details !== 'string' || details.length > 1000)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Report details must be text and at most 1000 characters.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid report details.' },
+      });
+    }
+
+    const normalizedTargetId = targetId.trim();
+    const normalizedReason = reason.trim();
+    const normalizedDetails = typeof details === 'string' ? details.trim() : '';
+
+    // Resolve and verify the target before creating a report. Invalid target types
+    // or nonexistent IDs must not become platform-level reports with community=null.
     let communityId = null;
     if (targetType === 'post') {
-      const post = await Post.findById(targetId);
-      communityId = post ? post.community : null;
+      const post = await Post.findById(normalizedTargetId).select('community');
+      if (!post) {
+        return res.status(404).json({
+          success: false,
+          message: 'Reported post not found.',
+          error: { code: ERROR_CODES.NOT_FOUND, message: 'Target not found.' },
+        });
+      }
+      communityId = post.community || null;
     } else if (targetType === 'comment') {
-      const comment = await Comment.findById(targetId);
-      if (comment) {
-        const post = await Post.findById(comment.post);
-        communityId = post ? post.community : null;
+      const comment = await Comment.findById(normalizedTargetId).select('post');
+      if (!comment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Reported comment not found.',
+          error: { code: ERROR_CODES.NOT_FOUND, message: 'Target not found.' },
+        });
+      }
+      const post = await Post.findById(comment.post).select('community');
+      if (!post) {
+        return res.status(404).json({
+          success: false,
+          message: 'Parent discussion not found.',
+          error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent discussion not found.' },
+        });
+      }
+      communityId = post.community || null;
+    } else {
+      const user = await User.findById(normalizedTargetId).select('_id');
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Reported user not found.',
+          error: { code: ERROR_CODES.NOT_FOUND, message: 'Target not found.' },
+        });
       }
     }
-    // User reports have no community (platform-level, e.g., harassment across communities)
 
     // Check duplicate report within last 10 minutes (Point 13)
     const recentDuplicate = await Report.findOne({
       reporter: req.user._id,
       targetType,
-      targetId,
+      targetId: normalizedTargetId,
       createdAt: { $gte: new Date(Date.now() - 10 * 60 * 1000) },
     });
 
@@ -50,9 +109,9 @@ export const createReport = async (req, res, next) => {
     const report = await Report.create({
       reporter: req.user._id,
       targetType,
-      targetId,
-      reason,
-      details: details || '',
+      targetId: normalizedTargetId,
+      reason: normalizedReason,
+      details: normalizedDetails,
       status: 'pending',
       community: communityId,
     });
@@ -64,7 +123,7 @@ export const createReport = async (req, res, next) => {
       targetType: 'report',
       targetId: report._id.toString(),
       community: communityId,
-      details: { targetType, targetId, reason, communityId, reporter: req.user._id },
+      details: { targetType, targetId: normalizedTargetId, reason: normalizedReason, communityId, reporter: req.user._id },
       ip: req.ip || '',
     });
 
@@ -77,7 +136,6 @@ export const createReport = async (req, res, next) => {
     next(error);
   }
 };
-
 export const getReports = async (req, res, next) => {
   try {
     let reports;
