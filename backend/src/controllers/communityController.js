@@ -895,7 +895,8 @@ export const getCommunityMembers = async (req, res, next) => {
 export const getCommunityAuditLogs = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const community = await Community.findById(id);
+    const query = id.match(/^[0-9a-fA-F]{24}$/) ? { _id: id } : { slug: id.toLowerCase() };
+    const community = await Community.findOne(query);
 
     if (!community) {
       return res.status(404).json({
