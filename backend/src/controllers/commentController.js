@@ -328,6 +328,14 @@ export const acceptCommentAnswer = async (req, res, next) => {
     }
 
     const post = comment.post;
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent post not found.',
+        error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent post not found.' },
+      });
+    }
+
     const isPostAuthor = post.author.toString() === req.user._id.toString();
 
     // Post author may always mark answers on their own discussion; moderators require
@@ -346,6 +354,15 @@ export const acceptCommentAnswer = async (req, res, next) => {
         success: false,
         message: 'Only the author of the discussion or a moderator delegated mark_accepted_answers permission can mark an accepted answer.',
         error: { code: ERROR_CODES.FORBIDDEN, message: 'Unauthorized action.' },
+      });
+    }
+
+    if ([CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED, CONTENT_STATUS.HIDDEN,
+      CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot mark an answer on an unavailable post.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Parent post is unavailable.' },
       });
     }
 
