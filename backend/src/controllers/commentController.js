@@ -135,6 +135,34 @@ export const createComment = async (req, res, next) => {
       });
     }
 
+    // Validate reply parent: it must exist, belong to this post, and be available.
+    if (parentComment) {
+      const parent = await Comment.findById(parentComment).select('post isDeleted status');
+      if (!parent) {
+        return res.status(404).json({
+          success: false,
+          message: 'Parent comment not found.',
+          error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent comment not found.' },
+        });
+      }
+
+      if (parent.post.toString() !== post._id.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reply parent must belong to the same post.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid reply parent.' },
+        });
+      }
+
+      if (parent.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(parent.status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot reply to a deleted or removed comment.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Reply parent is unavailable.' },
+        });
+      }
+    }
+
     // Backend authoritative policy check (Point 2, Point 3, Point 4, Point 18)
     const perm = await permissionService.canComment(req.user, post.community, post);
     if (!perm.allowed) {
