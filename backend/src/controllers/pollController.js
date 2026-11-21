@@ -68,6 +68,18 @@ export const votePoll = async (req, res, next) => {
       }
     }
 
+    // Apply block relationships to poll interactions as well as comment interactions.
+    if (post.author) {
+      const blocked = await permissionService.isBlocked(req.user._id, post.author);
+      if (blocked) {
+        return res.status(403).json({
+          success: false,
+          message: 'You cannot interact with this poll due to user block settings.',
+          error: { code: ERROR_CODES.FORBIDDEN, message: 'Poll interaction blocked.' },
+        });
+      }
+    }
+
     if (poll.expiresAt && new Date() > new Date(poll.expiresAt)) {
       return res.status(400).json({
         success: false,
