@@ -80,7 +80,7 @@ export const getEvents = async (req, res, next) => {
     const filter = {};
     if (community) filter.community = community;
     if (upcoming === 'true') {
-      filter.date = { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) };
+      filter.date = { $gte: new Date() };
     }
 
     const events = await Event.find(filter)
