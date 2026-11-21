@@ -404,13 +404,13 @@ export const acceptCommentAnswer = async (req, res, next) => {
   }
 };
 
-// Update / Edit Comment (Author only)
+// Update / Edit Comment (Author only; parent discussion policy is authoritative)
 export const updateComment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { body } = req.body;
 
-    if (!body || body.trim().length === 0) {
+    if (typeof body !== 'string' || body.trim().length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Comment text cannot be empty.',
@@ -418,7 +418,10 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(id).populate({
+      path: 'post',
+      populate: { path: 'community' },
+    });
     if (!comment) {
       return res.status(404).json({
         success: false,
@@ -435,12 +438,57 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
-    if (comment.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    if (comment.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Unauthorized: Only the author can edit this comment.',
+        message: 'Unauthorized: Only the comment author can edit this comment.',
         error: { code: ERROR_CODES.FORBIDDEN, message: 'Unauthorized to edit comment.' },
       });
+    }
+
+    const post = comment.post;
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent post not found.',
+        error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent post not found.' },
+      });
+    }
+
+    if (
+      post.status !== CONTENT_STATUS.PUBLISHED ||
+      post.allowComments === false
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Comments cannot be edited while the discussion is unavailable or locked.',
+        error: { code: ERROR_CODES.FORBIDDEN, message: 'Discussion is unavailable for comment changes.' },
+      });
+    }
+
+    const community = post.community;
+    if (community?.permissions?.visibility === 'MEMBERS_ONLY') {
+      const hasAccess = await permissionService.canAccessAttachment(
+        req.user, null, post, community
+      );
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'You cannot access this private community discussion.',
+          error: { code: ERROR_CODES.FORBIDDEN, message: 'Access denied.' },
+        });
+      }
+    }
+
+    if (post.author) {
+      const blocked = await permissionService.isBlocked(req.user._id, post.author);
+      if (blocked) {
+        return res.status(403).json({
+          success: false,
+          message: 'You cannot interact with this discussion due to user block settings.',
+          error: { code: ERROR_CODES.FORBIDDEN, message: 'Interaction blocked.' },
+        });
+      }
     }
 
     // Preserve the previous text before overwriting it so edit history remains available.
