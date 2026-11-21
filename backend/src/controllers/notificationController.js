@@ -14,11 +14,13 @@ export const getNotifications = async (req, res, next) => {
     next(error);
   }
 };
-
 export const markAsRead = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await Notification.updateOne({ _id: id, user: req.user._id }, { read: true });
+    const result = await Notification.updateOne({ _id: id, user: req.user._id }, { read: true });
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Notification not found.' });
+    }
     res.json({ success: true, message: 'Notification marked as read.' });
   } catch (error) {
     next(error);
