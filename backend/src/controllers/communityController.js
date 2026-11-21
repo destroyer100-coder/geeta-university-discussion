@@ -376,8 +376,71 @@ export const updateCommunitySettings = async (req, res, next) => {
       community.rules = rules;
     }
 
-    if (permissions) {
-      auditChanges.permissions = { from: community.permissions, to: permissions };
+    if (permissions !== undefined) {
+      const allowedPermissionKeys = [
+        'visibility',
+        'postPolicy',
+        'commentPolicy',
+        'sharePolicy',
+        'allowPostRequests',
+        'requirePostApproval',
+        'allowAnonymousPosts',
+        'customAllowedUsers',
+      ];
+      const enumFields = {
+        visibility: Object.values(VISIBILITY),
+        postPolicy: ['EVERYONE', 'MEMBERS', 'APPROVED_USERS', 'HEAD_MODS', 'CUSTOM'],
+        commentPolicy: ['EVERYONE', 'MEMBERS', 'APPROVED_USERS', 'HEAD_MODS', 'CUSTOM'],
+        sharePolicy: ['EVERYONE', 'MEMBERS', 'DISABLED'],
+      };
+      const booleanFields = ['allowPostRequests', 'requirePostApproval', 'allowAnonymousPosts'];
+
+      if (!permissions || typeof permissions !== 'object' || Array.isArray(permissions)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Permissions must be an object.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid permissions payload.' },
+        });
+      }
+
+      const unknownKeys = Object.keys(permissions).filter((key) => !allowedPermissionKeys.includes(key));
+      if (unknownKeys.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Unsupported community permission field(s).',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Unknown permission fields.' },
+        });
+      }
+
+      for (const [field, allowedValues] of Object.entries(enumFields)) {
+        if (permissions[field] !== undefined && !allowedValues.includes(permissions[field])) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid ${field} value.`,
+            error: { code: ERROR_CODES.VALIDATION_ERROR, message: `Invalid ${field}.` },
+          });
+        }
+      }
+
+      for (const field of booleanFields) {
+        if (permissions[field] !== undefined && typeof permissions[field] !== 'boolean') {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid ${field} value.`,
+            error: { code: ERROR_CODES.VALIDATION_ERROR, message: `Invalid ${field}.` },
+          });
+        }
+      }
+
+      if (permissions.customAllowedUsers !== undefined && !Array.isArray(permissions.customAllowedUsers)) {
+        return res.status(400).json({
+          success: false,
+          message: 'customAllowedUsers must be an array.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid customAllowedUsers.' },
+        });
+      }
+
+      auditChanges.permissions = { from: community.permissions.toObject(), to: permissions };
       community.permissions = {
         ...community.permissions.toObject(),
         ...permissions,
