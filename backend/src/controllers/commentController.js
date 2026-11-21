@@ -426,9 +426,13 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
+    // Preserve the previous text before overwriting it so edit history remains available.
+    comment.editHistory.push({
+      editedAt: new Date(),
+      previousBody: comment.body,
+    });
     comment.body = body.trim();
-    comment.isEdited = true;
-    comment.editedAt = new Date();
+    comment.status = CONTENT_STATUS.EDITED;
     await comment.save();
 
     const populated = await Comment.findById(id).populate(
