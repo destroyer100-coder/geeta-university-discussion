@@ -404,7 +404,7 @@ export const acceptCommentAnswer = async (req, res, next) => {
   }
 };
 
-// Update / Edit Comment (Author only; parent discussion policy is authoritative)
+// Update / Edit Comment (Author or platform admin; current discussion policy applies)
 export const updateComment = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -438,7 +438,7 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
-    if (comment.author.toString() !== req.user._id.toString()) {
+    if (comment.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized: Only the comment author can edit this comment.',
@@ -455,40 +455,18 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
-    if (
-      post.status !== CONTENT_STATUS.PUBLISHED ||
-      post.allowComments === false
-    ) {
+    // Reuse the same authoritative policy as comment creation so later changes to
+    // locking, visibility, block relationships, or community comment rules apply.
+    const permission = await permissionService.canComment(req.user, post.community, post);
+    if (!permission.allowed) {
       return res.status(403).json({
         success: false,
-        message: 'Comments cannot be edited while the discussion is unavailable or locked.',
-        error: { code: ERROR_CODES.FORBIDDEN, message: 'Discussion is unavailable for comment changes.' },
+        message: permission.reason || 'You cannot edit a comment on this discussion.',
+        error: {
+          code: ERROR_CODES.FORBIDDEN,
+          message: permission.reason || 'Comment editing is not permitted.',
+        },
       });
-    }
-
-    const community = post.community;
-    if (community?.permissions?.visibility === 'MEMBERS_ONLY') {
-      const hasAccess = await permissionService.canAccessAttachment(
-        req.user, null, post, community
-      );
-      if (!hasAccess) {
-        return res.status(403).json({
-          success: false,
-          message: 'You cannot access this private community discussion.',
-          error: { code: ERROR_CODES.FORBIDDEN, message: 'Access denied.' },
-        });
-      }
-    }
-
-    if (post.author) {
-      const blocked = await permissionService.isBlocked(req.user._id, post.author);
-      if (blocked) {
-        return res.status(403).json({
-          success: false,
-          message: 'You cannot interact with this discussion due to user block settings.',
-          error: { code: ERROR_CODES.FORBIDDEN, message: 'Interaction blocked.' },
-        });
-      }
     }
 
     // Preserve the previous text before overwriting it so edit history remains available.
