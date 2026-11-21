@@ -19,6 +19,22 @@ export const getComments = async (req, res, next) => {
     }
 
     
+    if (post.status === CONTENT_STATUS.HIDDEN) {
+      const isAuthor = req.user && post.author.toString() === req.user._id.toString();
+      const canModerate = req.user && await permissionService.canModerate(
+        req.user,
+        post.community
+      );
+
+      if (!isAuthor && !canModerate) {
+        return res.status(403).json({
+          success: false,
+          message: 'You cannot view comments on this hidden post.',
+          error: { code: ERROR_CODES.FORBIDDEN, message: 'Post is not available.' },
+        });
+      }
+    }
+
     if ([CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED].includes(post.status)) {
       const isAuthor = req.user && post.author.toString() === req.user._id.toString();
       const canReview = req.user && await permissionService.hasDelegatedPermission(
@@ -244,25 +260,14 @@ export const toggleLikeComment = async (req, res, next) => {
       });
     }
 
-    if (
-      [CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED,
-        CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)
-    ) {
-      const isPostAuthor = post.author.toString() === userId.toString();
-      const canModerate = await permissionService.canModerate(req.user, post.community);
-      const canReview = await permissionService.hasDelegatedPermission(
-        req.user,
-        post.community,
-        DELEGATED_PERMISSIONS.MANAGE_REQUESTS
-      );
-
-      if (!isPostAuthor && !canModerate && !canReview) {
-        return res.status(403).json({
-          success: false,
-          message: 'You cannot like a comment on this post.',
-          error: { code: ERROR_CODES.FORBIDDEN, message: 'Post is not available.' },
-        });
-      }
+    // Comment reactions are enabled only on live discussions. Locked posts are
+    // read-only; pending, hidden, removed, and deleted posts are not interactive.
+    if (![CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.EDITED].includes(post.status)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You cannot like a comment on an inactive or read-only discussion.',
+        error: { code: ERROR_CODES.FORBIDDEN, message: 'Discussion is not interactive.' },
+      });
     }
 
     if (post.community?.permissions?.visibility === 'MEMBERS_ONLY') {
@@ -357,11 +362,10 @@ export const acceptCommentAnswer = async (req, res, next) => {
       });
     }
 
-    if ([CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED, CONTENT_STATUS.HIDDEN,
-      CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)) {
+    if (![CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.EDITED].includes(post.status)) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot mark an answer on an unavailable post.',
+        message: 'Cannot mark an answer on an inactive, hidden, or read-only post.',
         error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Parent post is unavailable.' },
       });
     }
