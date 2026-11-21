@@ -11,7 +11,7 @@ export const errorHandler = (err, req, res, next) => {
     console.error(err.stack);
   }
 
-  const statusCode = err.statusCode || (res.statusCode >= 400 ? res.statusCode : 500);
+  const statusCode = err.code === 'LIMIT_FILE_SIZE' ? 413 : (err.statusCode || (res.statusCode >= 400 ? res.statusCode : 500));
 
   let errorCode = ERROR_CODES.SERVER_ERROR;
   if (statusCode === 401) errorCode = ERROR_CODES.UNAUTHORIZED;
@@ -20,6 +20,7 @@ export const errorHandler = (err, req, res, next) => {
   else if (statusCode === 409) errorCode = ERROR_CODES.CONFLICT;
   else if (statusCode === 422 || statusCode === 400) errorCode = ERROR_CODES.VALIDATION_ERROR;
   else if (statusCode === 429) errorCode = ERROR_CODES.RATE_LIMITED;
+  else if (statusCode === 413) errorCode = ERROR_CODES.VALIDATION_ERROR;
 
   if (err.code && typeof err.code === 'string') {
     errorCode = err.code;

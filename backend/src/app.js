@@ -4,13 +4,9 @@ import routes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { correlationIdMiddleware } from './middleware/correlationId.js';
-import { initStorage } from './config/storage.js';
 import { NODE_ENV, CORS_ORIGINS } from './config/env.js';
 
 const app = express();
-
-// Initialize disk storage for media uploads.
-initStorage();
 
 app.disable('x-powered-by');
 app.use(correlationIdMiddleware);

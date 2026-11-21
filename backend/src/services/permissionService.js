@@ -5,6 +5,7 @@ import {
   VISIBILITY,
   POST_POLICY,
   COMMENT_POLICY,
+  SHARE_POLICY,
   COMMUNITY_MEMBER_ROLES,
   DELEGATED_PERMISSIONS,
   CONTENT_STATUS,
@@ -312,8 +313,8 @@ export const permissionService = {
     if (post.status === CONTENT_STATUS.LOCKED || post.allowComments === false) {
       return { allowed: false, reason: 'Comments are locked for this discussion' };
     }
-    if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED, CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED].includes(post.status)) {
-      return { allowed: false, reason: 'Cannot comment on inactive or pending content' };
+    if ([CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED, CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED, CONTENT_STATUS.HIDDEN].includes(post.status)) {
+      return { allowed: false, reason: 'Cannot comment on inactive, hidden, or pending content' };
     }
 
     if (post.author) {

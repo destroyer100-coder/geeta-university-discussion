@@ -19,6 +19,22 @@ export const getComments = async (req, res, next) => {
     }
 
     
+    if (post.status === CONTENT_STATUS.HIDDEN) {
+      const isAuthor = req.user && post.author.toString() === req.user._id.toString();
+      const canModerate = req.user && await permissionService.canModerate(
+        req.user,
+        post.community
+      );
+
+      if (!isAuthor && !canModerate) {
+        return res.status(403).json({
+          success: false,
+          message: 'You cannot view comments on this hidden post.',
+          error: { code: ERROR_CODES.FORBIDDEN, message: 'Post is not available.' },
+        });
+      }
+    }
+
     if ([CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED].includes(post.status)) {
       const isAuthor = req.user && post.author.toString() === req.user._id.toString();
       const canReview = req.user && await permissionService.hasDelegatedPermission(
@@ -77,7 +93,7 @@ export const getComments = async (req, res, next) => {
 
       return {
         ...c,
-        body: isDeleted && !isAuthor ? '[Comment removed by moderation or author]' : c.body,
+        body: isDeleted ? '[Comment removed by moderation or author]' : c.body,
         likesCount: (c.likes || []).length,
         helpfulCount: (c.helpfulVotes || []).length,
         isLiked: req.user
@@ -133,6 +149,34 @@ export const createComment = async (req, res, next) => {
         message: 'Post not found.',
         error: { code: ERROR_CODES.NOT_FOUND, message: 'Post not found.' },
       });
+    }
+
+    // Validate reply parent: it must exist, belong to this post, and be available.
+    if (parentComment) {
+      const parent = await Comment.findById(parentComment).select('post isDeleted status');
+      if (!parent) {
+        return res.status(404).json({
+          success: false,
+          message: 'Parent comment not found.',
+          error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent comment not found.' },
+        });
+      }
+
+      if (parent.post.toString() !== post._id.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reply parent must belong to the same post.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid reply parent.' },
+        });
+      }
+
+      if (parent.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(parent.status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot reply to a deleted or removed comment.',
+          error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Reply parent is unavailable.' },
+        });
+      }
     }
 
     // Backend authoritative policy check (Point 2, Point 3, Point 4, Point 18)
@@ -216,25 +260,14 @@ export const toggleLikeComment = async (req, res, next) => {
       });
     }
 
-    if (
-      [CONTENT_STATUS.PENDING, CONTENT_STATUS.REJECTED,
-        CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(post.status)
-    ) {
-      const isPostAuthor = post.author.toString() === userId.toString();
-      const canModerate = await permissionService.canModerate(req.user, post.community);
-      const canReview = await permissionService.hasDelegatedPermission(
-        req.user,
-        post.community,
-        DELEGATED_PERMISSIONS.MANAGE_REQUESTS
-      );
-
-      if (!isPostAuthor && !canModerate && !canReview) {
-        return res.status(403).json({
-          success: false,
-          message: 'You cannot like a comment on this post.',
-          error: { code: ERROR_CODES.FORBIDDEN, message: 'Post is not available.' },
-        });
-      }
+    // Comment reactions are enabled only on live discussions. Locked posts are
+    // read-only; pending, hidden, removed, and deleted posts are not interactive.
+    if (![CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.EDITED].includes(post.status)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You cannot like a comment on an inactive or read-only discussion.',
+        error: { code: ERROR_CODES.FORBIDDEN, message: 'Discussion is not interactive.' },
+      });
     }
 
     if (post.community?.permissions?.visibility === 'MEMBERS_ONLY') {
@@ -300,6 +333,14 @@ export const acceptCommentAnswer = async (req, res, next) => {
     }
 
     const post = comment.post;
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent post not found.',
+        error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent post not found.' },
+      });
+    }
+
     const isPostAuthor = post.author.toString() === req.user._id.toString();
 
     // Post author may always mark answers on their own discussion; moderators require
@@ -318,6 +359,22 @@ export const acceptCommentAnswer = async (req, res, next) => {
         success: false,
         message: 'Only the author of the discussion or a moderator delegated mark_accepted_answers permission can mark an accepted answer.',
         error: { code: ERROR_CODES.FORBIDDEN, message: 'Unauthorized action.' },
+      });
+    }
+
+    if (![CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.EDITED].includes(post.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot mark an answer on an inactive, hidden, or read-only post.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Parent post is unavailable.' },
+      });
+    }
+
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot mark a deleted comment as an accepted answer.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Comment is unavailable.' },
       });
     }
 
@@ -351,13 +408,13 @@ export const acceptCommentAnswer = async (req, res, next) => {
   }
 };
 
-// Update / Edit Comment (Author only)
+// Update / Edit Comment (Author or platform admin; current discussion policy applies)
 export const updateComment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { body } = req.body;
 
-    if (!body || body.trim().length === 0) {
+    if (typeof body !== 'string' || body.trim().length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Comment text cannot be empty.',
@@ -365,7 +422,10 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(id).populate({
+      path: 'post',
+      populate: { path: 'community' },
+    });
     if (!comment) {
       return res.status(404).json({
         success: false,
@@ -374,17 +434,52 @@ export const updateComment = async (req, res, next) => {
       });
     }
 
+    if (comment.isDeleted || [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED].includes(comment.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot edit a deleted comment.',
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Comment is unavailable.' },
+      });
+    }
+
     if (comment.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'Unauthorized: Only the author can edit this comment.',
+        message: 'Unauthorized: Only the comment author can edit this comment.',
         error: { code: ERROR_CODES.FORBIDDEN, message: 'Unauthorized to edit comment.' },
       });
     }
 
+    const post = comment.post;
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent post not found.',
+        error: { code: ERROR_CODES.NOT_FOUND, message: 'Parent post not found.' },
+      });
+    }
+
+    // Reuse the same authoritative policy as comment creation so later changes to
+    // locking, visibility, block relationships, or community comment rules apply.
+    const permission = await permissionService.canComment(req.user, post.community, post);
+    if (!permission.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: permission.reason || 'You cannot edit a comment on this discussion.',
+        error: {
+          code: ERROR_CODES.FORBIDDEN,
+          message: permission.reason || 'Comment editing is not permitted.',
+        },
+      });
+    }
+
+    // Preserve the previous text before overwriting it so edit history remains available.
+    comment.editHistory.push({
+      editedAt: new Date(),
+      previousBody: comment.body,
+    });
     comment.body = body.trim();
-    comment.isEdited = true;
-    comment.editedAt = new Date();
+    comment.status = CONTENT_STATUS.EDITED;
     await comment.save();
 
     const populated = await Comment.findById(id).populate(
@@ -430,9 +525,31 @@ export const deleteComment = async (req, res, next) => {
       });
     }
 
-    await Comment.deleteOne({ _id: comment._id });
+    // Preserve the comment record as a tombstone and make deletion idempotent.
+    const deleted = await Comment.findOneAndUpdate(
+      {
+        _id: comment._id,
+        isDeleted: { $ne: true },
+        status: { $nin: [CONTENT_STATUS.DELETED, CONTENT_STATUS.REMOVED] },
+      },
+      {
+        $set: {
+          isDeleted: true,
+          status: CONTENT_STATUS.DELETED,
+          deletedBy: req.user._id,
+          isAccepted: false,
+          likes: [],
+          helpfulVotes: [],
+        },
+      },
+      { new: true }
+    );
 
-    // Decrement post comments count atomically
+    if (!deleted) {
+      return res.json({ success: true, message: 'Comment is already deleted.' });
+    }
+
+    // Decrement post comments count only for the first successful soft-delete.
     if (comment.post) {
       await Post.updateOne({ _id: comment.post._id }, { $inc: { commentsCount: -1 } });
     }

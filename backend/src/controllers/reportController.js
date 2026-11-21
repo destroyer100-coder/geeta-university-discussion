@@ -2,8 +2,8 @@ import { Report } from '../models/Report.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { Post } from '../models/Post.js';
 import { Comment } from '../models/Comment.js';
-import { CommunityMember } from '../models/CommunityMember.js';
-import { ERROR_CODES, COMMUNITY_MEMBER_ROLES } from '../constants/index.js';
+import { Community } from '../models/Community.js';
+import { ERROR_CODES } from '../constants/index.js';
 
 export const createReport = async (req, res, next) => {
   try {
@@ -82,32 +82,24 @@ export const getReports = async (req, res, next) => {
   try {
     let reports;
     
-    // Community-aware report retrieval (Point 8, 16, 17, 18, 19)
-    if (req.user.role === 'admin' || req.user.role === 'faculty') {
-      // Platform admins and faculty can see ALL reports (platform-level scope)
+    // Platform Admin has platform-wide report access. Faculty and students
+    // receive only reports belonging to communities they currently own.
+    if (req.user.role === 'admin') {
       reports = await Report.find()
         .populate('reporter', 'name email')
         .populate('reviewer', 'name email')
         .sort({ createdAt: -1 });
     } else {
-      // Check if user is a community moderator or owner in any community
-      const memberships = await CommunityMember.find({
-        user: req.user._id,
-        status: 'active',
-        role: { $in: [COMMUNITY_MEMBER_ROLES.MODERATOR, COMMUNITY_MEMBER_ROLES.OWNER] },
-      }).select('community');
-      
-      if (memberships.length === 0) {
-        // Not a moderator anywhere - return no reports
-        res.json({ success: true, count: 0, data: [] });
-        return;
+      const ownedCommunities = await Community.find({ owner: req.user._id }).select('_id');
+      const communityIds = ownedCommunities.map((community) => community._id);
+
+      if (communityIds.length === 0) {
+        return res.json({ success: true, count: 0, data: [] });
       }
-      
-      // Moderator can see reports from their communities ONLY (exclude platform/global reports)
-      const communityIds = memberships.map(m => m.community);
-      reports = await Report.find({
-        community: { $in: communityIds },
-      })
+
+      // Moderator membership alone does not grant report access: the current
+      // permission model defines no delegated manage-reports permission.
+      reports = await Report.find({ community: { $in: communityIds } })
         .populate('reporter', 'name email')
         .populate('reviewer', 'name email')
         .sort({ createdAt: -1 });
@@ -141,27 +133,23 @@ export const updateReportStatus = async (req, res, next) => {
       });
     }
 
-    // Authorization check: only users with platform scope or community scope may review
-    if (req.user.role !== 'admin' && req.user.role !== 'faculty') {
-      // Community moderator: must be an active moderator in the report's community
-      // and cannot review platform/global reports (community === null)
+    // Only Platform Admin may review platform-level reports. For a
+    // community report, the current Head/Owner of that exact community may
+    // review it. Faculty role or moderator membership alone grants no bypass.
+    if (req.user.role !== 'admin') {
       if (!report.community) {
         return res.status(403).json({
           success: false,
-          message: 'You do not have permission to review this report.',
+          message: 'Only a Platform Admin can review platform-level reports.',
           error: { code: ERROR_CODES.FORBIDDEN, message: 'Insufficient privileges.' },
         });
       }
-      const membership = await CommunityMember.findOne({
-        user: req.user._id,
-        community: report.community,
-        status: 'active',
-        role: { $in: [COMMUNITY_MEMBER_ROLES.MODERATOR, COMMUNITY_MEMBER_ROLES.OWNER] },
-      });
-      if (!membership) {
+
+      const community = await Community.findById(report.community).select('owner');
+      if (!community || community.owner.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
-          message: 'You do not have permission to review this report.',
+          message: 'Only the Head/Owner of this community or a Platform Admin can review this report.',
           error: { code: ERROR_CODES.FORBIDDEN, message: 'Insufficient privileges.' },
         });
       }

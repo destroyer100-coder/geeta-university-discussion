@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Message } from '../models/Message.js';
 import { Conversation } from '../models/Conversation.js';
 import { User } from '../models/User.js';
@@ -13,14 +14,17 @@ export const getConversations = async (req, res, next) => {
       participants: userId,
       deletedBy: { $ne: userId },
     })
-      .populate('participants', 'name email avatar department role')
+      .populate({ path: 'participants', select: 'name avatar department role isDeleted', match: { isDeleted: false } })
       .sort({ lastMessageAt: -1 });
 
     const formatted = await Promise.all(
       conversations.map(async (conv) => {
+        // Messaging is strictly one-to-one; do not expose malformed conversations.
+        if (conv.participants.length !== 2) return null;
         const otherUser = conv.participants.find(
-          (p) => p._id.toString() !== userId.toString()
+          (p) => p && p._id.toString() !== userId.toString()
         );
+        if (!otherUser || await permissionService.isBlocked(userId, otherUser._id)) return null;
 
         // Count unread messages in this conversation for current user
         const unreadCount = await Message.countDocuments({
@@ -40,7 +44,7 @@ export const getConversations = async (req, res, next) => {
       })
     );
 
-    res.json({ success: true, data: formatted });
+    res.json({ success: true, data: formatted.filter(Boolean) });
   } catch (error) {
     next(error);
   }
@@ -51,9 +55,20 @@ export const getMessagesWithUser = async (req, res, next) => {
     const { userId: otherUserId } = req.params;
     const currentUserId = req.user._id;
 
-    // Find conversation
+    if (!mongoose.isValidObjectId(otherUserId) || otherUserId === currentUserId.toString()) {
+      return res.status(400).json({ success: false, message: 'A valid other user is required.', error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid conversation participant.' } });
+    }
+
+    const otherUser = await User.findOne({ _id: otherUserId, isDeleted: false }).select('_id');
+    if (!otherUser) return res.status(404).json({ success: false, message: 'User not found.', error: { code: ERROR_CODES.NOT_FOUND, message: 'User not found.' } });
+
+    if (await permissionService.isBlocked(currentUserId, otherUserId)) {
+      return res.status(403).json({ success: false, message: 'This conversation is unavailable because communication is restricted by block settings.', error: { code: ERROR_CODES.FORBIDDEN, message: 'User is blocked.' } });
+    }
+
+    // Match exactly the two participants; $all alone could match a larger group.
     const conversation = await Conversation.findOne({
-      participants: { $all: [currentUserId, otherUserId] },
+      participants: { $all: [currentUserId, otherUserId], $size: 2 },
     });
 
     if (!conversation) {
@@ -83,7 +98,7 @@ export const getMessagesWithUser = async (req, res, next) => {
 export const sendMessage = async (req, res, next) => {
   try {
     const { receiverId, body } = req.body;
-    if (!receiverId || !body || body.trim().length === 0) {
+    if (!mongoose.isValidObjectId(receiverId) || receiverId === req.user._id.toString() || typeof body !== 'string' || body.trim().length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Receiver and non-empty message body are required.',
@@ -91,7 +106,12 @@ export const sendMessage = async (req, res, next) => {
       });
     }
 
-    // Check Block restrictions (Point 14 & 18)
+    const receiver = await User.findOne({ _id: receiverId, isDeleted: false }).select('_id');
+    if (!receiver) {
+      return res.status(404).json({ success: false, message: 'Receiver not found.', error: { code: ERROR_CODES.NOT_FOUND, message: 'Receiver not found.' } });
+    }
+
+    // Enforce blocks for both new and already-existing conversations.
     const isBlocked = await permissionService.isBlocked(req.user._id, receiverId);
     if (isBlocked) {
       return res.status(403).json({
@@ -103,7 +123,7 @@ export const sendMessage = async (req, res, next) => {
 
     // Find or create conversation
     let conversation = await Conversation.findOne({
-      participants: { $all: [req.user._id, receiverId] },
+      participants: { $all: [req.user._id, receiverId], $size: 2 },
     });
 
     if (!conversation) {
@@ -156,10 +176,12 @@ export const deleteMessageForMe = async (req, res, next) => {
       });
     }
 
-    // Verify conversation participant
-    const isParticipant =
+    // Verify both message addressing and membership in its exact conversation.
+    const conversation = await Conversation.findOne({ _id: message.conversation, participants: { $all: [req.user._id], $size: 2 } });
+    const isParticipant = !!conversation && (
       message.sender.toString() === req.user._id.toString() ||
-      message.receiver.toString() === req.user._id.toString();
+      message.receiver.toString() === req.user._id.toString()
+    );
 
     if (!isParticipant) {
       return res.status(403).json({
@@ -191,7 +213,8 @@ export const deleteMessageForEveryone = async (req, res, next) => {
       });
     }
 
-    if (message.sender.toString() !== req.user._id.toString()) {
+    const conversation = await Conversation.findOne({ _id: message.conversation, participants: { $all: [req.user._id], $size: 2 } });
+    if (!conversation || message.sender.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Only the sender can delete a message for everyone.',

@@ -192,7 +192,11 @@ export const reviewPostRequest = async (req, res, next) => {
     // Audit Log entry (Point 8, 25)
     await AuditLog.create({
       actor: req.user._id,
-      action: status === POST_REQUEST_STATUS.APPROVED ? AUDIT_ACTIONS.APPROVE_POST : AUDIT_ACTIONS.REJECT_POST,
+      action: status === POST_REQUEST_STATUS.APPROVED
+        ? AUDIT_ACTIONS.APPROVE_POST
+        : status === POST_REQUEST_STATUS.REJECTED
+          ? AUDIT_ACTIONS.REJECT_POST
+          : AUDIT_ACTIONS.REQUEST_CLARIFICATION,
       targetType: 'post_request',
       targetId: postReq._id.toString(),
       community: postReq.community._id,
@@ -204,8 +208,12 @@ export const reviewPostRequest = async (req, res, next) => {
     await notificationService.notify({
       userId: postReq.user,
       actorId: req.user._id,
-      type: status === POST_REQUEST_STATUS.APPROVED ? 'request_approved' : 'request_rejected',
-      message: `Your request to post in "${postReq.community.name}" was ${status}. ${reviewNote ? `Note: ${reviewNote}` : ''}`,
+      type: status === POST_REQUEST_STATUS.APPROVED
+        ? 'request_approved'
+        : status === POST_REQUEST_STATUS.REJECTED
+          ? 'request_rejected'
+          : 'request_clarification',
+      message: `Your request to post in "${postReq.community.name}" was ${status === POST_REQUEST_STATUS.CLARIFICATION ? 'marked for clarification' : status}. ${reviewNote ? `Note: ${reviewNote}` : ''}`,
       target: { modelType: 'Community', id: postReq.community._id.toString(), title: postReq.community.name },
     });
 
