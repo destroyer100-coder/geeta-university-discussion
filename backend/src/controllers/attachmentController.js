@@ -43,8 +43,6 @@ const respondToAttachmentAccessFailure = (res, failure) => {
 const detectFileType = (buffer, ext) => {
   const starts = (...bytes) => bytes.every((byte, index) => buffer[index] === byte);
   if (['.jpg', '.jpeg'].includes(ext) && starts(0xff, 0xd8, 0xff)) return 'image/jpeg';
-  if (ext === '.mp4' && buffer.subarray(4, 8).toString() === 'ftyp') return 'video/mp4';
-  if (ext === '.webm' && starts(0x1a, 0x45, 0xdf, 0xa3)) return 'video/webm';
   if (ext === '.png' && starts(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return 'image/png';
   if (ext === '.gif' && (buffer.subarray(0, 6).toString() === 'GIF87a' || buffer.subarray(0, 6).toString() === 'GIF89a')) return 'image/gif';
   if (ext === '.webp' && buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP') return 'image/webp';
@@ -57,7 +55,6 @@ const detectFileType = (buffer, ext) => {
 
 const MIME_BY_EXTENSION = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp',
-  '.mp4': 'video/mp4', '.webm': 'video/webm',
   '.pdf': 'application/pdf', '.txt': 'text/plain; charset=utf-8', '.csv': 'text/csv; charset=utf-8',
   '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -131,7 +128,7 @@ export const serveFile = async (req, res, next) => {
     const safeName = String(attachment.originalName || fileInfo.metadata?.originalName || 'download')
       .replace(/[\\u0000-\\u001f\\u007f"\\\\]/g, '_')
       .slice(0, 180);
-    const disposition = mimeType.startsWith('image/') || mimeType.startsWith('video/') ? 'inline' : 'attachment';
+    const disposition = mimeType.startsWith('image/') ? 'inline' : 'attachment';
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('Accept-Ranges', 'bytes');
