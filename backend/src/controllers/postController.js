@@ -761,6 +761,9 @@ export const sharePost = async (req, res, next) => {
 };
 
 export const createPost = async (req, res, next) => {
+  let rollbackPostId = null;
+  let rollbackCommunityId = null;
+  let rollbackPostCount = false;
   try {
     const {
       community: communityId,
@@ -950,6 +953,9 @@ export const createPost = async (req, res, next) => {
       helpfulVotes: [],
     });
 
+    rollbackPostId = post._id;
+    rollbackCommunityId = community?._id || null;
+
     // 5. Create Folder records if supplied
     const folderPathMap = new Map();
     if (Array.isArray(folderPaths) && folderPaths.length > 0) {
@@ -1018,6 +1024,7 @@ export const createPost = async (req, res, next) => {
     // If published, increment community post count
     if (postStatus === CONTENT_STATUS.PUBLISHED && community) {
       await Community.updateOne({ _id: community._id }, { $inc: { postCount: 1 } });
+      rollbackPostCount = true;
     }
 
     // If pending approval, notify community owner and moderators (Point 5)
@@ -1056,6 +1063,27 @@ export const createPost = async (req, res, next) => {
       },
     });
   } catch (error) {
+    // Compensating cleanup for a failed post creation after the Post record exists.
+    // Staged GridFS uploads are intentionally retained so the client can retry.
+    if (rollbackPostId) {
+      const cleanupTasks = [
+        Attachment.deleteMany({ post: rollbackPostId }),
+        Folder.deleteMany({ post: rollbackPostId }),
+        Poll.deleteOne({ post: rollbackPostId }),
+        Post.deleteOne({ _id: rollbackPostId }),
+      ];
+      if (rollbackPostCount && rollbackCommunityId) {
+        cleanupTasks.push(
+          Community.updateOne({ _id: rollbackCommunityId }, { $inc: { postCount: -1 } })
+        );
+      }
+      const cleanupResults = await Promise.allSettled(cleanupTasks);
+      cleanupResults.forEach((result) => {
+        if (result.status === 'rejected') {
+          console.error('[createPost] Rollback cleanup failed:', result.reason?.message || result.reason);
+        }
+      });
+    }
     next(error);
   }
 };
